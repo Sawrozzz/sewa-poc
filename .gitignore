@@ -4,7 +4,6 @@ node_modules
 .pnp.js
 
 # pnpm
-pnpm-lock.yaml
 .pnpm-store
 
 # Build outputs
