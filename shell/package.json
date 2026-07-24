@@ -1,0 +1,41 @@
+{
+  "name": "@sewa/shell-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "lint": "next lint",
+    "clean": "rm -rf .next"
+  },
+  "dependencies": {
+    "@google/genai": "^2.11.0",
+    "@sewa/event-bus": "workspace:*",
+    "@sewa/platform-contracts": "workspace:*",
+    "@sewa/runtime-loader": "workspace:*",
+    "@sewa/shell-communicator": "workspace:*",
+    "@tanstack/react-query": "^5.101.3",
+    "axios": "^1.18.1",
+    "better-auth": "^1.6.23",
+    "lucide-react": "^1.22.0",
+    "next": "^16.2.9",
+    "next-intl": "^4.13.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@serwist/turbopack": "^9.5.11",
+    "@tailwindcss/postcss": "^4.3.1",
+    "@types/node": "^26.0.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.5.1",
+    "esbuild": "^0.28.1",
+    "postcss": "^8.5.15",
+    "serwist": "^9.5.11",
+    "tailwindcss": "^4.3.1",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "@sewa/shell-communicator",
+  "version": "1.0.0",
+  "description": "Privileged Shell gateway — routes SDK requests to Shell services and Event Bus",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@sewa/event-bus": "workspace:*",
+    "@sewa/platform-contracts": "workspace:*",
+    "axios": "^1.18.1"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3"
+  }
+}

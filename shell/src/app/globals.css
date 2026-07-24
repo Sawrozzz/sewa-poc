@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+:root {
+  --gov-primary: #007bc8;
+  --gov-primary-dark: #065486;
+  --gov-bg: #f8fafc;
+  --gov-surface: #ffffff;
+  --gov-text: #1e293b;
+  --gov-text-secondary: #64748b;
+  --gov-border: #e2e8f0;
+  --gov-success: #059669;
+  --gov-danger: #dc2626;
+  --gov-warning: #d97706;
+}
+
+@theme {
+    --color-gov-50: #f0f7ff;
+    --color-gov-100: #e0effe;
+    --color-gov-200: #bae0fd;
+    --color-gov-300: #7ccbfd;
+    --color-gov-400: #36b3fa;
+    --color-gov-500: #0c99eb;
+    --color-gov-600: #007bc8;
+    --color-gov-700: #0163a3;
+    --color-gov-800: #065486;
+    --color-gov-900: #0b476f;
+    --color-gov-950: #072d4a;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--gov-bg);
+  color: var(--gov-text);
+  min-height: 100vh;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}

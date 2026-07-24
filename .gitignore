@@ -1,0 +1,65 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# pnpm
+pnpm-lock.yaml
+.pnpm-store
+
+# Build outputs
+dist
+build
+dist-*
+build-*
+*.local
+
+# Vite
+.vite
+dist-ssr
+*.local
+
+# Turbo
+.turbo
+
+#next
+.next
+
+# Coverage
+coverage
+.nyc_output
+
+# TypeScript
+*.tsbuildinfo
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+coverage
+.nyc_output
+
+# Misc
+*.tgz
+.cache
+.eslintcache
+.stylelintcache
+
+#env
+*.env
+!.env.example

@@ -1,0 +1,11 @@
+packages:
+  - 'packages/*'
+  - 'shell/'
+allowBuilds:
+  '@google/genai': true
+  '@parcel/watcher': true
+  '@swc/core': true
+  esbuild: true
+  nx: true
+  protobufjs: true
+  sharp: true

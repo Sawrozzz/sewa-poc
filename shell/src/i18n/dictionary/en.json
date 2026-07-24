@@ -1,0 +1,13 @@
+{
+  "HomePage": {
+    "title": "Hello world!",
+    "welcome_text": "Welcome back, Citizen!",
+     "services_description": "Access your government services below. New services are added automatically as they become available."
+  },
+  "LocaleSwitcher": {
+    "label": "Language"
+  },
+  "LoginPage": {
+    "portal_title": "Government Citizen Portal"
+  }
+}
