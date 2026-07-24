@@ -3,5 +3,5 @@
   "installCommand": "pnpm install",
   "devCommand": "pnpm --filter @sewa/shell-app dev",
   "framework": "nextjs",
-  "outputDirectory": "shell/.next"
+  "outputDirectory": ".next"
 }
