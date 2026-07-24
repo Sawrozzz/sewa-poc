@@ -115,13 +115,38 @@ export interface ViteManifestEntry {
   framework?: string;
 }
 
+export interface ManifestApplication {
+  id:string;
+  name:string;
+  version: string;
+  type:string;
+}
+export interface ManifestPlatfrom {
+ runtime: string;
+ sdk:string;
+}
+
+export interface ManifestBundle {
+ entry: string;
+ styles:string[];
+ files: string[];
+}
+
+export interface ManifestEntry {
+  files: any;
+  styles: never[];
+  entry: string;
+  schemaVersion: string;
+  application: ManifestApplication;
+  platform: ManifestPlatfrom;
+  bundle: ManifestBundle
+}
+
 /**
  * Vite manifest.json structure.
- * Maps chunk names to their manifest entries.
+ * Maps chunk names to their manifest entries or raw bundle data.
  */
-export interface ViteManifest {
-  [key: string]: ViteManifestEntry;
-}
+export type ViteManifest = Record<string, unknown>;
 
 /**
  * Cached file entry in IndexedDB.

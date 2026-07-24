@@ -405,6 +405,7 @@ export class ShellCommunicator {
 
       case "device.location": {
         const result = await this.services.device.location(payload);
+        console.log('[Shell communicator]', result)
         return this.okResponse(msg, result);
       }
 

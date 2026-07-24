@@ -26,19 +26,36 @@ export interface NavigationState {
   historyLength: number;
 }
 
+export type DevicePermissionStatus =
+  | "granted"
+  | "denied"
+  | "permanentlyDenied"
+  | "restricted";
+
+export type DevicePermissionResponse<T> = {
+  status: DevicePermissionStatus;
+  data?: T;
+  error?: string;
+};
+
 export interface DeviceLocationResult {
   latitude: number;
   longitude: number;
   accuracy?: number;
-  timestamp: number;
+  timestamp?: string;
+}
+
+export interface DeviceLocationOptionsModule {
+  reason?:string
 }
 
 export interface DeviceCameraResult {
-  dataUrl: string;
-  mimeType: string;
-  width: number;
-  height: number;
+  url: string;
+  fileName?: string;
+  mimeType?: string;
+  byteSize?: number;
 }
+
 
 export interface DeviceGalleryResult {
   files: Array<{ dataUrl: string; mimeType: string; name: string }>;
@@ -164,8 +181,8 @@ export interface PlatformSdkModule {
 }
 
 export interface DeviceSdkModule {
-  location(options?: { highAccuracy?: boolean; timeout?: number }): Promise<DeviceLocationResult>;
-  camera(options?: { facing?: 'front' | 'back' }): Promise<DeviceCameraResult>;
+  location(options?: { highAccuracy?: boolean; timeout?: number }): Promise<DevicePermissionResponse<DeviceLocationResult>>;
+  camera(options?: { facing?: 'front' | 'back' }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
   gallery(options?: { maxCount?: number }): Promise<DeviceGalleryResult>;
   files(options?: { accept?: string[]; multiple?: boolean }): Promise<DeviceFilesResult>;
   biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;

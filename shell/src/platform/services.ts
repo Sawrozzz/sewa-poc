@@ -235,7 +235,7 @@ export function createShellServices(
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude,
             accuracy: pos.coords.accuracy,
-            timestamp: pos.timestamp,
+            timestamp: new Date(pos.timestamp),
             // altitude: pos.coords.altitude ?? undefined,
           }),
           (err) => reject(err),
@@ -244,7 +244,7 @@ export function createShellServices(
       });
     },
     camera: async (_options?: { facing?: "front" | "back" }) =>
-      ({ dataUrl: "", mimeType: "", width: 0, height: 0 }) as unknown as DeviceCameraResult,
+      ({ url: "", mimeType: "", byteSize: 0,  fileName: ""}) as unknown as DeviceCameraResult,
     gallery: async (_options?: { maxCount?: number }) =>
       ({ files: [] }) as unknown as DeviceGalleryResult,
     files: async (_options?: { accept?: string[]; multiple?: boolean }) =>

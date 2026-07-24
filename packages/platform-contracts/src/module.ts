@@ -12,6 +12,7 @@ import type {
   TelemetryContext,
   TelemetryMetrics,
   ChatSdkModule,
+  DevicePermissionResponse,
   DeviceLocationResult,
   DeviceCameraResult,
   DeviceGalleryResult,
@@ -185,8 +186,8 @@ export interface PluginServices {
   chat: ChatSdkModule;
   /** Device capabilities — only accessible through the shell bridge */
   device: {
-    location(options?: { highAccuracy?: boolean; timeout?: number }): Promise<DeviceLocationResult>;
-    camera(options?: { facing?: 'front' | 'back' }): Promise<DeviceCameraResult>;
+    location(options?: { highAccuracy?: boolean; timeout?: number }): Promise<DevicePermissionResponse<DeviceLocationResult>>;
+    camera(options?: { facing?: 'front' | 'back' }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
     gallery(options?: { maxCount?: number }): Promise<DeviceGalleryResult>;
     files(options?: { accept?: string[]; multiple?: boolean }): Promise<DeviceFilesResult>;
     biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;

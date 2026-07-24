@@ -1,18 +1,21 @@
 /**
  * Core Runtime Loader for mini-app bundles.
- * 
+ *
  * Orchestrates the loading lifecycle:
  * 1. Check IndexedDB cache for existing bundle
  * 2. If miss, fetch Vite manifest and download files
  * 3. Store files in IndexedDB cache
  * 4. Evaluate JavaScript via Blob URL
  * 5. Mount using framework-agnostic mountModule()
- * 
+ *
  * Supports retry logic, CSS injection, concurrent load handling,
  * and optional Shadow DOM isolation.
  */
 
-import type { RemoteLoadResult, PluginLoadOptions } from "@sewa/platform-contracts";
+import type {
+  RemoteLoadResult,
+  PluginLoadOptions,
+} from "@sewa/platform-contracts";
 import { PluginCacheDB } from "./cache";
 import { delay, mountWithIsolation } from "./utils";
 import type {
@@ -23,32 +26,33 @@ import type {
   MountMode,
   MiniAppModuleExports,
   MiniAppRuntime,
+  ManifestEntry,
 } from "./types";
 
 export class RuntimeLoader {
   /** Map of loaded modules by ID */
   private loadedModules = new Map<string, LoadedModule>();
-  
+
   /** Map of in-progress loading promises (prevents concurrent loads) */
   private loadingPromises = new Map<string, Promise<RemoteLoadResult>>();
-  
+
   /** Callbacks for load lifecycle events */
   private onLoadStart?: (moduleId: string) => void;
   private onLoadComplete?: (result: RemoteLoadResult) => void;
   private onLoadError?: (moduleId: string, error: string) => void;
-  
+
   /** Fetch function for HTTP requests */
   fetcher: typeof fetch;
-  
+
   /** IndexedDB cache for persistent storage */
   private db: PluginCacheDB;
-  
+
   /** Map of blob URLs for cleanup */
   private blobURLs = new Map<string, string>();
-  
+
   /** Set of module IDs with injected CSS (prevents duplicates) */
   private injectedCSS = new Set<string>();
-  
+
   /** Whether signature validation is required */
   private signatureRequired: boolean;
 
@@ -80,17 +84,17 @@ export class RuntimeLoader {
 
   /**
    * Load a mini-app module by ID and bundle URL.
-   * 
+   *
    * Returns cached version if available, otherwise downloads and caches.
    * Handles concurrent load requests by returning the same promise.
-   * 
+   *
    * @param moduleId - Unique identifier for the module
    * @param bundleUrl - URL where bundle files are located
    * @param version - Optional version for cache invalidation
    * @param options - Plugin load options (retry config, etc.)
    * @param mountMode - How to mount: 'dom' (default) or 'shadow' (isolated)
    * @returns Result of the load operation
-   * 
+   *
    * @example
    * ```typescript
    * const result = await loader.load(
@@ -100,7 +104,7 @@ export class RuntimeLoader {
    *   { retryAttempts: 3 },
    *   'shadow'  // Enable Shadow DOM isolation
    * );
-   * 
+   *
    * if (result.success) {
    *   result.bundle.mount(container, { services, config });
    * }
@@ -111,7 +115,7 @@ export class RuntimeLoader {
     bundleUrl: string,
     version?: string,
     options: PluginLoadOptions = {},
-    mountMode: MountMode = 'dom',
+    mountMode: MountMode = "dom",
   ): Promise<RemoteLoadResult> {
     // Return cached module if already loaded
     const cached = this.loadedModules.get(moduleId);
@@ -133,7 +137,13 @@ export class RuntimeLoader {
     }
 
     // Start new load operation
-    const promise = this.loadInternal(moduleId, bundleUrl, version, options, mountMode);
+    const promise = this.loadInternal(
+      moduleId,
+      bundleUrl,
+      version,
+      options,
+      mountMode,
+    );
     this.loadingPromises.set(moduleId, promise);
     try {
       return await promise;
@@ -144,9 +154,9 @@ export class RuntimeLoader {
 
   /**
    * Unload a module and clean up resources.
-   * 
+   *
    * Revokes blob URLs, removes injected CSS, and clears from loaded modules.
-   * 
+   *
    * @param moduleId - ID of the module to unload
    */
   async unload(moduleId: string): Promise<void> {
@@ -191,7 +201,7 @@ export class RuntimeLoader {
   /**
    * Inject CSS into the document head.
    * Prevents duplicate injection for the same module.
-   * 
+   *
    * @param css - CSS content to inject
    * @param moduleId - Module ID for tracking
    */
@@ -207,7 +217,7 @@ export class RuntimeLoader {
 
   /**
    * Fetch Vite manifest.json from bundle directory.
-   * 
+   *
    * @param baseUrl - Base URL of the bundle directory
    * @returns Parsed manifest and signature status, or null if not found
    */
@@ -223,13 +233,26 @@ export class RuntimeLoader {
       const res = await this.fetcher(manifestUrl, {
         cache: "no-store",
       });
-      console.log("[RuntimeLoader] fetchViteManifest response status:", res.status, "ok:", res.ok);
+      console.log(
+        "[RuntimeLoader] fetchViteManifest response status:",
+        res.status,
+        "ok:",
+        res.ok,
+      );
       if (!res.ok) return null;
       const raw = (await res.json()) as Record<string, unknown>;
-      console.log("[RuntimeLoader] fetchViteManifest parsed JSON keys:", Object.keys(raw));
+      console.log(
+        "[RuntimeLoader] fetchViteManifest parsed JSON keys:",
+        Object.keys(raw),
+      );
       const signature = raw.signature === true;
       const { signature: _sig, ...entries } = raw;
-      console.log("[RuntimeLoader] fetchViteManifest returning — entries keys:", Object.keys(entries as ViteManifest), "signature:", signature);
+      console.log(
+        "[RuntimeLoader] fetchViteManifest returning — entries keys:",
+        Object.keys(entries as ViteManifest),
+        "signature:",
+        signature,
+      );
       return { manifest: entries as ViteManifest, signature };
     } catch (err) {
       console.error("[RuntimeLoader] fetchViteManifest FAILED:", err);
@@ -239,9 +262,9 @@ export class RuntimeLoader {
 
   /**
    * Internal load implementation with retry logic.
-   * 
+   *
    * Attempts load up to retryAttempts times with exponential backoff.
-   * 
+   *
    * @param moduleId - Module ID to load
    * @param bundleUrl - URL of the bundle directory
    * @param version - Optional version string
@@ -261,10 +284,17 @@ export class RuntimeLoader {
     const retryAttempts = options.retryAttempts ?? 3;
     const retryDelayMs = options.retryDelayMs ?? 1000;
     let lastError = "";
-    
+
     for (let attempt = 0; attempt <= retryAttempts; attempt++) {
       try {
-        const result = await this.loadPlugin(moduleId, bundleUrl, version, startTime, options, mountMode);
+        const result = await this.loadPlugin(
+          moduleId,
+          bundleUrl,
+          version,
+          startTime,
+          options,
+          mountMode,
+        );
         if (result.success) {
           this.onLoadComplete?.(result);
           return result;
@@ -275,7 +305,7 @@ export class RuntimeLoader {
       }
       if (attempt < retryAttempts) await delay(retryDelayMs * (attempt + 1));
     }
-    
+
     const result: RemoteLoadResult = {
       moduleId,
       success: false,
@@ -289,13 +319,13 @@ export class RuntimeLoader {
 
   /**
    * Core plugin loading logic.
-   * 
+   *
    * Handles the complete load lifecycle:
    * 1. Check IndexedDB cache
    * 2. If miss, fetch manifest and download files
    * 3. Evaluate JavaScript via Blob URL
    * 4. Create bundle with mount/unmount methods
-   * 
+   *
    * @param moduleId - Module ID to load
    * @param bundleUrl - URL of the bundle directory
    * @param version - Optional version string
@@ -312,8 +342,7 @@ export class RuntimeLoader {
     _options: PluginLoadOptions,
     mountMode: MountMode,
   ): Promise<RemoteLoadResult> {
-    if (!bundleUrl)
-      throw new Error(`Module ${moduleId} missing bundleUrl`);
+    if (!bundleUrl) throw new Error(`Module ${moduleId} missing bundleUrl`);
     const bundleDirUrl = bundleUrl;
 
     // Check if module is cached
@@ -324,20 +353,26 @@ export class RuntimeLoader {
 
     if (dirCached) {
       // Load from cache
-      const cachedManifest = await this.db.getFile(moduleId, "manifest");
-      if (cachedManifest) {
-        const viteManifest: ViteManifest = JSON.parse(cachedManifest);
-        const entry = Object.values(viteManifest).find(e => e.isEntry);
-        if (entry) {
-          entryFileName = entry.file;
-          cssFileNames = entry.css ?? [];
-        }
+      const cachedManifestStr = await this.db.getFile(moduleId, "manifest");
+
+      if (cachedManifestStr) {
+        const manifest: ManifestEntry = JSON.parse(cachedManifestStr);
+
+        // Read directly from the bundle property
+        entryFileName = manifest.bundle.entry || "index.js";
+        cssFileNames = manifest.bundle.styles ?? [];
       }
+
+      // Load entry JS file from storage
       const indexJs = await this.db.getFile(moduleId, entryFileName);
       if (!indexJs) {
-        throw new Error(`Cached directory exists but ${entryFileName} was not found`);
+        throw new Error(
+          `Cached directory exists but ${entryFileName} was not found`,
+        );
       }
       files[entryFileName] = indexJs;
+
+      // Load and inject cached CSS files
       for (const cssFile of cssFileNames) {
         const cssContent = await this.db.getFile(moduleId, cssFile);
         if (cssContent) {
@@ -346,41 +381,67 @@ export class RuntimeLoader {
         }
       }
     } else {
-      // Download from network
+      // 2. Download from network
       const manifestResult = await this.fetchViteManifest(bundleDirUrl);
+
       if (manifestResult) {
-        const { manifest: viteManifest, signature } = manifestResult;
-        if (this.signatureRequired) {
-          if (!signature) {
-            throw new Error(
-              `Signature verification failed for module ${moduleId}`,
-            );
+        const { manifest, signature } = manifestResult; // manifest is typed as ManifestEntry
+
+        if (this.signatureRequired && !signature) {
+          throw new Error(
+            `Signature verification failed for module ${moduleId}`,
+          );
+        }
+
+        // Determine all files that need downloading (or pass manifest.bundle.files)
+        const manifestFileNames = new Set<string>();
+
+        if (manifest) {
+          const manifestBundle = (
+            manifest as {
+              bundle?: {
+                entry?: string;
+                styles?: string[];
+                files?: string[];
+              };
+            }
+          ).bundle;
+
+          if (manifestBundle) {
+            entryFileName = manifestBundle.entry ?? entryFileName;
+            cssFileNames = manifestBundle.styles ?? [];
+            manifestBundle.files?.forEach((file) => manifestFileNames.add(file));
           }
         }
-        const entry = Object.values(viteManifest).find(e => e.isEntry);
-        if (entry) {
-          entryFileName = entry.file;
-          cssFileNames = entry.css ?? [];
-        }
-        const fileNames = new Set<string>();
-        fileNames.add(entryFileName);
-        cssFileNames.forEach(css => fileNames.add(css));
+
+        // Always fetch entry file and styles
+        if (entryFileName) manifestFileNames.add(entryFileName);
+        cssFileNames.forEach((css) => manifestFileNames.add(css));
+
         files = await this.db.downloadDirectory(
-          bundleDirUrl, moduleId, _options,
-          Array.from(fileNames), viteManifest,
+          bundleDirUrl,
+          moduleId,
+          _options,
+          Array.from(manifestFileNames),
+          manifest,
         );
       } else {
+        // Fallback if manifest download fails
         const fileNames = new Set<string>();
         fileNames.add(entryFileName);
-        cssFileNames.forEach(css => fileNames.add(css));
+        cssFileNames.forEach((css) => fileNames.add(css));
+
         files = await this.db.downloadDirectory(
-          bundleDirUrl, moduleId, _options,
-          Array.from(fileNames), null,
+          bundleDirUrl,
+          moduleId,
+          _options,
+          Array.from(fileNames),
+          null,
         );
       }
     }
 
-    // Get the entry JavaScript file
+    // 3. Get the entry JavaScript file
     const indexJs = files[entryFileName];
     if (!indexJs) {
       throw new Error(
@@ -388,7 +449,7 @@ export class RuntimeLoader {
       );
     }
 
-    // Inject CSS files
+    // 4. Inject CSS files (if downloading path didn't inject them yet)
     for (const cssFile of cssFileNames) {
       const cssContent = files[cssFile];
       if (cssContent) {
@@ -396,7 +457,7 @@ export class RuntimeLoader {
       }
     }
 
-    // Evaluate the JavaScript module
+    // 5. Evaluate the JavaScript module
     const moduleExports = await this.evaluateModule(
       await this.getFullUrl(bundleDirUrl, entryFileName),
       indexJs,
@@ -404,10 +465,8 @@ export class RuntimeLoader {
 
     // Validate module exports
     if (typeof moduleExports.mount !== "function")
-      throw new Error(
-        `Bundle ${entryFileName} must export a mount() function`
-      );
-    
+      throw new Error(`Bundle ${entryFileName} must export a mount() function`);
+
     // Create bundle with mount/unmount methods
     const typedExports = moduleExports as MiniAppModuleExports;
     const miniAppBundle: MiniAppBundle = {
@@ -431,7 +490,7 @@ export class RuntimeLoader {
       loadedAt: Date.now(),
       mountMode,
     });
-    
+
     return {
       moduleId,
       success: true,
@@ -444,10 +503,10 @@ export class RuntimeLoader {
 
   /**
    * Evaluate JavaScript code via Blob URL.
-   * 
+   *
    * Creates a Blob with process shim and the code, then uses dynamic import.
    * This allows evaluation of ESM modules in a sandboxed context.
-   * 
+   *
    * @param fileUrl - Original file URL (for blob URL mapping)
    * @param code - JavaScript code to evaluate
    * @returns Module exports as MiniAppModuleExports
@@ -458,7 +517,9 @@ export class RuntimeLoader {
   ): Promise<MiniAppModuleExports> {
     // Add process shim for Node.js compatibility
     const processShim = `self.process = self.process || { env: { NODE_ENV: "production" } };`;
-    const blob = new Blob([processShim + code], { type: "application/javascript" });
+    const blob = new Blob([processShim + code], {
+      type: "application/javascript",
+    });
     const blobUrl = URL.createObjectURL(blob);
     this.blobURLs.set(fileUrl, blobUrl);
 
@@ -475,10 +536,10 @@ export class RuntimeLoader {
 
 /**
  * Factory function to create a RuntimeLoader instance.
- * 
+ *
  * @param options - Configuration options for the loader
  * @returns New RuntimeLoader instance
- * 
+ *
  * @example
  * ```typescript
  * const loader = createRuntimeLoader({
