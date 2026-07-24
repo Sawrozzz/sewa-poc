@@ -235,7 +235,7 @@ export function createShellServices(
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude,
             accuracy: pos.coords.accuracy,
-            timestamp: new Date(pos.timestamp),
+            timestamp: new Date(pos.timestamp).toISOString(),
             // altitude: pos.coords.altitude ?? undefined,
           }),
           (err) => reject(err),
