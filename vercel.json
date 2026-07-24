@@ -1,0 +1,7 @@
+{
+  "buildCommand": "pnpm build:platform && pnpm --filter @sewa/shell-app build",
+  "installCommand": "pnpm install",
+  "devCommand": "pnpm --filter @sewa/shell-app dev",
+  "framework": "nextjs",
+  "outputDirectory": "shell/.next"
+}
