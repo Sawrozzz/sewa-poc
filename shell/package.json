@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
+    "build:platform": "cd .. && pnpm --filter @sewa/platform-contracts build && pnpm --filter @sewa/event-bus build && pnpm --filter @sewa/shell-communicator build && pnpm --filter @sewa/runtime-loader build",
     "start": "next start -p 3000",
     "lint": "next lint",
     "clean": "rm -rf .next"
