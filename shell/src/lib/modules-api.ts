@@ -150,8 +150,8 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
     ],
     isEnabled: true,
     order: 1,
-    // bundleUrl: "https://mini-revenue-app.vercel.app/",
-    bundleUrl: "http://localhost:3008/",
+    bundleUrl: "https://mini-revenue-app.vercel.app/",
+    // bundleUrl: "http://localhost:3008/",
     entryType: "framework-agnostic",
     loadStrategy: "plugin",
     compatibility: {
