@@ -83,7 +83,7 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
         if (sdkLoaded.current) return;
         sdkLoaded.current = true;
 
-        const CDN_URL = "https://cdn.jsdelivr.net/npm/@sawrozzz/sdk-revised@1.1.8/dist/sdk-revised.min.js";
+        const CDN_URL = "https://cdn.jsdelivr.net/npm/@sawrozzz/sdk-revised@1.2.2/dist/sdk-revised.min.js";
         let sdkReady = typeof window.getMiniAppBridge === "function";
 
         if (!sdkReady) {

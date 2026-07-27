@@ -13,6 +13,9 @@ import type {
   DeviceNotificationResult,
   DeviceNetworkResult,
   DeviceInfoResult,
+  DevicePermissionResponse,
+  FileModule,
+  FileOptions,
   HttpResult,
 } from "@sewa/platform-contracts";
 
@@ -21,6 +24,64 @@ export interface PlatformServicesConfig {
   getAccessToken: () => string | null;
   logout: () => Promise<void>;
   navigate: (path: string) => void;
+}
+
+export function filePicker(options?: FileOptions): Promise<FileModule[]> {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.multiple = options?.multiple ?? false;
+
+    if (options?.accept?.length) {
+      input.accept = options.accept.join(",");
+    }
+    input.onchange = () => {
+      if (!input.files || input.files.length === 0) {
+        return reject(new Error("No files selected"));
+      }
+      const results: FileModule[] = Array.from(input.files).map((file) => {
+        const extension = file.name.split(".").pop()?.toLowerCase() || "";
+
+        const blobUrl = URL.createObjectURL(file);
+
+        return {
+          url: blobUrl,
+          previewUrl: blobUrl,
+          fileName: file.name,
+          mimeType: file.type || getFallbackMimeType(extension),
+          extension: extension,
+          byteSize: file.size,
+        };
+      });
+
+      resolve(results);
+    };
+
+    window.addEventListener(
+      "focus",
+      () => {
+        setTimeout(() => {
+          if (!input.files || input.files.length === 0) {
+            reject(new Error("File picker closed."));
+          }
+        }, 300);
+      },
+      { once: true },
+    );
+    input.click();
+  });
+}
+function getFallbackMimeType(ext: string): string {
+  const map: Record<string, string> = {
+    pdf: "application/pdf",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    webp: "image/webp",
+  };
+  return map[ext] || "application/octet-stream";
 }
 
 export function createShellServices(
@@ -117,7 +178,7 @@ export function createShellServices(
       getConfig().navigate(
         target.app === "shell"
           ? target.route
-          : `/mini-app/${target.app}${target.route === "/" ? "" : target.route}`
+          : `/mini-app/${target.app}${target.route === "/" ? "" : target.route}`,
       );
       navigationHandlers.forEach((h) => h(navigationState));
     },
@@ -137,21 +198,37 @@ export function createShellServices(
   };
 
   const telemetry = {
-    log: (ctx: TelemetryContext, level: string, message: string, context?: Record<string, unknown>) => {
+    log: (
+      ctx: TelemetryContext,
+      level: string,
+      message: string,
+      context?: Record<string, unknown>,
+    ) => {
       if (process.env.NODE_ENV === "development") {
-        console[level === "error" ? "error" : "log"](`[Telemetry:${level}]`, { message, ...context });
+        console[level === "error" ? "error" : "log"](`[Telemetry:${level}]`, {
+          message,
+          ...context,
+        });
       }
       const modId = (ctx as any).moduleId as string | undefined;
       if (level === "error" && modId) {
         metrics.errorCounts[modId] = (metrics.errorCounts[modId] ?? 0) + 1;
       }
     },
-    track: (ctx: TelemetryContext, event: string, properties?: Record<string, unknown>) => {
+    track: (
+      ctx: TelemetryContext,
+      event: string,
+      properties?: Record<string, unknown>,
+    ) => {
       metrics.eventThroughput++;
       if (process.env.NODE_ENV === "development") {
       }
     },
-    error: (ctx: TelemetryContext, err: Error | string, context?: Record<string, unknown>) => {
+    error: (
+      ctx: TelemetryContext,
+      err: Error | string,
+      context?: Record<string, unknown>,
+    ) => {
       const message = err instanceof Error ? err.message : err;
       const modId = (ctx as any).moduleId as string | undefined;
       if (modId) {
@@ -167,7 +244,10 @@ export function createShellServices(
   };
 
   const chat = {
-    chat: async function* (messages: ChatMessage[], _options?: Record<string, unknown>) {
+    chat: async function* (
+      messages: ChatMessage[],
+      _options?: Record<string, unknown>,
+    ) {
       try {
         const resp = await fetch("/api/chat", {
           method: "POST",
@@ -204,7 +284,9 @@ export function createShellServices(
                 const json = JSON.parse(jsonStr);
                 const content = json.choices?.[0]?.delta?.content || "";
                 if (content) yield content;
-              } catch { /* skip */ }
+              } catch {
+                /* skip */
+              }
             }
           }
         }
@@ -216,78 +298,192 @@ export function createShellServices(
               const json = JSON.parse(jsonStr);
               const content = json.choices?.[0]?.delta?.content || "";
               if (content) yield content;
-            } catch { /* skip */ }
+            } catch {
+              /* skip */
+            }
           }
         }
       } catch (err) {
-        console.error("[chat] error:", err instanceof Error ? err.message : err);
+        console.error(
+          "[chat] error:",
+          err instanceof Error ? err.message : err,
+        );
         yield "[error fetching reply]";
       }
     },
   };
 
   const device = {
-    location: async (_options?: { highAccuracy?: boolean; timeout?: number }) => {
-      if (!navigator.geolocation) throw new Error("Geolocation not supported");
-      return new Promise<DeviceLocationResult>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => resolve({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            accuracy: pos.coords.accuracy,
-            timestamp: new Date(pos.timestamp).toISOString(),
-            // altitude: pos.coords.altitude ?? undefined,
-          }),
-          (err) => reject(err),
-          { enableHighAccuracy: _options?.highAccuracy ?? false, timeout: _options?.timeout ?? 10000 }
+    location: async (_options?: {
+      highAccuracy?: boolean;
+      timeout?: number;
+      reason?: string;
+    }) => {
+      try {
+        if (!navigator.geolocation)
+          throw new Error("Geolocation not supported");
+        const result = await new Promise<DeviceLocationResult>(
+          (resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              (pos) =>
+                resolve({
+                  latitude: pos.coords.latitude,
+                  longitude: pos.coords.longitude,
+                  accuracy: pos.coords.accuracy,
+                  timestamp: new Date(pos.timestamp).toISOString(),
+                }),
+              (err) => reject(err),
+              {
+                enableHighAccuracy: _options?.highAccuracy ?? false,
+                timeout: _options?.timeout ?? 10000,
+              },
+            );
+          },
         );
-      });
+        return { status: "granted", data: result } as unknown as any;
+      } catch (err) {
+        return {
+          status: "denied",
+          data: null,
+          error: err instanceof Error ? err.message : "Location access denied",
+        } as unknown as any;
+      }
     },
-    camera: async (_options?: { facing?: "front" | "back" }) =>
-      ({ url: "", mimeType: "", byteSize: 0,  fileName: ""}) as unknown as DeviceCameraResult,
-    gallery: async (_options?: { maxCount?: number }) =>
-      ({ files: [] }) as unknown as DeviceGalleryResult,
-    files: async (_options?: { accept?: string[]; multiple?: boolean }) =>
-      ({ files: [] }) as unknown as DeviceFilesResult,
+    camera: async (_options?: { facing?: "front" | "back"; reason?: string }) =>
+      ({
+        status: "granted",
+        data: { url: "", mimeType: "", byteSize: 0, fileName: "" },
+      }) as unknown as any,
+
+    gallery: async (options?: FileOptions) => {
+      try {
+        const files = await filePicker({
+          multiple: options?.multiple,
+          accept: ["image/*", ".png", ".jpg", ".jpeg", ".webp", ".heic"],
+        });
+
+        return {
+          status: "granted",
+          data: {
+            images: files,
+          },
+        } as unknown as DevicePermissionResponse<DeviceGalleryResult>;
+      } catch (error: any) {
+        return {
+          status: "denied",
+          error: error?.message || "Gallery selection cancelled",
+        } as unknown as DevicePermissionResponse<DeviceGalleryResult>;
+      }
+    },
+    files: async (options?: FileOptions) => {
+      try {
+        const files = await filePicker({
+          multiple: options?.multiple,
+          accept: [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".csv"]
+        });
+
+        return {
+          status: "granted",
+          data: {
+            files: files,
+          },
+        } as unknown as DevicePermissionResponse<DeviceFilesResult>;
+      } catch (error: any) {
+        return {
+          status: "denied",
+          error: error?.message || "File selection cancelled",
+        } as unknown as DevicePermissionResponse<DeviceFilesResult>;
+      }
+    },
     biometric: async (_options?: { reason?: string }) =>
-      ({ success: false, method: "pin" }) as unknown as DeviceBiometricResult,
-    notifications: async (_options?: { requestPermission?: boolean }) =>
-      ({ granted: false }) as unknown as DeviceNotificationResult,
-    network: async () => ({
-      online: navigator.onLine,
-      type: navigator.onLine ? "unknown" : "none",
-    }) as unknown as DeviceNetworkResult,
+      ({
+        status: "granted",
+        data: { granted: false, method: "pin" },
+      }) as unknown as any,
+    notifications: async (_options?: {
+      requestPermission?: boolean;
+      reason?: string;
+    }) => ({ status: "granted", data: { granted: false } }) as unknown as any,
+    network: async () =>
+      ({
+        status: "granted",
+        data: {
+          online: navigator.onLine,
+          type: navigator.onLine ? "unknown" : "none",
+        },
+      }) as unknown as any,
     storage: {
-      get: async (key: string) => { try { return localStorage.getItem(`gov:${key}`); } catch { return null; } },
-      set: async (key: string, value: string) => { try { localStorage.setItem(`gov:${key}`, value); } catch { /* */ } },
-      remove: async (key: string) => { try { localStorage.removeItem(`gov:${key}`); } catch { /* */ } },
+      get: async (key: string) => {
+        try {
+          return localStorage.getItem(`gov:${key}`);
+        } catch {
+          return null;
+        }
+      },
+      set: async (key: string, value: string) => {
+        try {
+          localStorage.setItem(`gov:${key}`, value);
+        } catch {
+          /* */
+        }
+      },
+      remove: async (key: string) => {
+        try {
+          localStorage.removeItem(`gov:${key}`);
+        } catch {
+          /* */
+        }
+      },
     },
     info: async () => {
       const ua = navigator.userAgent;
       const isMobile = /Mobi|Android/i.test(ua);
       return {
-        platform: isMobile ? (ua.includes("iPhone") ? "IOS" : "ANDROID") : "WEB",
-        osVersion: "",
-        appVersion: "1",
-        deviceModel: ua,
-        locale: navigator.language,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      } as unknown as DeviceInfoResult;
+        status: "granted",
+        data: {
+          platform: isMobile
+            ? ua.includes("iPhone")
+              ? "IOS"
+              : "ANDROID"
+            : "WEB",
+          osVersion: "",
+          appVersion: "1",
+          deviceModel: ua,
+          locale: navigator.language,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+      } as unknown as any;
     },
   };
 
   const http = {
-    get: async <T = unknown>(endpoint?: string, query?: Record<string, string>) => {
+    get: async <T = unknown>(
+      endpoint?: string,
+      query?: Record<string, string>,
+    ) => {
       try {
         const params = query ? new URLSearchParams(query).toString() : "";
-        const res = await fetch(params ? `${endpoint ?? "/api"}?${params}` : endpoint ?? "/api");
+        const res = await fetch(
+          params ? `${endpoint ?? "/api"}?${params}` : (endpoint ?? "/api"),
+        );
         const data = await res.json();
-        return { status: res.status, data: data as T, headers: {} } as unknown as HttpResult<T>;
+        return {
+          status: res.status,
+          data: data as T,
+          headers: {},
+        } as unknown as HttpResult<T>;
       } catch (err) {
-        return { status: 0, error: err instanceof Error ? err.message : "HTTP GET failed" } as unknown as HttpResult<T>;
+        return {
+          status: 0,
+          error: err instanceof Error ? err.message : "HTTP GET failed",
+        } as unknown as HttpResult<T>;
       }
     },
-    post: async <T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>) => {
+    post: async <T = unknown>(
+      endpoint?: string,
+      body?: unknown,
+      headers?: Record<string, string>,
+    ) => {
       try {
         const res = await fetch(endpoint ?? "/api", {
           method: "POST",
@@ -295,12 +491,23 @@ export function createShellServices(
           body: body ? JSON.stringify(body) : undefined,
         });
         const data = await res.json();
-        return { status: res.status, data: data as T, headers: {} } as unknown as HttpResult<T>;
+        return {
+          status: res.status,
+          data: data as T,
+          headers: {},
+        } as unknown as HttpResult<T>;
       } catch (err) {
-        return { status: 0, error: err instanceof Error ? err.message : "HTTP POST failed" } as unknown as HttpResult<T>;
+        return {
+          status: 0,
+          error: err instanceof Error ? err.message : "HTTP POST failed",
+        } as unknown as HttpResult<T>;
       }
     },
-    put: async <T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>) => {
+    put: async <T = unknown>(
+      endpoint?: string,
+      body?: unknown,
+      headers?: Record<string, string>,
+    ) => {
       try {
         const res = await fetch(endpoint ?? "/api", {
           method: "PUT",
@@ -308,12 +515,23 @@ export function createShellServices(
           body: body ? JSON.stringify(body) : undefined,
         });
         const data = await res.json();
-        return { status: res.status, data: data as T, headers: {} } as unknown as HttpResult<T>;
+        return {
+          status: res.status,
+          data: data as T,
+          headers: {},
+        } as unknown as HttpResult<T>;
       } catch (err) {
-        return { status: 0, error: err instanceof Error ? err.message : "HTTP PUT failed" } as unknown as HttpResult<T>;
+        return {
+          status: 0,
+          error: err instanceof Error ? err.message : "HTTP PUT failed",
+        } as unknown as HttpResult<T>;
       }
     },
-    patch: async <T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>) => {
+    patch: async <T = unknown>(
+      endpoint?: string,
+      body?: unknown,
+      headers?: Record<string, string>,
+    ) => {
       try {
         const res = await fetch(endpoint ?? "/api", {
           method: "PATCH",
@@ -321,18 +539,38 @@ export function createShellServices(
           body: body ? JSON.stringify(body) : undefined,
         });
         const data = await res.json();
-        return { status: res.status, data: data as T, headers: {} } as unknown as HttpResult<T>;
+        return {
+          status: res.status,
+          data: data as T,
+          headers: {},
+        } as unknown as HttpResult<T>;
       } catch (err) {
-        return { status: 0, error: err instanceof Error ? err.message : "HTTP PATCH failed" } as unknown as HttpResult<T>;
+        return {
+          status: 0,
+          error: err instanceof Error ? err.message : "HTTP PATCH failed",
+        } as unknown as HttpResult<T>;
       }
     },
-    delete: async <T = unknown>(endpoint?: string, headers?: Record<string, string>) => {
+    delete: async <T = unknown>(
+      endpoint?: string,
+      headers?: Record<string, string>,
+    ) => {
       try {
-        const res = await fetch(endpoint ?? "/api", { method: "DELETE", headers });
+        const res = await fetch(endpoint ?? "/api", {
+          method: "DELETE",
+          headers,
+        });
         const data = await res.json();
-        return { status: res.status, data: data as T, headers: {} } as unknown as HttpResult<T>;
+        return {
+          status: res.status,
+          data: data as T,
+          headers: {},
+        } as unknown as HttpResult<T>;
       } catch (err) {
-        return { status: 0, error: err instanceof Error ? err.message : "HTTP DELETE failed" } as unknown as HttpResult<T>;
+        return {
+          status: 0,
+          error: err instanceof Error ? err.message : "HTTP DELETE failed",
+        } as unknown as HttpResult<T>;
       }
     },
   };
