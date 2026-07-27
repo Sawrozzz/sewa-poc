@@ -186,10 +186,10 @@ export interface PluginServices {
   chat: ChatSdkModule;
   /** Device capabilities — only accessible through the shell bridge */
   device: {
-    location(options?: { highAccuracy?: boolean; timeout?: number }): Promise<DevicePermissionResponse<DeviceLocationResult>>;
-    camera(options?: { facing?: 'front' | 'back' }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
-    gallery(options?: { maxCount?: number }): Promise<DeviceGalleryResult>;
-    files(options?: { accept?: string[]; multiple?: boolean }): Promise<DeviceFilesResult>;
+    location(options?: { highAccuracy?: boolean; timeout?: number ; reson?:string }): Promise<DevicePermissionResponse<DeviceLocationResult>>;
+    camera(options?: { facing?: 'front' | 'back' ; reason?:string }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
+    gallery(options?: { maxCount?: number ; reason?:string  }): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
+    files(options?: { accept?: string[]; multiple?: boolean }): Promise<DevicePermissionResponse<DeviceFilesResult>>;
     biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
     notifications(options?: { requestPermission?: boolean }): Promise<DeviceNotificationResult>;
     network(): Promise<DeviceNetworkResult>;

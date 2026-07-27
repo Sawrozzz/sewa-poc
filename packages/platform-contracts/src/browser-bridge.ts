@@ -23,8 +23,10 @@ import type {
   DeviceNotificationResult,
   DeviceNetworkResult,
   DeviceInfoResult,
+  FileOptions,
   HttpResult,
-} from './sdk';
+  DevicePermissionResponse,
+} from "./sdk";
 
 // ---------------------------------------------------------------------------
 // Plugin-facing service interfaces
@@ -64,7 +66,10 @@ export interface BridgeTelemetryService {
 }
 
 export interface BridgeChatService {
-  chat(messages: ChatMessage[], options?: Record<string, unknown>): AsyncIterable<string>;
+  chat(
+    messages: ChatMessage[],
+    options?: Record<string, unknown>,
+  ): AsyncIterable<string>;
 }
 
 export interface BridgeStorageService {
@@ -74,34 +79,68 @@ export interface BridgeStorageService {
 }
 
 export interface BridgeDeviceService {
-  location(options?: { highAccuracy?: boolean; timeout?: number }): Promise<DeviceLocationResult>;
-  camera(options?: { facing?: 'front' | 'back' }): Promise<DeviceCameraResult>;
-  gallery(options?: { maxCount?: number }): Promise<DeviceGalleryResult>;
-  files(options?: { accept?: string[]; multiple?: boolean }): Promise<DeviceFilesResult>;
+  location(options?: {
+    highAccuracy?: boolean;
+    timeout?: number;
+    reason?: string;
+  }): Promise<DevicePermissionResponse<DeviceLocationResult>>;
+  camera(options?: {
+    facing?: "front" | "back";
+    reason?: string;
+  }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
+  gallery(
+    options?: FileOptions,
+  ): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
+  files(
+    options?: FileOptions,
+  ): Promise<DevicePermissionResponse<DeviceFilesResult>>;
   biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
-  notifications(options?: { requestPermission?: boolean }): Promise<DeviceNotificationResult>;
-  network(): Promise<DeviceNetworkResult>;
+  notifications(options?: {
+    requestPermission?: boolean;
+    reason?: string;
+  }): Promise<DeviceNotificationResult>;
+  network(options?: { reason?: string }): Promise<DeviceNetworkResult>;
   storage: BridgeStorageService;
-  info(): Promise<DeviceInfoResult>;
+  info(options?: { reason?: string }): Promise<DeviceInfoResult>;
 }
 
 export interface BridgeHttpService {
-  get<T = unknown>(endpoint?: string, query?: Record<string, string>): Promise<HttpResult<T>>;
-  post<T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>): Promise<HttpResult<T>>;
-  put<T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>): Promise<HttpResult<T>>;
-  patch<T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>): Promise<HttpResult<T>>;
-  delete<T = unknown>(endpoint?: string, headers?: Record<string, string>): Promise<HttpResult<T>>;
+  get<T = unknown>(
+    endpoint?: string,
+    query?: Record<string, string>,
+  ): Promise<HttpResult<T>>;
+  post<T = unknown>(
+    endpoint?: string,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ): Promise<HttpResult<T>>;
+  put<T = unknown>(
+    endpoint?: string,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ): Promise<HttpResult<T>>;
+  patch<T = unknown>(
+    endpoint?: string,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ): Promise<HttpResult<T>>;
+  delete<T = unknown>(
+    endpoint?: string,
+    headers?: Record<string, string>,
+  ): Promise<HttpResult<T>>;
 }
 
 /** The fully typed service object given to each plugin via getServices() */
-export interface BridgeServices extends BridgeAuthService,
-  BridgePermissionsService,
-  BridgeFlagsService,
-  BridgeConfigService,
-  BridgeNavigationService,
-  BridgeTelemetryService,
-  BridgeChatService,
-  BridgeDeviceService {
+export interface BridgeServices
+  extends
+    BridgeAuthService,
+    BridgePermissionsService,
+    BridgeFlagsService,
+    BridgeConfigService,
+    BridgeNavigationService,
+    BridgeTelemetryService,
+    BridgeChatService,
+    BridgeDeviceService {
   http: BridgeHttpService;
 }
 
@@ -116,20 +155,37 @@ import type {
   ShellConfigService,
   ShellNavigationService,
   ShellTelemetryService,
-} from './sdk';
+} from "./sdk";
 
 // Bridge-specific shell-side types (not exported from sdk.ts)
 export interface ShellChatService {
-  chat(messages: ChatMessage[], options?: Record<string, unknown>): AsyncIterable<string>;
+  chat(
+    messages: ChatMessage[],
+    options?: Record<string, unknown>,
+  ): AsyncIterable<string>;
 }
 
 export interface ShellDeviceService {
-  location(options?: { highAccuracy?: boolean; timeout?: number }): Promise<DeviceLocationResult>;
-  camera(options?: { facing?: 'front' | 'back' }): Promise<DeviceCameraResult>;
-  gallery(options?: { maxCount?: number }): Promise<DeviceGalleryResult>;
-  files(options?: { accept?: string[]; multiple?: boolean }): Promise<DeviceFilesResult>;
+  location(options?: {
+    highAccuracy?: boolean;
+    timeout?: number;
+    reason?: string;
+  }): Promise<DevicePermissionResponse<DeviceLocationResult>>;
+  camera(options?: {
+    facing?: "front" | "back";
+    reason?: string;
+  }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
+  gallery(
+    options?: FileOptions,
+  ): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
+  files(
+    options?: FileOptions,
+  ): Promise<DevicePermissionResponse<DeviceFilesResult>>;
   biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
-  notifications(options?: { requestPermission?: boolean }): Promise<DeviceNotificationResult>;
+  notifications(options?: {
+    requestPermission?: boolean;
+    reason?: string;
+  }): Promise<DeviceNotificationResult>;
   network(): Promise<DeviceNetworkResult>;
   storage: {
     get(key: string): Promise<string | null>;
@@ -140,11 +196,29 @@ export interface ShellDeviceService {
 }
 
 export interface ShellHttpService {
-  get<T = unknown>(endpoint?: string, query?: Record<string, string>): Promise<HttpResult<T>>;
-  post<T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>): Promise<HttpResult<T>>;
-  put<T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>): Promise<HttpResult<T>>;
-  patch<T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>): Promise<HttpResult<T>>;
-  delete<T = unknown>(endpoint?: string, headers?: Record<string, string>): Promise<HttpResult<T>>;
+  get<T = unknown>(
+    endpoint?: string,
+    query?: Record<string, string>,
+  ): Promise<HttpResult<T>>;
+  post<T = unknown>(
+    endpoint?: string,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ): Promise<HttpResult<T>>;
+  put<T = unknown>(
+    endpoint?: string,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ): Promise<HttpResult<T>>;
+  patch<T = unknown>(
+    endpoint?: string,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ): Promise<HttpResult<T>>;
+  delete<T = unknown>(
+    endpoint?: string,
+    headers?: Record<string, string>,
+  ): Promise<HttpResult<T>>;
 }
 
 export interface ShellServiceMap {
@@ -230,14 +304,22 @@ export class BrowserFederationBridge {
       isEnabled: (flag, mid) => svc.flags.isEnabled(flag, mid ?? moduleId),
       getAllFlags: (mid) => svc.flags.getAll(mid ?? moduleId),
       // config
-      get: <T>(key: string, mid?: string) => svc.config.get<T>(key, mid ?? moduleId),
+      get: <T>(key: string, mid?: string) =>
+        svc.config.get<T>(key, mid ?? moduleId),
       getAll: (mid?: string) => svc.config.getAll(mid ?? moduleId),
       // navigation
       navigate: (t) => svc.navigation.navigate(t),
       getCurrent: () => svc.navigation.getCurrent(),
       // telemetry — passes module ID into context for tracing
       log: (level, msg, ctx) => {
-        svc.telemetry.log({ moduleId, ...(ctx || {}) as Partial<TelemetryContext> } as TelemetryContext, level, msg);
+        svc.telemetry.log(
+          {
+            moduleId,
+            ...((ctx || {}) as Partial<TelemetryContext>),
+          } as TelemetryContext,
+          level,
+          msg,
+        );
       },
       track: (evt, props) => {
         svc.telemetry.track({ moduleId } as TelemetryContext, evt, props);
@@ -252,6 +334,7 @@ export class BrowserFederationBridge {
       location: (opts) => svc.device.location(opts),
       camera: (opts) => svc.device.camera(opts),
       gallery: (opts) => svc.device.gallery(opts),
+      // files: (opts) => svc.device.files(opts),
       files: (opts) => svc.device.files(opts),
       biometric: (opts) => svc.device.biometric(opts),
       notifications: (opts) => svc.device.notifications(opts),

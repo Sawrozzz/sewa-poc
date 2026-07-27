@@ -56,13 +56,27 @@ export interface DeviceCameraResult {
   byteSize?: number;
 }
 
+export interface FileModule {
+  url: string;
+  fileName?: string;
+  mimeType?: string;
+  extension?: string;
+  byteSize?: number;
+  previewUrl?: string;
+}
+
+export interface FileOptions {
+  reason?:string;
+  multiple?: boolean;
+  accept?: string[]
+}
 
 export interface DeviceGalleryResult {
-  files: Array<{ dataUrl: string; mimeType: string; name: string }>;
+  images: FileModule[]
 }
 
 export interface DeviceFilesResult {
-  files: Array<{ name: string; size: number; mimeType: string; content: string }>;
+  files: FileModule[]
 }
 
 export interface DeviceBiometricResult {
@@ -183,8 +197,8 @@ export interface PlatformSdkModule {
 export interface DeviceSdkModule {
   location(options?: { highAccuracy?: boolean; timeout?: number }): Promise<DevicePermissionResponse<DeviceLocationResult>>;
   camera(options?: { facing?: 'front' | 'back' }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
-  gallery(options?: { maxCount?: number }): Promise<DeviceGalleryResult>;
-  files(options?: { accept?: string[]; multiple?: boolean }): Promise<DeviceFilesResult>;
+  gallery(options?: FileOptions): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
+  files(options?: FileOptions): Promise<DevicePermissionResponse<DeviceFilesResult>>;
   biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
   notifications(options?: { requestPermission?: boolean }): Promise<DeviceNotificationResult>;
   network(): Promise<DeviceNetworkResult>;
