@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
 import { LocaleSwitcher } from "./LanguageSwitcher";
+import { RefreshCcwIcon } from "lucide-react";
 
 export function Header() {
   const router = useRouter();
@@ -12,6 +13,27 @@ export function Header() {
   const handleLogout = async () => {
     await authClient.signOut();
     router.push("/");
+  };
+
+  const handleRefresh = () => {
+    const request = indexedDB.deleteDatabase("sewa-plugin-cache");
+
+    request.onsuccess = () => {
+      console.log("IndexedDB deleted successfully.");
+      window.location.reload();
+    };
+
+    request.onerror = () => {
+      console.error("Failed to delete IndexedDB.");
+      window.location.reload();
+    };
+
+    request.onblocked = () => {
+      console.warn(
+        "Database deletion blocked. Close other tabs using the database.",
+      );
+      window.location.reload();
+    };
   };
 
   return (
@@ -52,6 +74,13 @@ export function Header() {
                     className="w-9 h-9 rounded-full border-2 border-gray-200"
                   />
                 )}
+                <button
+                  onClick={handleRefresh}
+                  className="text-sm text-gray-500 hover:text-gray-900 transition px-3 py-1.5 rounded-lg"
+                  title="Refresh"
+                >
+                  <RefreshCcwIcon />
+                </button>
                 <button
                   onClick={handleLogout}
                   className="text-sm text-gray-500 hover:text-red-600 transition px-3 py-1.5 rounded-lg hover:bg-red-50"

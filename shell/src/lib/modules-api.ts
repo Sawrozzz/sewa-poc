@@ -191,7 +191,8 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
     ],
     isEnabled: true,
     order: 1,
-    bundleUrl: "http://localhost:3002/",
+    // bundleUrl: "http://localhost:3002/",
+    bundleUrl: "https://test-mini-app-orcin.vercel.app/",
     entryType: "framework-agnostic",
     loadStrategy: "plugin",
     compatibility: {
