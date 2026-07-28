@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
 import { LocaleSwitcher } from "./LanguageSwitcher";
@@ -10,31 +11,53 @@ export function Header() {
   const { data: session } = authClient.useSession();
   const user = mapSessionUser(session?.user);
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
   const handleLogout = async () => {
     await authClient.signOut();
     router.push("/");
   };
 
   const handleRefresh = () => {
+    if (isRefreshing) return;
+
+    setIsRefreshing(true);
+
     const request = indexedDB.deleteDatabase("sewa-plugin-cache");
 
-    request.onsuccess = () => {
-      console.log("IndexedDB deleted successfully.");
-      window.location.reload();
+    const finish = () => {
+      sessionStorage.setItem("app-refreshed", "true");
+
+      setTimeout(() => {
+        router.push("/")
+      }, 2000);
     };
+
+    request.onsuccess = finish;
 
     request.onerror = () => {
       console.error("Failed to delete IndexedDB.");
-      window.location.reload();
+      finish();
     };
 
     request.onblocked = () => {
-      console.warn(
-        "Database deletion blocked. Close other tabs using the database.",
-      );
-      window.location.reload();
+      console.warn("Database deletion blocked.");
+      finish();
     };
   };
+
+  useEffect(() => {
+    if (sessionStorage.getItem("app-refreshed")) {
+      sessionStorage.removeItem("app-refreshed");
+
+      setShowSuccess(true);
+
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 2500);
+    }
+  }, []);
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -74,13 +97,24 @@ export function Header() {
                     className="w-9 h-9 rounded-full border-2 border-gray-200"
                   />
                 )}
-                <button
-                  onClick={handleRefresh}
-                  className="text-sm text-gray-500 hover:text-gray-900 transition px-3 py-1.5 rounded-lg"
-                  title="Refresh"
-                >
-                  <RefreshCcwIcon />
-                </button>
+                <div className="relative flex items-center">
+                  <button
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="text-sm text-gray-500 hover:text-gray-900 transition px-3 py-1.5 rounded-lg disabled:opacity-70"
+                    title="Refresh"
+                  >
+                    <RefreshCcwIcon
+                      className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`}
+                    />
+                  </button>
+
+                  {showSuccess && (
+                    <div className="absolute top-full mt-2 right-0 whitespace-nowrap rounded-md bg-green-600 px-3 py-1 text-xs text-white shadow-lg animate-in fade-in duration-200">
+                      ✓ App refreshed
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={handleLogout}
                   className="text-sm text-gray-500 hover:text-red-600 transition px-3 py-1.5 rounded-lg hover:bg-red-50"
