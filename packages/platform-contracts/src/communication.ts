@@ -5,7 +5,7 @@
  * The Mini App SDK serializes requests; the Shell Communicator deserializes and routes them.
  */
 
-export const PROTOCOL_VERSION = "1.0.0";
+export const PROTOCOL_VERSION = "3.0.0";
 export const MESSAGE_CHANNEL = "gov-platform-sdk";
 
 export type MessageType = "request" | "response" | "event" | "handshake" |"stream";

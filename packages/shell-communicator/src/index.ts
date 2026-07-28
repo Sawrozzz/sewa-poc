@@ -218,7 +218,7 @@ export class ShellCommunicator {
     return createMessage(
       "response",
       "handshake",
-      "",
+      msg.action,
       "shell",
       payload.moduleId,
       responsePayload,
@@ -404,9 +404,18 @@ export class ShellCommunicator {
         return this.okResponse(msg, false);
 
       case "device.location": {
-        const result = await this.services.device.location(payload);
-        console.log('[Shell communicator]', result)
-        return this.okResponse(msg, result);
+        try {
+          const result = await this.services.device.location(payload);
+          return this.okResponse(msg, {
+            status: "granted",
+            data: result,
+          });
+        } catch (err) {
+          return this.okResponse(msg, {
+            status: "denied",
+            error: err instanceof Error ? err.message : "Location access denied",
+          });
+        }
       }
 
       case "device.camera": {

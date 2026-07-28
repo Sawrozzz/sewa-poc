@@ -83,7 +83,7 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
         if (sdkLoaded.current) return;
         sdkLoaded.current = true;
 
-        const CDN_URL = "https://cdn.jsdelivr.net/npm/@sawrozzz/sdk-revised@1.2.2/dist/sdk-revised.min.js";
+        const CDN_URL = "/sdk/sdk-revised.min.js";
         let sdkReady = typeof window.getMiniAppBridge === "function";
 
         if (!sdkReady) {
@@ -197,6 +197,7 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
                 cleanupDone.current = false;
                 loader.unload(moduleId);
                 communicator.disconnectModule(moduleId);
+                window.getMiniAppBridge()?.destroyInstance(moduleId);
             };
         }
 
@@ -238,7 +239,7 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
                         onClick={() => router.push("/")}
                         className="text-sm text-gov-600 hover:underline"
                     >
-                        ← 
+                        ←
                     </button>
                 </div>
             </div>
