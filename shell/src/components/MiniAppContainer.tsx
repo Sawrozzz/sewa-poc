@@ -233,7 +233,7 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
                         onClick={() => router.push("/")}
                         className="text-sm text-gov-600 hover:underline"
                     >
-                        ← Back to Portal
+                        ← 
                     </button>
                 </div>
             </div>
