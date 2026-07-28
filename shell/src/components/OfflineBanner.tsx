@@ -22,7 +22,7 @@ export function OfflineBanner() {
 
   return (
     <div
-      className={`fixed top-16 left-4 right-4 z-50 p-3 rounded-lg shadow-lg transform transition-all duration-300 ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'} ${isOffline ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'}`}
+      className={`fixed top-8 left-4 right-4 z-50 p-3 rounded-lg shadow-lg transform transition-all duration-300 ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'} ${isOffline ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'}`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
