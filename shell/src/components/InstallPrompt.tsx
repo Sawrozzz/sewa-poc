@@ -6,6 +6,8 @@ export function InstallPrompt() {
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [showCustomPrompt, setShowCustomPrompt] = useState(false);
 
   useEffect(() => {
     const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
@@ -15,9 +17,36 @@ export function InstallPrompt() {
     setIsMobile(isMobileDevice);
     setIsIOS(isIOSDevice);
     setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
+
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event);
+      setShowCustomPrompt(true);
+    };
+
+    const handleAppInstalled = () => {
+      setInstallPrompt(null);
+      setShowCustomPrompt(false);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
 
-  if (isStandalone || !isMobile) return null;
+  const handleInstallClick = async () => {
+    if (!installPrompt) return;
+    
+    const result = await installPrompt.prompt();
+    setInstallPrompt(null);
+    setShowCustomPrompt(false);
+  };
+
+  if (isStandalone || !isMobile || !showCustomPrompt) return null;
 
   return (
     <div className="fixed bottom-4 left-4 right-4 bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-lg z-50">
@@ -30,18 +59,16 @@ export function InstallPrompt() {
             </p>
           ) : (
             <p className="text-sm text-blue-700">
-              Tap the install button to add to your home screen
+              Tap to install this app to your home screen
             </p>
           )}
         </div>
-        {!isIOS && (
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition"
-          >
-            Install
-          </button>
-        )}
+        <button
+          onClick={handleInstallClick}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition"
+        >
+          {isIOS ? 'Instructions' : 'Install'}
+        </button>
       </div>
     </div>
   );
