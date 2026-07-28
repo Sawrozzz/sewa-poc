@@ -154,7 +154,12 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
 
         const container = containerRef.current;
         const runtime = createMiniAppRuntime(eventBus, communicator);
-        loadedModule.bundle.mount(container, runtime);
+        const mountRuntime = {
+            ...runtime,
+            initialPath: window.location.hash.slice(1) || '',
+        } as unknown as Parameters<typeof loadedModule.bundle.mount>[1];
+
+        loadedModule.bundle.mount(container, mountRuntime);
 
         return () => {
             loadedModule.bundle.unmount(container);

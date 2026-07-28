@@ -28,10 +28,11 @@ export function Header() {
 
     const finish = () => {
       sessionStorage.setItem("app-refreshed", "true");
+      router.push("/");
 
       setTimeout(() => {
-        router.push("/")
-      }, 2000);
+        window.location.reload();
+      }, 500);
     };
 
     request.onsuccess = finish;
