@@ -17,7 +17,24 @@ import type {
   FileModule,
   FileOptions,
   HttpResult,
+  ShellApiService,
+  ShellStorageService,
 } from "@sewa/platform-contracts";
+
+interface LocalApiRequestParams {
+  method?: string;
+  endpoint?: string;
+  path?: string;
+  body?: unknown;
+  headers?: Record<string, string>;
+}
+
+interface LocalApiResult<T = unknown> {
+  status: number;
+  data: T;
+  headers: Record<string, string>;
+  error?: string;
+}
 
 export interface PlatformServicesConfig {
   getUser: () => PlatformUser | null;
@@ -575,6 +592,57 @@ export function createShellServices(
     },
   };
 
+  const api: ShellApiService = {
+    request: async <T = unknown, B = unknown>(params: LocalApiRequestParams) => {
+      try {
+        const res = await fetch(
+          params.endpoint?.startsWith("http") || params.endpoint?.startsWith("/")
+            ? params.endpoint
+            : `https://api.example.com${params.endpoint}`,
+          {
+            method: params.method?.toUpperCase() || "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...params.headers,
+            },
+            body: params.body ? JSON.stringify(params.body) : undefined,
+          },
+        );
+        const data = await res.json();
+        return {
+          status: res.status,
+          data: data as T,
+          headers: { ...res.headers },
+        } as unknown as LocalApiResult<T>;
+      } catch (err) {
+        const error = err instanceof Error ? err.message : "API request failed";
+        return {
+          status: 0,
+          data: null as T,
+          headers: {},
+          error,
+        } as unknown as LocalApiResult<T>;
+      }
+    },
+  };
+
+  const storage: ShellStorageService = {
+    get: async (key: string) => {
+      try {
+        const result = await http.get<{ value?: string } | null>(`/api/storage/${key}`);
+        return result.data?.value ?? null;
+      } catch {
+        return null;
+      }
+    },
+    set: async (key: string, value: string) => {
+      await http.post("/api/storage", { key, value });
+    },
+    remove: async (key: string) => {
+      await http.delete(`/api/storage/${key}`);
+    },
+  };
+
   return {
     auth,
     permissions,
@@ -584,6 +652,8 @@ export function createShellServices(
     telemetry,
     chat,
     device,
+    storage,
+    api,
     http,
   };
 }

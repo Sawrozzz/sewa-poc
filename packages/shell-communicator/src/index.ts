@@ -143,10 +143,10 @@ export class ShellCommunicator {
       }
 
       if (msg.type === "response") {
-        const pending = this.pendingRequests.get(msg.id);
+        const pending = this.pendingRequests.get(msg.requestId);
         if (pending) {
           clearTimeout(pending.timer);
-          this.pendingRequests.delete(msg.id);
+          this.pendingRequests.delete(msg.requestId);
           pending.resolve(msg);
         }
       }
@@ -164,7 +164,7 @@ export class ShellCommunicator {
           msg.source,
           undefined,
           {
-            id: msg.id,
+            id: msg.requestId,
             traceId: msg.traceId,
             error,
           },
@@ -179,7 +179,7 @@ export class ShellCommunicator {
     origin: string,
   ): Promise<PlatformMessage> {
     const payload = msg.payload as {
-      moduleId: string;
+      miniAppId: string;
       sdkVersion: string;
       supportedMethods: string[];
      };
@@ -188,7 +188,7 @@ export class ShellCommunicator {
      const capabilities = [...SDK_CAPABILITIES];
 
      const module: ConnectedModule = {
-       moduleId: payload.moduleId,
+       moduleId: payload.miniAppId,
        sdkVersion: payload.sdkVersion,
        negotiatedVersion,
        capabilities,
@@ -197,8 +197,8 @@ export class ShellCommunicator {
        eventSubscriptions: new Set(),
      };
 
-    this.modules.set(payload.moduleId, module);
-    this.onModuleConnected?.(payload.moduleId);
+    this.modules.set(payload.miniAppId, module);
+    this.onModuleConnected?.(payload.miniAppId);
 
     const responsePayload: HandshakeResponsePayload = {
       shellVersion: SHELL_VERSION,
@@ -209,10 +209,10 @@ export class ShellCommunicator {
     };
 
     this.services.telemetry.log(
-      { moduleId: payload.moduleId, traceId: String(msg.traceId || ''), sessionId: '' },
+      { moduleId: payload.miniAppId, traceId: String(msg.traceId || ''), sessionId: '' },
       "info",
-      `Module connected: ${payload.moduleId}`,
-      { moduleId: payload.moduleId, traceId: msg.traceId, sdkVersion: payload.sdkVersion, origin, mode: "bundle" },
+      `Module connected: ${payload.miniAppId}`,
+      { moduleId: payload.miniAppId, traceId: msg.traceId, sdkVersion: payload.sdkVersion, origin, mode: "bundle" },
     );
 
     return createMessage(
@@ -220,10 +220,10 @@ export class ShellCommunicator {
       "handshake",
       msg.action,
       "shell",
-      payload.moduleId,
+      payload.miniAppId,
       responsePayload,
       {
-        id: msg.id,
+        id: msg.requestId,
         traceId: msg.traceId,
       },
     );
@@ -297,7 +297,7 @@ export class ShellCommunicator {
               msg.source,
               undefined,
               {
-                id: msg.id,
+                id: msg.requestId,
                 traceId: msg.traceId,
                 error: {
                   code: "CHAT_ERROR",
@@ -601,6 +601,65 @@ export class ShellCommunicator {
         }
       }
 
+      case "api.request": {
+        const apiPayload = payload as { method: string; path: string; body?: unknown; headers?: Record<string, string> } | undefined;
+        if (!apiPayload?.method || !apiPayload?.path) {
+          return this.errorResponse(msg, "INVALID_PARAMS", "Missing method or path");
+        }
+        try {
+          const res = await axios({
+            method: apiPayload.method,
+            url: apiPayload.path,
+            data: apiPayload.body,
+            headers: apiPayload.headers,
+          });
+          const headers: Record<string, string> = {};
+          if (res.headers) {
+            Object.entries(res.headers).forEach(([k, v]) => {
+              headers[k] = String(v);
+            });
+          }
+          return this.okResponse(msg, { status: res.status, data: res.data, headers });
+        } catch (err) {
+          if (axios.isAxiosError(err) && err.response) {
+            const headers: Record<string, string> = {};
+            if (err.response.headers) {
+              Object.entries(err.response.headers).forEach(([k, v]) => {
+                headers[k] = String(v);
+              });
+            }
+            return this.okResponse(msg, { status: err.response.status, data: err.response.data, headers });
+          }
+          return this.errorResponse(msg, "API_ERROR", err instanceof Error ? err.message : String(err));
+        }
+      }
+
+      case "storage.get": {
+        const storageGetPayload = payload as { key: string };
+        if (!storageGetPayload?.key) {
+          return this.errorResponse(msg, "INVALID_PARAMS", "Missing key");
+        }
+        return this.okResponse(msg, await this.services.storage.get(storageGetPayload.key));
+      }
+
+      case "storage.set": {
+        const storageSetPayload = payload as { key: string; value: string };
+        if (!storageSetPayload?.key) {
+          return this.errorResponse(msg, "INVALID_PARAMS", "Missing key");
+        }
+        await this.services.storage.set(storageSetPayload.key, storageSetPayload.value);
+        return this.okResponse(msg, null);
+      }
+
+      case "storage.remove": {
+        const storageRemovePayload = payload as { key: string };
+        if (!storageRemovePayload?.key) {
+          return this.errorResponse(msg, "INVALID_PARAMS", "Missing key");
+        }
+        await this.services.storage.remove(storageRemovePayload.key);
+        return this.okResponse(msg, null);
+      }
+
       case "event.subscribe": {
         const eventType = payload?.eventType as string;
         module?.eventSubscriptions.add(eventType);
@@ -736,7 +795,7 @@ export class ShellCommunicator {
       request.source,
       payload,
       {
-        id: request.id,
+        id: request.requestId,
         traceId: request.traceId,
       },
     );
@@ -756,7 +815,7 @@ export class ShellCommunicator {
       request.source,
       undefined,
       {
-        id: request.id,
+        id: request.requestId,
         traceId: request.traceId,
         error: { code, message, retryable },
       },
@@ -811,7 +870,7 @@ export class ShellCommunicator {
     void _target;
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
-        this.pendingRequests.delete(request.id);
+        this.pendingRequests.delete(request.requestId);
         resolve(
           this.errorResponse(
             request,
@@ -821,7 +880,7 @@ export class ShellCommunicator {
         );
       }, 30000);
 
-      this.pendingRequests.set(request.id, {
+      this.pendingRequests.set(request.requestId, {
         resolve: (msg: PlatformMessage) => {
           clearTimeout(timer);
           resolve(msg);
@@ -851,7 +910,7 @@ export class ShellCommunicator {
           "*",
           text,
           {
-            id: msg.id,
+            id: msg.requestId,
             traceId: msg.traceId,
             streamIndex: index,
             streamLast: false,
@@ -870,7 +929,7 @@ export class ShellCommunicator {
         "*",
         "",
         {
-          id: msg.id,
+          id: msg.requestId,
           traceId: msg.traceId,
           streamIndex: index,
           streamLast: true,

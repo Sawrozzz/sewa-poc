@@ -5,20 +5,20 @@
  * The Mini App SDK serializes requests; the Shell Communicator deserializes and routes them.
  */
 
-export const PROTOCOL_VERSION = "3.0.0";
+export const PROTOCOL_VERSION = "1.0.0";
 export const MESSAGE_CHANNEL = "gov-platform-sdk";
 
 export type MessageType = "request" | "response" | "event" | "handshake" |"stream";
 
 export interface PlatformMessage<T = unknown> {
   channel: typeof MESSAGE_CHANNEL;
-  id: string;
+  requestId: string;
   type: MessageType;
   namespace: string;
   action: string;
   source: string;
   target: string;
-  version: string;
+  gsaProtocolVersion: string;
   traceId: string;
   timestamp: number;
   payload?: T;
@@ -36,9 +36,9 @@ export interface PlatformError {
 }
 
 export interface HandshakePayload {
-  moduleId: string;
+  miniAppId: string;
   sdkVersion: string;
-  supportedMethods: string[];
+  capabilities: string[];
 }
 
 export interface HandshakeResponsePayload {
@@ -79,6 +79,10 @@ export const SDK_METHODS = {
   DEVICE_NETWORK: "device.network",
   DEVICE_STORAGE: "device.storage",
   DEVICE_INFO: "device.info",
+  STORAGE_GET: "storage.get",
+  STORAGE_SET: "storage.set",
+  STORAGE_REMOVE: "storage.remove",
+  API_REQUEST: "api.request",
   EVENT_SUBSCRIBE: "event.subscribe",
   EVENT_UNSUBSCRIBE: "event.unsubscribe",
   EVENT_EMIT: "event.emit",
@@ -97,6 +101,7 @@ export type SdkMethod = (typeof SDK_METHODS)[keyof typeof SDK_METHODS];
 export const SDK_CAPABILITIES = [
   "auth",
   "chat",
+  "api",
   "permissions",
   "flags",
   "config",
@@ -104,11 +109,15 @@ export const SDK_CAPABILITIES = [
   "telemetry",
   "platform",
   "device",
+  "storage",
   "http",
   "events",
 ] as const;
 
 export type SdkCapability = (typeof SDK_CAPABILITIES)[number];
+
+export const COMMUNICATOR_VERSION = "2.0.0";
+export const SHELL_VERSION = "1.0.0";
 
 export function createMessage<T>(
   type: MessageType,
@@ -129,13 +138,13 @@ export function createMessage<T>(
 ): PlatformMessage<T> {
   return {
     channel: MESSAGE_CHANNEL,
-    id: options?.id ?? generateId(),
+    requestId: options?.id ?? generateId(),
     type,
     namespace,
     action,
     source,
     target,
-    version: options?.version ?? PROTOCOL_VERSION,
+    gsaProtocolVersion: options?.version ?? PROTOCOL_VERSION,
     traceId: options?.traceId ?? generateId(),
     timestamp: Date.now(),
     payload,

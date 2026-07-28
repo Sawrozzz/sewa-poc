@@ -12,5 +12,5 @@ import { MiniAppContainer } from '@/components/MiniAppContainer';
 export default function MiniAppLoader() {
   const params = useParams();
   const slug = params.slug as string;
-  return <MiniAppContainer moduleId={slug} />;
+  return <MiniAppContainer miniAppId={slug} />;
 }

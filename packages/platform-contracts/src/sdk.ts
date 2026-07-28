@@ -109,7 +109,7 @@ export interface DeviceInfoResult {
   timezone: string;
 }
 
-export type PlatformTypeLiteral = 'WEB' | 'ANDROID' | 'IOS';
+export type PlatformTypeLiteral = 'WEB' | 'FLUTTER';
 
 export interface TelemetryContext {
   moduleId: string;
@@ -125,8 +125,8 @@ export interface ServiceRegistration {
 
 /** Public SDK interface exposed to mini app vendors */
 export interface MiniAppSdkInterface {
-  readonly moduleId: string;
-  readonly version: string;
+  readonly miniAppId: string;
+  readonly gsaProtocolVersion: string;
   readonly traceId: string;
 
   auth: AuthSdkModule;
@@ -134,9 +134,10 @@ export interface MiniAppSdkInterface {
   flags: FlagsSdkModule;
   config: ConfigSdkModule;
   navigation: NavigationSdkModule;
-  telemetry: TelemetrySdkModule;
   platform: PlatformSdkModule;
   device: DeviceSdkModule;
+  api: ApiSdkModule;
+  storage: StorageSdkModule;
   http: HttpSdkModule;
   chat: ChatSdkModule;
 
@@ -189,8 +190,7 @@ export interface TelemetrySdkModule {
 export interface PlatformSdkModule {
   readonly type: PlatformTypeLiteral;
   isWeb(): boolean;
-  isAndroid(): boolean;
-  isIOS(): boolean;
+  isFlutter(): boolean;
   isMobile(): boolean;
 }
 
@@ -223,6 +223,41 @@ export interface HttpSdkModule {
   put<T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>): Promise<HttpResult<T>>;
   patch<T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>): Promise<HttpResult<T>>;
   delete<T = unknown>(endpoint?: string, headers?: Record<string, string>): Promise<HttpResult<T>>;
+}
+
+export interface ApiSdkModule {
+  request<T = unknown, B = unknown>(params: ApiRequestParams<B>): Promise<ApiResult<T>>;
+}
+
+export interface StorageSdkModule {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string): Promise<void>;
+  remove(key: string): Promise<void>;
+}
+
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+export interface ApiRequestParams<TBody = unknown> {
+  method: HttpMethod;
+  path: string;
+  body?: TBody;
+  headers?: Record<string, string>;
+}
+
+export interface ApiResult<T = unknown> {
+  status: number;
+  data: T;
+  headers: Record<string, string>;
+}
+
+export interface ShellApiService {
+  request<T = unknown, B = unknown>(params: ApiRequestParams<B>): Promise<ApiResult<T>>;
+}
+
+export interface ShellStorageService {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string): Promise<void>;
+  remove(key: string): Promise<void>;
 }
 
 /** Shell-side service interfaces fulfilled by the communicator */
