@@ -51,11 +51,13 @@ export default async function RootLayout({
       <body>
         <SerwistProvider swUrl="/serwist/sw.js">
         <NextIntlClientProvider locale={locale} messages={messages}>
+          <OfflineProvider>
           <GloabalProvider>
             {children}
             <InstallPrompt />
             <OfflineBanner />
           </GloabalProvider>
+          </OfflineProvider>
         </NextIntlClientProvider>
         </SerwistProvider>
       </body>
