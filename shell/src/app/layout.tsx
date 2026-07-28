@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import {SerwistProvider} from "@serwist/turbopack/react"
+import { InstallPrompt } from "@/components/InstallPrompt"
 
 const APP_NAME = "Sewa App";
 const APP_DEFAULT_TITLE = "Sewa App";
@@ -49,6 +50,7 @@ export default async function RootLayout({
         <SerwistProvider swUrl="/serwist/sw.js">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <GloabalProvider>{children}</GloabalProvider>
+          <InstallPrompt />
         </NextIntlClientProvider>
         </SerwistProvider>
       </body>
