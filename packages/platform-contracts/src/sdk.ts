@@ -112,11 +112,6 @@ export interface DeviceInfoResult {
 
 export type PlatformTypeLiteral = 'WEB' | 'FLUTTER';
 
-export interface TelemetryContext {
-  moduleId: string;
-  traceId: string;
-  sessionId: string;
-}
 
 /** Mini App service registration — allows apps to expose functions to other apps */
 export interface ServiceRegistration {
@@ -182,11 +177,6 @@ export interface NavigationSdkModule {
   getCurrent(): Promise<NavigationState>;
 }
 
-export interface TelemetrySdkModule {
-  log(level: 'debug' | 'info' | 'warn' | 'error', message: string, context?: Record<string, unknown>): void;
-  track(event: string, properties?: Record<string, unknown>): void;
-  error(error: Error | string, context?: Record<string, unknown>): void;
-}
 
 export interface PlatformSdkModule {
   readonly type: PlatformTypeLiteral;
@@ -266,20 +256,6 @@ export interface ShellNavigationService {
   onNavigate(handler: (state: NavigationState) => void): () => void;
 }
 
-export interface ShellTelemetryService {
-  log(ctx: TelemetryContext, level: string, message: string, context?: Record<string, unknown>): void;
-  track(ctx: TelemetryContext, event: string, properties?: Record<string, unknown>): void;
-  error(ctx: TelemetryContext, err: Error | string, context?: Record<string, unknown>): void;
-  getMetrics(): TelemetryMetrics;
-}
-
-export interface TelemetryMetrics {
-  eventThroughput: number;
-  navigationLatencyMs: number[];
-  moduleLoadTimesMs: Record<string, number[]>;
-  deviceInteractionCounts: Record<string, number>;
-  errorCounts: Record<string, number>;
-}
 
 export interface ChatMessage {
   role: "user" | "system" | "ai";
@@ -305,6 +281,5 @@ export interface ShellServices {
   flags: ShellFlagsService;
   config: ShellConfigService;
   navigation: ShellNavigationService;
-  telemetry: ShellTelemetryService;
 }
 

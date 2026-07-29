@@ -8,7 +8,12 @@
 export const PROTOCOL_VERSION = "1.0.0";
 export const MESSAGE_CHANNEL = "gov-platform-sdk";
 
-export type MessageType = "request" | "response" | "event" | "handshake" |"stream";
+export type MessageType =
+  | "request"
+  | "response"
+  | "event"
+  | "handshake"
+  | "stream";
 
 export interface PlatformMessage<T = unknown> {
   channel: typeof MESSAGE_CHANNEL;
@@ -62,9 +67,6 @@ export const SDK_METHODS = {
   CONFIG_GET_ALL: "config.getAll",
   NAVIGATION_NAVIGATE: "navigation.navigate",
   NAVIGATION_GET_CURRENT: "navigation.getCurrent",
-  TELEMETRY_LOG: "telemetry.log",
-  TELEMETRY_TRACK: "telemetry.track",
-  TELEMETRY_ERROR: "telemetry.error",
   PLATFORM_GET_TYPE: "platform.getType",
   PLATFORM_IS_WEB: "platform.isWeb",
   PLATFORM_IS_ANDROID: "platform.isAndroid",
@@ -106,7 +108,6 @@ export const SDK_CAPABILITIES = [
   "flags",
   "config",
   "navigation",
-  "telemetry",
   "platform",
   "device",
   "storage",

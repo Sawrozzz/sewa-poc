@@ -208,12 +208,6 @@ export class ShellCommunicator {
       traceId: msg.traceId,
     };
 
-    this.services.telemetry.log(
-      { moduleId: payload.miniAppId, traceId: String(msg.traceId || ''), sessionId: '' },
-      "info",
-      `Module connected: ${payload.miniAppId}`,
-      { moduleId: payload.miniAppId, traceId: msg.traceId, sdkVersion: payload.sdkVersion, origin, mode: "bundle" },
-    );
 
     return createMessage(
       "response",
@@ -361,30 +355,6 @@ export class ShellCommunicator {
       case "navigation.getCurrent":
         return this.okResponse(msg, this.services.navigation.getCurrent());
 
-      case "telemetry.log":
-        this.services.telemetry.log(
-          { moduleId: msg.source, traceId: String(payload?.traceId || ''), sessionId: '' },
-          payload?.level as string,
-          payload?.message as string,
-          { ...(payload?.context as Record<string, unknown>), moduleId: msg.source },
-        );
-        return this.okResponse(msg, null);
-
-      case "telemetry.track":
-        this.services.telemetry.track(
-          { moduleId: msg.source, traceId: '', sessionId: '' },
-          payload?.event as string,
-          { ...(payload?.properties as Record<string, unknown>), moduleId: msg.source },
-        );
-        return this.okResponse(msg, null);
-
-      case "telemetry.error":
-        this.services.telemetry.error(
-          { moduleId: msg.source, traceId: '', sessionId: '' },
-          payload?.message as string,
-          { ...(payload?.context as Record<string, unknown>), moduleId: msg.source },
-        );
-        return this.okResponse(msg, null);
 
       case "platform.getType": {
         const info = await this.services.device.info();
@@ -406,10 +376,7 @@ export class ShellCommunicator {
       case "device.location": {
         try {
           const result = await this.services.device.location(payload);
-          return this.okResponse(msg, {
-            status: "granted",
-            data: result,
-          });
+          return this.okResponse(msg, result);
         } catch (err) {
           return this.okResponse(msg, {
             status: "denied",
@@ -428,7 +395,7 @@ export class ShellCommunicator {
         return this.okResponse(msg, result);
       }
 
-      case "device.files": {
+      case "device.files.fetch": {
         const result = await this.services.device.files(payload);
         return this.okResponse(msg, result);
       }

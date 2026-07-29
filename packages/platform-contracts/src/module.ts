@@ -9,8 +9,6 @@ import type {
   PlatformUser,
   NavigationTarget,
   NavigationState,
-  TelemetryContext,
-  TelemetryMetrics,
   ChatSdkModule,
   DevicePermissionResponse,
   DeviceLocationResult,
@@ -176,12 +174,6 @@ export interface PluginServices {
     navigate(target: NavigationTarget): Promise<void>;
     getCurrent(): NavigationState;
     onNavigate(handler: (state: NavigationState) => void): () => void;
-  };
-  telemetry: {
-    log(ctx: TelemetryContext, level: string, message: string, context?: Record<string, unknown>): void;
-    track(ctx: TelemetryContext, event: string, properties?: Record<string, unknown>): void;
-    error(ctx: TelemetryContext, err: Error | string, context?: Record<string, unknown>): void;
-    getMetrics(): TelemetryMetrics;
   };
   chat: ChatSdkModule;
   /** Device capabilities — only accessible through the shell bridge */

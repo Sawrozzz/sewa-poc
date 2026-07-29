@@ -12,8 +12,6 @@ import type {
   PlatformUser,
   NavigationTarget,
   NavigationState,
-  TelemetryMetrics,
-  TelemetryContext,
   ChatMessage,
   DeviceLocationResult,
   DeviceCameraResult,
@@ -60,12 +58,6 @@ export interface BridgeNavigationService {
   getCurrent(): NavigationState;
 }
 
-export interface BridgeTelemetryService {
-  log(level: string, message: string, context?: Record<string, unknown>): void;
-  track(event: string, properties?: Record<string, unknown>): void;
-  error(err: Error | string, context?: Record<string, unknown>): void;
-  getMetrics(): TelemetryMetrics;
-}
 
 export interface BridgeChatService {
   chat(
@@ -144,7 +136,6 @@ export interface BridgeServices
     BridgeFlagsService,
     BridgeConfigService,
     BridgeNavigationService,
-    BridgeTelemetryService,
     BridgeChatService,
     BridgeDeviceService {
   http: BridgeHttpService;
@@ -162,7 +153,6 @@ import type {
   ShellFlagsService,
   ShellConfigService,
   ShellNavigationService,
-  ShellTelemetryService,
   ShellApiService,
   ShellStorageService,
 } from "./sdk";
@@ -174,6 +164,7 @@ export interface ShellChatService {
     options?: Record<string, unknown>,
   ): AsyncIterable<string>;
 }
+
 
 export interface ShellDeviceService {
   location(options?: {
@@ -237,7 +228,6 @@ export interface ShellServiceMap {
   flags: ShellFlagsService;
   config: ShellConfigService;
   navigation: ShellNavigationService;
-  telemetry: ShellTelemetryService;
   chat: ShellChatService;
   device: ShellDeviceService;
   storage: ShellStorageService;
@@ -322,24 +312,6 @@ export class BrowserFederationBridge {
       // navigation
       navigate: (t) => svc.navigation.navigate(t),
       getCurrent: () => svc.navigation.getCurrent(),
-      // telemetry — passes module ID into context for tracing
-      log: (level, msg, ctx) => {
-        svc.telemetry.log(
-          {
-            moduleId,
-            ...((ctx || {}) as Partial<TelemetryContext>),
-          } as TelemetryContext,
-          level,
-          msg,
-        );
-      },
-      track: (evt, props) => {
-        svc.telemetry.track({ moduleId } as TelemetryContext, evt, props);
-      },
-      error: (err, ctx) => {
-        svc.telemetry.error({ moduleId } as TelemetryContext, err, ctx);
-      },
-      getMetrics: () => svc.telemetry.getMetrics(),
       // chat
       chat: (messages, options) => svc.chat.chat(messages, options),
       // device

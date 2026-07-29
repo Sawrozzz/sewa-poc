@@ -41,7 +41,6 @@ export const EVENT_NAMESPACES = {
   CONFIG: 'config',
   FLAG: 'flag',
   DEVICE: 'device',
-  TELEMETRY: 'telemetry',
   PLATFORM: 'platform',
 } as const;
 
@@ -61,9 +60,6 @@ export const PLATFORM_EVENTS = {
   FLAG_UPDATED: 'flag.runtime.updated',
   DEVICE_REQUEST: 'device.capability.request',
   DEVICE_RESPONSE: 'device.capability.response',
-  TELEMETRY_LOG: 'telemetry.log.emitted',
-  TELEMETRY_TRACK: 'telemetry.track.emitted',
-  TELEMETRY_ERROR: 'telemetry.error.emitted',
 } as const;
 
 export interface NavigationRequestPayload {
@@ -127,22 +123,6 @@ export type DeviceCapability =
   | 'storage'
   | 'info';
 
-export interface TelemetryLogPayload {
-  level: 'debug' | 'info' | 'warn' | 'error';
-  message: string;
-  context?: Record<string, unknown>;
-}
-
-export interface TelemetryTrackPayload {
-  event: string;
-  properties?: Record<string, unknown>;
-}
-
-export interface TelemetryErrorPayload {
-  message: string;
-  stack?: string;
-  context?: Record<string, unknown>;
-}
 
 export function createPlatformEvent<T>(
   type: string,

@@ -279,7 +279,6 @@ export class EventBus {
       { type: 'module.lifecycle.failed', version: '1.0.0', owner: 'shell', namespace: 'module', description: 'Module load failed', validate: passthrough },
       { type: 'auth.session.changed', version: '1.0.0', owner: 'shell', namespace: 'auth', description: 'Auth state changed', validate: passthrough },
       { type: 'device.capability.request', version: '1.0.0', owner: 'shell', namespace: 'device', description: 'Device capability request', validate: passthrough },
-      { type: 'telemetry.log.emitted', version: '1.0.0', owner: 'shell', namespace: 'telemetry', description: 'Telemetry log event', validate: passthrough },
     ];
 
     for (const schema of schemas) {
