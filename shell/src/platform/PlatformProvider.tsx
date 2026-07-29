@@ -35,10 +35,10 @@ export interface PlatformProviderProps {
 }
 
 /**
- * Platform Provider — bootstraps all shell platform subsystems.
- *
- * Owns: Event Bus, Shell Communicator, Runtime Loader
- */
+* Platform Provider — bootstraps all shell platform subsystems.
+*
+* Owns: Event Bus, Shell Communicator, Runtime Loader
+*/
 export function PlatformProvider({
   children,
   authConfig,
@@ -56,7 +56,69 @@ export function PlatformProvider({
 
     let cleanupInterval: ReturnType<typeof setInterval>;
 
+    function installHostApiGuard() {
+      const lock = (obj: unknown, prop: string, value: unknown) => {
+        if (!obj || typeof obj !== 'object' || !(prop in obj)) return;
+        try {
+          Object.defineProperty(obj, prop, { value, writable: false, configurable: false });
+        } catch { /* ignore unfrozen / undefined */ }
+      };
+
+      const deny = (msg: string) => () => Promise.reject(new DOMException(msg, 'NotAllowedError'));
+
+      const geoErr = () => ({
+        code: 1, message: '[HostGuard] Use sdk.device.location() instead.',
+        PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3,
+      });
+
+      // File picker
+      lock(window, 'showOpenFilePicker', undefined);
+      lock(window, 'showSaveFilePicker', undefined);
+      lock(window, 'showDirectoryPicker', undefined);
+
+      // Media
+      lock(navigator.mediaDevices, 'getUserMedia', deny('[HostGuard] Use sdk.device.camera().'));
+      lock(navigator.mediaDevices, 'getDisplayMedia', deny('[HostGuard] Screen capture disabled.'));
+
+      // Geolocation
+      lock(navigator.geolocation, 'getCurrentPosition', (_success: unknown, error?: unknown) => {
+        if (typeof error === 'function') error(geoErr());
+      });
+      lock(navigator.geolocation, 'watchPosition', (_success: unknown, error?: unknown) => {
+        if (typeof error === 'function') error(geoErr());
+        return -1;
+      });
+      lock(navigator.geolocation, 'clearWatch', () => {});
+
+      // Clipboard read
+      lock(navigator.clipboard, 'read', deny('[HostGuard] Clipboard read disabled.'));
+      lock(navigator.clipboard, 'readText', deny('[HostGuard] Clipboard read disabled.'));
+
+      // Notifications
+      if (window.Notification) {
+        lock(Notification, 'requestPermission', () => Promise.resolve('denied'));
+        try { Object.defineProperty(Notification, 'permission', { get: () => 'denied', configurable: false }); } catch {}
+      }
+
+      // Service workers
+      lock(navigator.serviceWorker, 'register', deny('[HostGuard] Service workers disabled.'));
+
+      // WebRTC
+      lock(window, 'RTCPeerConnection', undefined);
+      lock(window, 'webkitRTCPeerConnection', undefined);
+
+      // Hardware APIs
+      lock(navigator, 'bluetooth', undefined);
+      lock(navigator, 'usb', undefined);
+      lock(navigator, 'serial', undefined);
+      lock(navigator, 'hid', undefined);
+      lock(navigator, 'vibrate', () => false);
+    }
+
     async function init() {
+      // Block sensitive browser APIs before any mini-app code runs
+      installHostApiGuard();
+
       // Expose shell's React to mini-app bundles (they reference window.React)
       (window as unknown as Record<string, unknown>).React = React;
       (window as unknown as Record<string, unknown>).ReactDOM = ReactDOM;
@@ -72,20 +134,8 @@ export function PlatformProvider({
 
       const loader = createRuntimeLoader({
         onLoadComplete: (result) => {
-          services.telemetry.track(
-            {
-              moduleId: result.moduleId,
-              traceId: "loader",
-              sessionId: "loader",
-            },
-            "module.loaded",
-            { loadTimeMs: result.loadTimeMs, strategy: result.strategy },
-          );
-          const metrics = services.telemetry.getMetrics();
-          if (!metrics.moduleLoadTimesMs[result.moduleId]) {
-            metrics.moduleLoadTimesMs[result.moduleId] = [];
-          }
-          metrics.moduleLoadTimesMs[result.moduleId].push(result.loadTimeMs);
+          console.log("Successfully load", result.success);
+          
         },
         onLoadError: (moduleId, error) => {
           eventBus.emit("module.lifecycle.failed", "shell", {
@@ -175,3 +225,5 @@ export function useRuntimeLoader(): RuntimeLoader {
 export function useEventBus(): EventBus {
   return usePlatform().eventBus;
 }
+
+ 
