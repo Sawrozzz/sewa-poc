@@ -53,7 +53,7 @@ function createMiniAppRuntime(eventBus: EventBus, _communicator: unknown): Runti
 
     return {
         sdk,
-        config: { tenantId: "acme-corp", locale: "en-US", theme: "light" },
+        config: {},
     };
 }
 
@@ -83,7 +83,7 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
         if (sdkLoaded.current) return;
         sdkLoaded.current = true;
 
-        const CDN_URL = "/sdk/sewa-sdk.min.js";
+        const CDN_URL = 'https://cdn.jsdelivr.net/npm/@lizuz/sewa-sdk/dist/sewa-sdk.min.js';
         let sdkReady = typeof window.getMiniAppBridge === "function";
 
         if (!sdkReady) {

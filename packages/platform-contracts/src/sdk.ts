@@ -1,6 +1,33 @@
 /**
  * SDK surface contracts — implemented by Mini App SDK, fulfilled by Shell Communicator
+ *
+ * Types that are identical between the SDK and host are imported from
+ * `@sewa/mini-app-types`. Types that differ (shell-side services,
+ * platform-specific shapes) are defined locally.
  */
+
+import type {
+  NavigationTarget,
+  DevicePermissionStatus,
+  FileModule,
+  DeviceGalleryResult,
+  StorageSdkModule,
+  HttpResult,
+  ApiSdkModule,
+  HttpMethod,
+  ApiResult,
+} from '@sewa/mini-app-types';
+
+export type {
+  NavigationTarget,
+  FileModule,
+  DeviceGalleryResult,
+  StorageSdkModule,
+  HttpResult,
+  ApiSdkModule,
+  HttpMethod,
+  ApiResult,
+};
 
 export interface PlatformUser {
   id: string;
@@ -12,25 +39,12 @@ export interface PlatformUser {
   metadata?: Record<string, unknown>;
 }
 
-export interface NavigationTarget {
-  app: string;
-  route: string;
-  params?: Record<string, string>;
-  replace?: boolean;
-}
-
 export interface NavigationState {
   app: string;
   route: string;
   params: Record<string, string>;
   historyLength: number;
 }
-
-export type DevicePermissionStatus =
-  | "granted"
-  | "denied"
-  | "permanentlyDenied"
-  | "restricted";
 
 export type DevicePermissionResponse<T> = {
   status: DevicePermissionStatus;
@@ -56,23 +70,10 @@ export interface DeviceCameraResult {
   byteSize?: number;
 }
 
-export interface FileModule {
-  url: string;
-  fileName?: string;
-  mimeType?: string;
-  extension?: string;
-  byteSize?: number;
-  previewUrl?: string;
-}
-
 export interface FileOptions {
   reason?:string;
   multiple?: boolean;
   accept?: string[]
-}
-
-export interface DeviceGalleryResult {
-  images: FileModule[]
 }
 
 export interface DeviceFilesResult {
@@ -211,12 +212,6 @@ export interface DeviceSdkModule {
 }
 
 /** HTTP types — used by sdk.http.get() through the Shell HTTP proxy */
-export interface HttpResult<T = unknown> {
-  status: number;
-  data: T;
-  headers: Record<string, string>;
-}
-
 export interface HttpSdkModule {
   get<T = unknown>(endpoint?: string, query?: Record<string, string>): Promise<HttpResult<T>>;
   post<T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>): Promise<HttpResult<T>>;
@@ -225,29 +220,11 @@ export interface HttpSdkModule {
   delete<T = unknown>(endpoint?: string, headers?: Record<string, string>): Promise<HttpResult<T>>;
 }
 
-export interface ApiSdkModule {
-  request<T = unknown, B = unknown>(params: ApiRequestParams<B>): Promise<ApiResult<T>>;
-}
-
-export interface StorageSdkModule {
-  get(key: string): Promise<string | null>;
-  set(key: string, value: string): Promise<void>;
-  remove(key: string): Promise<void>;
-}
-
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-
 export interface ApiRequestParams<TBody = unknown> {
   method: HttpMethod;
   path: string;
   body?: TBody;
   headers?: Record<string, string>;
-}
-
-export interface ApiResult<T = unknown> {
-  status: number;
-  data: T;
-  headers: Record<string, string>;
 }
 
 export interface ShellApiService {
