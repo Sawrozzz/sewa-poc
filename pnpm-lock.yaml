@@ -32,11 +32,10 @@ importers:
         version: 6.0.3
 
   packages/platform-contracts:
-    dependencies:
-      '@sewa/mini-app-types':
-        specifier: file:../../../sdk/mini-app-types
-        version: file:../sdk/mini-app-types
     devDependencies:
+      '@lizuz/mini-app-types':
+        specifier: ^1.0.0
+        version: 1.0.0
       '@sewa/event-bus':
         specifier: workspace:*
         version: link:../event-bus
@@ -949,6 +948,9 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
+  '@lizuz/mini-app-types@1.0.0':
+    resolution: {integrity: sha512-RQKoZ2wrpQdhdhutg2vIe2cotcXIsFTeRtT/sKm1ncs65j0m69dCUQ3NYCINDvEONV7tV/Uc5rQemEA3iSIeDQ==}
+
   '@napi-rs/wasm-runtime@0.2.4':
     resolution: {integrity: sha512-9zESzOO5aDByvhIAsOy9TbpZ0Ur2AJbUI7UT73kcUTS2mxAMHOBaa1st/jAymNoCtvrit99kkzT1FZuXVcgfIQ==}
 
@@ -1511,9 +1513,6 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
-
-  '@sewa/mini-app-types@file:../sdk/mini-app-types':
-    resolution: {directory: ../sdk/mini-app-types, type: directory}
 
   '@sigstore/bundle@4.0.0':
     resolution: {integrity: sha512-NwCl5Y0V6Di0NexvkTqdoVfmjTaQwoLM236r89KEojGmq/jMls8S+zb7yOwAPdXvbwfKDlP+lmXgAL4vKSQT+A==}
@@ -4618,6 +4617,8 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
+  '@lizuz/mini-app-types@1.0.0': {}
+
   '@napi-rs/wasm-runtime@0.2.4':
     dependencies:
       '@emnapi/core': 1.4.5
@@ -5112,8 +5113,6 @@ snapshots:
       typescript: 6.0.3
     transitivePeerDependencies:
       - browserslist
-
-  '@sewa/mini-app-types@file:../sdk/mini-app-types': {}
 
   '@sigstore/bundle@4.0.0':
     dependencies:

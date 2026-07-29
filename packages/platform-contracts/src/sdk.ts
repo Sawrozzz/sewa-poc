@@ -16,7 +16,7 @@ import type {
   ApiSdkModule,
   HttpMethod,
   ApiResult,
-} from '@sewa/mini-app-types';
+} from '@lizuz/mini-app-types';
 
 export type {
   NavigationTarget,

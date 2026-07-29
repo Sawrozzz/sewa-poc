@@ -29,10 +29,8 @@
     "dev": "tsup src/index.ts src/events.ts --format cjs,esm --dts --watch",
     "clean": "rm -rf dist"
   },
-  "dependencies": {
-    "@sewa/mini-app-types": "file:../../../sdk/mini-app-types"
-  },
   "devDependencies": {
+    "@lizuz/mini-app-types": "^1.0.0",
     "@sewa/event-bus": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3"
