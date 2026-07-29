@@ -9,3 +9,5 @@ allowBuilds:
   nx: true
   protobufjs: true
   sharp: true
+minimumReleaseAgeExclude:
+  - '@lizuz/mini-app-types@1.0.0'
