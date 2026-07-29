@@ -2,17 +2,10 @@ import type {
   PlatformUser,
   NavigationTarget,
   NavigationState,
-  TelemetryMetrics,
-  TelemetryContext,
   ChatMessage,
   DeviceLocationResult,
-  DeviceCameraResult,
   DeviceGalleryResult,
   DeviceFilesResult,
-  DeviceBiometricResult,
-  DeviceNotificationResult,
-  DeviceNetworkResult,
-  DeviceInfoResult,
   DevicePermissionResponse,
   FileModule,
   FileOptions,
@@ -103,7 +96,7 @@ function getFallbackMimeType(ext: string): string {
 
 export function createShellServices(
   getConfig: () => PlatformServicesConfig,
-): import("@sewa/platform-contracts").ShellServiceMap {
+) {
   let navigationState: NavigationState = {
     app: "shell",
     route: "/",
@@ -206,60 +199,6 @@ export function createShellServices(
     },
   };
 
-  const metrics: TelemetryMetrics = {
-    eventThroughput: 0,
-    navigationLatencyMs: [],
-    moduleLoadTimesMs: {},
-    deviceInteractionCounts: {},
-    errorCounts: {},
-  };
-
-  const telemetry = {
-    log: (
-      ctx: TelemetryContext,
-      level: string,
-      message: string,
-      context?: Record<string, unknown>,
-    ) => {
-      if (process.env.NODE_ENV === "development") {
-        console[level === "error" ? "error" : "log"](`[Telemetry:${level}]`, {
-          message,
-          ...context,
-        });
-      }
-      const modId = (ctx as any).moduleId as string | undefined;
-      if (level === "error" && modId) {
-        metrics.errorCounts[modId] = (metrics.errorCounts[modId] ?? 0) + 1;
-      }
-    },
-    track: (
-      ctx: TelemetryContext,
-      event: string,
-      properties?: Record<string, unknown>,
-    ) => {
-      metrics.eventThroughput++;
-      if (process.env.NODE_ENV === "development") {
-      }
-    },
-    error: (
-      ctx: TelemetryContext,
-      err: Error | string,
-      context?: Record<string, unknown>,
-    ) => {
-      const message = err instanceof Error ? err.message : err;
-      const modId = (ctx as any).moduleId as string | undefined;
-      if (modId) {
-        metrics.errorCounts[modId] = (metrics.errorCounts[modId] ?? 0) + 1;
-      } else {
-        metrics.errorCounts["shell"] = (metrics.errorCounts["shell"] ?? 0) + 1;
-      }
-      if (process.env.NODE_ENV === "development") {
-        console.error("[Telemetry:error]", { message, ...context });
-      }
-    },
-    getMetrics: () => metrics,
-  };
-
   const chat = {
     chat: async function* (
       messages: ChatMessage[],
@@ -339,16 +278,19 @@ export function createShellServices(
       try {
         if (!navigator.geolocation)
           throw new Error("Geolocation not supported");
-        const result = await new Promise<DeviceLocationResult>(
+        const result = await new Promise<DevicePermissionResponse<DeviceLocationResult>>(
           (resolve, reject) => {
             navigator.geolocation.getCurrentPosition(
               (pos) =>
                 resolve({
-                  latitude: pos.coords.latitude,
-                  longitude: pos.coords.longitude,
-                  accuracy: pos.coords.accuracy,
-                  timestamp: new Date(pos.timestamp).toISOString(),
-                }),
+                  status: "granted",
+                  data: {
+                    latitude: pos.coords.latitude,
+                    longitude: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy,
+                    timestamp: new Date(pos.timestamp).toISOString(),
+                  },
+                } as DevicePermissionResponse<DeviceLocationResult>),
               (err) => reject(err),
               {
                 enableHighAccuracy: _options?.highAccuracy ?? false,
@@ -357,8 +299,11 @@ export function createShellServices(
             );
           },
         );
-        return { status: "granted", data: result } as unknown as any;
+        console.log("location data in host:", result);
+        return  result ; 
+      
       } catch (err) {
+        console.log("Error on host in location:", err)
         return {
           status: "denied",
           data: null,
@@ -396,7 +341,7 @@ export function createShellServices(
       try {
         const files = await filePicker({
           multiple: options?.multiple,
-          accept: [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".csv"]
+          accept: [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".csv"],
         });
 
         return {
@@ -593,10 +538,13 @@ export function createShellServices(
   };
 
   const api: ShellApiService = {
-    request: async <T = unknown, B = unknown>(params: LocalApiRequestParams) => {
+    request: async <T = unknown, B = unknown>(
+      params: LocalApiRequestParams,
+    ) => {
       try {
         const res = await fetch(
-          params.endpoint?.startsWith("http") || params.endpoint?.startsWith("/")
+          params.endpoint?.startsWith("http") ||
+            params.endpoint?.startsWith("/")
             ? params.endpoint
             : `https://api.example.com${params.endpoint}`,
           {
@@ -629,7 +577,9 @@ export function createShellServices(
   const storage: ShellStorageService = {
     get: async (key: string) => {
       try {
-        const result = await http.get<{ value?: string } | null>(`/api/storage/${key}`);
+        const result = await http.get<{ value?: string } | null>(
+          `/api/storage/${key}`,
+        );
         return result.data?.value ?? null;
       } catch {
         return null;
@@ -649,7 +599,6 @@ export function createShellServices(
     flags,
     config,
     navigation,
-    telemetry,
     chat,
     device,
     storage,

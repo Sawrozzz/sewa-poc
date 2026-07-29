@@ -61,7 +61,6 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
       "flags",
       "config",
       "navigation",
-      "telemetry",
       "platform",
       "device",
       "api",
@@ -71,8 +70,8 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
     ],
     isEnabled: true,
     order: 1,
-    bundleUrl: "https://test-mini-app-orcin.vercel.app/",
-    // bundleUrl: "http://localhost:3002/",
+    // bundleUrl: "https://test-mini-app-orcin.vercel.app/",
+    bundleUrl: "http://localhost:3002/",
     entryType: "framework-agnostic",
     loadStrategy: "plugin",
     compatibility: {
@@ -88,7 +87,12 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
 
 export async function fetchMiniApps(): Promise<ModuleManifest[]> {
   const res = await axios.get<MiniAppRecord[]>("/api/mini-apps");
-  return res.data.map(toManifest);
+
+  console.log("Response in mini app", res)
+
+  console.log("Res", res?.data)
+  // return res.data.map(toManifest);
+  return Array.isArray(res.data) ? res.data.map(toManifest) : FALLBACK_MANIFESTS;
 }
 
 export async function fetchMiniApp(id: string): Promise<ModuleManifest | null> {

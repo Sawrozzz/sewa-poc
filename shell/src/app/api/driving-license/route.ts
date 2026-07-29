@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
     const { miniAppId, ...body } = await request.json();
 
     const response = await fetch(
-      "http://10.10.20.157:3001/v1/service-requests",
+      "http://10.10.30.122:3001/v1/service-requests",
       {
         method: "POST",
         headers: {

@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 
 export async function GET() {
   try {
-    const response = await fetch("http://10.10.20.157:3000/v1/miniapps", {
+    const response = await fetch("http://10.10.30.122:3000/v1/miniapps", {
       cache: "no-store",
     });
 
