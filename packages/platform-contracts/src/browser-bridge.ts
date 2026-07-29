@@ -26,6 +26,8 @@ import type {
   FileOptions,
   HttpResult,
   DevicePermissionResponse,
+  ApiRequestParams,
+  ApiResult,
 } from "./sdk";
 
 // ---------------------------------------------------------------------------
@@ -130,6 +132,10 @@ export interface BridgeHttpService {
   ): Promise<HttpResult<T>>;
 }
 
+export interface BridgeApiService {
+  request<T = unknown, B = unknown>(params: ApiRequestParams<B>): Promise<ApiResult<T>>;
+}
+
 /** The fully typed service object given to each plugin via getServices() */
 export interface BridgeServices
   extends
@@ -142,6 +148,8 @@ export interface BridgeServices
     BridgeChatService,
     BridgeDeviceService {
   http: BridgeHttpService;
+  api: BridgeApiService;
+  storage: BridgeStorageService;
 }
 
 // ---------------------------------------------------------------------------
@@ -155,6 +163,8 @@ import type {
   ShellConfigService,
   ShellNavigationService,
   ShellTelemetryService,
+  ShellApiService,
+  ShellStorageService,
 } from "./sdk";
 
 // Bridge-specific shell-side types (not exported from sdk.ts)
@@ -230,6 +240,8 @@ export interface ShellServiceMap {
   telemetry: ShellTelemetryService;
   chat: ShellChatService;
   device: ShellDeviceService;
+  storage: ShellStorageService;
+  api: ShellApiService;
   http: ShellHttpService;
 }
 
@@ -334,16 +346,10 @@ export class BrowserFederationBridge {
       location: (opts) => svc.device.location(opts),
       camera: (opts) => svc.device.camera(opts),
       gallery: (opts) => svc.device.gallery(opts),
-      // files: (opts) => svc.device.files(opts),
       files: (opts) => svc.device.files(opts),
       biometric: (opts) => svc.device.biometric(opts),
       notifications: (opts) => svc.device.notifications(opts),
       network: () => svc.device.network(),
-      storage: {
-        get: (k) => svc.device.storage.get(k),
-        set: (k, v) => svc.device.storage.set(k, v),
-        remove: (k) => svc.device.storage.remove(k),
-      },
       info: () => svc.device.info(),
       // http (nested — no conflict with flat methods)
       http: {
@@ -352,6 +358,16 @@ export class BrowserFederationBridge {
         put: (end, body, h) => svc.http.put(end, body, h),
         patch: (end, body, h) => svc.http.patch(end, body, h),
         delete: (end, h) => svc.http.delete(end, h),
+      },
+      // api (new SDK)
+      api: {
+        request: (params) => svc.api.request(params),
+      },
+      // storage (standalone)
+      storage: {
+        get: (k) => svc.storage.get(k),
+        set: (k, v) => svc.storage.set(k, v),
+        remove: (k) => svc.storage.remove(k),
       },
     };
   }

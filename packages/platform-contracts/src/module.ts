@@ -220,7 +220,5 @@ export interface MiniAppBundle {
   unmount: (container: HTMLElement) => void;
 }
 
-export const SHELL_VERSION = '1.0.0';
 export const MINI_APP_SDK_VERSION = '1.0.0';
-export const COMMUNICATOR_VERSION = '1.0.0';
 export const BRIDGE_VERSION = '1.0.0';

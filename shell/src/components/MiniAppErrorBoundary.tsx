@@ -3,7 +3,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 export interface MiniAppErrorBoundaryProps {
-  moduleId: string;
+  miniAppId: string;
   moduleName: string;
   retryAttempts?: number;
   onRetry?: () => void;
@@ -32,7 +32,7 @@ export class MiniAppErrorBoundary extends Component<MiniAppErrorBoundaryProps, S
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error(
-      `[MiniAppErrorBoundary] Module ${this.props.moduleId} crashed:`,
+      `[MiniAppErrorBoundary] Module ${this.props.miniAppId} crashed:`,
       error.message,
       info.componentStack
     );

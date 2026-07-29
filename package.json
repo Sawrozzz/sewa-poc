@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build:turbo": "turbo run build",
+    "build:platform": "pnpm --filter @sewa/platform-contracts build && pnpm --filter @sewa/event-bus build && pnpm --filter @sewa/shell-communicator build && pnpm --filter @sewa/runtime-loader build",
     "build": "pnpm build:platform && pnpm --filter @sewa/shell-app build",
     "dev": "pnpm --filter @sewa/shell-app dev",
     "lint": "turbo run lint",
@@ -22,5 +23,5 @@
     "version": "lerna version",
     "publish:packages": "lerna publish from-package"
   },
-  "packageManager": "pnpm@10.15.0"
+  "packageManager": "pnpm@11.9.0"
 }

@@ -8,11 +8,11 @@ export function AppShell() {
   const t = useTranslations("HomePage");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-50">
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-10 bg-gradient-to-br from-gov-600 via-gov-700 to-gov-900 rounded-2xl p-8 text-white shadow-xl shadow-gov-200/50 relative overflow-hidden">
+        <div className="mb-10 bg-linear-to-br from-gov-600 via-gov-700 to-gov-900 rounded-2xl p-8 text-white shadow-xl shadow-gov-200/50 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -mr-32 -mt-32" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full -ml-20 -mb-20" />
           <div className="absolute top-1/2 right-8 -translate-y-1/2 opacity-10 hidden md:block">
@@ -60,7 +60,7 @@ export function AppShell() {
         <ModuleGrid />
 
         <footer className="mt-12 pt-8 border-t border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 bg-gov-600 rounded-md flex items-center justify-center">
@@ -71,21 +71,6 @@ export function AppShell() {
               <p className="text-xs text-gray-500 leading-relaxed">
                 Government Citizen Super App v1.0
               </p>
-            </div>
-            <div>
-              <h4 className="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-3">Resources</h4>
-              <ul className="space-y-2">
-                <li>
-                  <a
-                    href="http://localhost:4000"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-gov-600 hover:text-gov-700 hover:underline transition"
-                  >
-                    Module Management Dashboard
-                  </a>
-                </li>
-              </ul>
             </div>
             <div className="text-right md:text-left">
               <p className="text-xs text-gray-500">

@@ -53,15 +53,15 @@ function createMiniAppRuntime(eventBus: EventBus, _communicator: unknown): Runti
 
     return {
         sdk,
-        config: { tenantId: "acme-corp", locale: "en-US", theme: "light" },
+        config: {},
     };
 }
 
 export interface MiniAppContainerProps {
-    moduleId: string;
+    miniAppId: string;
 }
 
-export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
+export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
     const router = useRouter();
     const { data: session, isPending: authLoading } = authClient.useSession();
     const user = mapSessionUser(session?.user);
@@ -69,7 +69,7 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
     const loader = useRuntimeLoader();
     const eventBus = useEventBus();
     const isAuthenticated = !!session;
-    const { data: manifest, isLoading: manifestLoading, error: manifestError } = useMiniApp(moduleId);
+    const { data: manifest, isLoading: manifestLoading, error: manifestError } = useMiniApp(miniAppId);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -83,7 +83,7 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
         if (sdkLoaded.current) return;
         sdkLoaded.current = true;
 
-        const CDN_URL = "https://cdn.jsdelivr.net/npm/@sawrozzz/sdk-revised@1.2.2/dist/sdk-revised.min.js";
+        const CDN_URL = 'https://cdn.jsdelivr.net/npm/@lizuz/sewa-sdk/dist/sewa-sdk.min.js';
         let sdkReady = typeof window.getMiniAppBridge === "function";
 
         if (!sdkReady) {
@@ -99,11 +99,11 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
 
         if (typeof window.getMiniAppBridge === "function") {
             await window.getMiniAppBridge()!.createInstance({
-                moduleId,
+                miniAppId,
                 sdkOptions: { timeout: 30000, retryAttempts: 5, retryDelayMs: 500, targetOrigin: "*" },
             });
         }
-    }, [moduleId]);
+    }, [miniAppId]);
 
     const loadModule = useCallback(async () => {
         if (!manifest) return;
@@ -119,7 +119,7 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
 
         let result: RemoteLoadResult;
         try {
-            result = await loader.load(moduleId, manifest.bundleUrl, manifest.version, { retryAttempts: 3 });
+            result = await loader.load(miniAppId, manifest.bundleUrl, manifest.version, { retryAttempts: 3 });
         } catch (err) {
             setLoadError(err instanceof Error ? err.message : "Failed to load module");
             setLoadState("error");
@@ -131,7 +131,7 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
         if (result.success && result.bundle) {
             setLoadState("ready");
             eventBus.emit("module.lifecycle.loaded", "shell", {
-                moduleId,
+                miniAppId,
                 version: manifest.version,
                 loadTimeMs: result.loadTimeMs,
             });
@@ -139,17 +139,17 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
             setLoadError(result.error ?? "Failed to load plugin bundle");
             setLoadState("error");
             eventBus.emit("module.lifecycle.failed", "shell", {
-                moduleId,
+                miniAppId,
                 version: manifest.version,
                 error: result.error,
             });
         }
-    }, [manifest, moduleId, loader, eventBus, initMiniAppBridge]);
+    }, [manifest, miniAppId, loader, eventBus, initMiniAppBridge]);
 
     useEffect(() => {
         if (loadState !== "ready" || !containerRef.current) return;
 
-        const loadedModule = loader.getLoadedModule(moduleId);
+        const loadedModule = loader.getLoadedModule(miniAppId);
         if (!loadedModule?.bundle) return;
 
         const container = containerRef.current;
@@ -164,7 +164,7 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
         return () => {
             loadedModule.bundle.unmount(container);
         };
-    }, [loadState, moduleId, loader, eventBus, communicator]);
+    }, [loadState, miniAppId, loader, eventBus, communicator]);
 
     useEffect(() => {
         if (authLoading || manifestLoading) return;
@@ -181,7 +181,7 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
         }
 
         if (!manifest) {
-            setLoadError(`Module "${moduleId}" not found`);
+            setLoadError(`Module "${miniAppId}" not found`);
             setLoadState("error");
             return;
         }
@@ -195,24 +195,25 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
             cleanupDone.current = true;
             return () => {
                 cleanupDone.current = false;
-                loader.unload(moduleId);
-                communicator.disconnectModule(moduleId);
+                loader.unload(miniAppId);
+                communicator.disconnectModule(miniAppId);
+                window.getMiniAppBridge()?.destroyInstance(miniAppId);
             };
         }
 
         return () => {};
-    }, [authLoading, manifestLoading, manifest, manifestError, isAuthenticated, loadModule, router, loader, moduleId, communicator]);
+    }, [authLoading, manifestLoading, manifest, manifestError, isAuthenticated, loadModule, router, loader, miniAppId, communicator]);
 
     const handleRetry = useCallback(() => {
         setLoadError("");
         setLoadState("idle");
-        loader.unload(moduleId).then(() => loadModule());
-    }, [loader, moduleId, loadModule]);
+        loader.unload(miniAppId).then(() => loadModule());
+    }, [loader, miniAppId, loadModule]);
 
     const handleUnload = useCallback(() => {
-        loader.unload(moduleId);
+        loader.unload(miniAppId);
         router.push("/");
-    }, [loader, moduleId, router]);
+    }, [loader, miniAppId, router]);
 
     if (authLoading || manifestLoading || loadState === "idle" || loadState === "loading") {
         return (
@@ -221,7 +222,7 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
                     <div className="w-10 h-10 border-4 border-gov-200 border-t-gov-600 rounded-full animate-spin mx-auto mb-3" />
                     <p className="text-gray-600">Loading plugin bundle...</p>
                     <p className="text-xs text-gray-400 mt-1">
-                        {manifest?.name ?? moduleId}
+                        {manifest?.name ?? miniAppId}
                     </p>
                 </div>
             </div>
@@ -238,7 +239,7 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
                         onClick={() => router.push("/")}
                         className="text-sm text-gov-600 hover:underline"
                     >
-                        ← 
+                        ←
                     </button>
                 </div>
             </div>
@@ -275,7 +276,7 @@ export function MiniAppContainer({ moduleId }: MiniAppContainerProps) {
 
             <div className="flex-1 overflow-auto">
                 <MiniAppErrorBoundary
-                    moduleId={moduleId}
+                    miniAppId={miniAppId}
                     moduleName={manifest.name}
                     retryAttempts={3}
                     onRetry={handleRetry}
