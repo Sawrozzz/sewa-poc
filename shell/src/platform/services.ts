@@ -4,6 +4,7 @@ import type {
   NavigationState,
   ChatMessage,
   DeviceLocationResult,
+  DeviceCameraResult,
   DeviceGalleryResult,
   DeviceFilesResult,
   DeviceDownloadResult,
@@ -313,11 +314,55 @@ export function createShellServices(
         } as unknown as any;
       }
     },
-    camera: async (_options?: { facing?: "front" | "back"; reason?: string }) =>
-      ({
-        status: "granted",
-        data: { url: "", mimeType: "", byteSize: 0, fileName: "" },
-      }) as unknown as any,
+    camera: async (options?: { facing?: "front" | "back"; reason?: string }) => {
+      try {
+        const file = await new Promise<File>((resolve, reject) => {
+          const input = document.createElement("input");
+          input.type = "file";
+          input.accept = "image/*";
+          // On mobile (web or installed PWA) this opens the native camera
+          // directly; desktop browsers ignore it and show a file picker.
+          input.capture = options?.facing === "front" ? "user" : "environment";
+
+          input.onchange = () => {
+            if (!input.files || input.files.length === 0) {
+              return reject(new Error("No photo captured"));
+            }
+            resolve(input.files[0]);
+          };
+
+          window.addEventListener(
+            "focus",
+            () => {
+              setTimeout(() => {
+                if (!input.files || input.files.length === 0) {
+                  reject(new Error("Camera capture cancelled"));
+                }
+              }, 300);
+            },
+            { once: true },
+          );
+          input.click();
+        });
+
+        const blobUrl = URL.createObjectURL(file);
+        return {
+          status: "granted",
+          data: {
+            url: blobUrl,
+            fileName: file.name,
+            mimeType: file.type || "image/jpeg",
+            byteSize: file.size,
+          },
+        } as DevicePermissionResponse<DeviceCameraResult>;
+      } catch (error: any) {
+        return {
+          status: "denied",
+          data: null,
+          error: error?.message || "Camera capture cancelled",
+        } as unknown as DevicePermissionResponse<DeviceCameraResult>;
+      }
+    },
 
     gallery: async (options?: FileOptions) => {
       try {
