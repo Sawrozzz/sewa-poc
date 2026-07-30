@@ -522,35 +522,46 @@ export function createShellServices(
           } as unknown as DevicePermissionResponse<DeviceDownloadResult>;
         }
 
+        // Pick the destination *before* fetching: the save picker needs the
+        // user activation from the tap above (which expires a few seconds after
+        // an await), and cancelling here should skip the transfer entirely.
+        let handle: FileSystemFileHandle | null = null;
+        if (typeof (window as any).showSaveFilePicker === "function") {
+          try {
+            handle = await (window as any).showSaveFilePicker({
+              suggestedName: options.fileName,
+            });
+          } catch (err: any) {
+            if (err?.name === "AbortError") {
+              return {
+                status: "denied",
+                error: "Download cancelled",
+              } as unknown as DevicePermissionResponse<DeviceDownloadResult>;
+            }
+            throw err;
+          }
+        }
+
         const resp = await fetch(options.url);
         if (!resp.ok) throw new Error(`Failed to fetch file: ${resp.status}`);
 
         const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
 
-
-
-        const saveFile = async (): Promise<string> => {
-          const supportsFilePicker = typeof (window as any).showSaveFilePicker === "function";
-          if (supportsFilePicker) {
-            const handle = await (window as any).showSaveFilePicker({
-              suggestedName: options!.fileName,
-            });
-            const writable = await handle.createWritable();
-            await writable.write(blob);
-            await writable.close();
-            return URL.createObjectURL(blob);
-          }
-          const blobUrl = URL.createObjectURL(blob);
+        if (handle) {
+          const writable = await (handle as any).createWritable();
+          await writable.write(blob);
+          await writable.close();
+        } else {
+          // No File System Access API. The browser's download manager takes
+          // over and reports nothing back, so `saved` stays false.
           const a = document.createElement("a");
           a.href = blobUrl;
-          a.download = options!.fileName;
+          a.download = options.fileName;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
-          return blobUrl;
-        };
-
-        const blobUrl = await saveFile();
+        }
 
         const ext = options.fileName.split(".").pop()?.toLowerCase() || "";
         const fileModule: FileModule = {
@@ -566,6 +577,7 @@ export function createShellServices(
           status: "granted",
           data: {
             file: fileModule,
+            saved: handle !== null,
           },
         } as unknown as DevicePermissionResponse<DeviceDownloadResult>;
       } catch (error: any) {

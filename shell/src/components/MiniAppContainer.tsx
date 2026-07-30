@@ -15,6 +15,7 @@ import {
 } from "@/platform";
 import { useMiniApp } from "@/lib/use-mini-apps";
 import { MiniAppErrorBoundary } from "./MiniAppErrorBoundary";
+import { MiniAppLoader } from "./MiniAppLoader";
 import { Header } from "./Header";
 import type { EventBus } from "@sewa/event-bus";
 import type { RemoteLoadResult } from "@sewa/platform-contracts";
@@ -219,15 +220,11 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
 
     if (authLoading || manifestLoading || loadState === "idle" || loadState === "loading") {
         return (
-            <div className="flex items-center justify-center h-screen bg-slate-50">
-                <div className="text-center">
-                    <div className="w-10 h-10 border-4 border-gov-200 border-t-gov-600 rounded-full animate-spin mx-auto mb-3" />
-                    <p className="text-gray-600">Loading plugin bundle...</p>
-                    <p className="text-xs text-gray-400 mt-1">
-                        {manifest?.name ?? miniAppId}
-                    </p>
-                </div>
-            </div>
+            <MiniAppLoader
+                name={manifest?.name ?? miniAppId}
+                icon={manifest?.icon}
+                color={manifest?.color}
+            />
         );
     }
 

@@ -82,6 +82,16 @@ export interface DeviceFilesResult {
 
 export interface DeviceDownloadResult {
   file: FileModule
+  /**
+   * True when the file was written to a destination the user explicitly picked
+   * (File System Access API), so the save is confirmed.
+   *
+   * False when the browser lacks that API and the file was handed to its own
+   * download manager instead. The web platform exposes no completion or
+   * cancellation signal for that path, so the outcome is unknown — the user may
+   * still have dismissed the browser's own save dialog.
+   */
+  saved: boolean
 }
 
 export interface DownloadOptions {
