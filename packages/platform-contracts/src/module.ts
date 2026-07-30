@@ -15,6 +15,8 @@ import type {
   DeviceCameraResult,
   DeviceGalleryResult,
   DeviceFilesResult,
+  DeviceDownloadResult,
+  DownloadOptions,
   DeviceBiometricResult,
   DeviceNotificationResult,
   DeviceNetworkResult,
@@ -182,6 +184,7 @@ export interface PluginServices {
     camera(options?: { facing?: 'front' | 'back' ; reason?:string }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
     gallery(options?: { maxCount?: number ; reason?:string  }): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
     files(options?: { accept?: string[]; multiple?: boolean }): Promise<DevicePermissionResponse<DeviceFilesResult>>;
+    download(options?: DownloadOptions): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
     biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
     notifications(options?: { requestPermission?: boolean }): Promise<DeviceNotificationResult>;
     network(): Promise<DeviceNetworkResult>;

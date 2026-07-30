@@ -395,8 +395,8 @@ export class ShellCommunicator {
         return this.okResponse(msg, result);
       }
 
-      case "device.files.fetch": {
-        const result = await this.services.device.files(payload);
+      case "device.download": {
+        const result = await this.services.device.download(payload);
         return this.okResponse(msg, result);
       }
 

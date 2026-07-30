@@ -80,6 +80,17 @@ export interface DeviceFilesResult {
   files: FileModule[]
 }
 
+export interface DeviceDownloadResult {
+  file: FileModule
+}
+
+export interface DownloadOptions {
+  url: string;
+  fileName: string;
+  mimeType?: string;
+  reason?: string;
+}
+
 export interface DeviceBiometricResult {
   success: boolean;
   method: 'fingerprint' | 'face' | 'pin';
@@ -190,6 +201,7 @@ export interface DeviceSdkModule {
   camera(options?: { facing?: 'front' | 'back' }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
   gallery(options?: FileOptions): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
   files(options?: FileOptions): Promise<DevicePermissionResponse<DeviceFilesResult>>;
+  download(options?: DownloadOptions): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
   biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
   notifications(options?: { requestPermission?: boolean }): Promise<DeviceNotificationResult>;
   network(): Promise<DeviceNetworkResult>;

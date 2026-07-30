@@ -17,6 +17,7 @@ import type {
   DeviceCameraResult,
   DeviceGalleryResult,
   DeviceFilesResult,
+  DeviceDownloadResult,
   DeviceBiometricResult,
   DeviceNotificationResult,
   DeviceNetworkResult,
@@ -24,6 +25,7 @@ import type {
   FileOptions,
   HttpResult,
   DevicePermissionResponse,
+  DownloadOptions,
   ApiRequestParams,
   ApiResult,
 } from "./sdk";
@@ -88,6 +90,9 @@ export interface BridgeDeviceService {
   files(
     options?: FileOptions,
   ): Promise<DevicePermissionResponse<DeviceFilesResult>>;
+  download(
+    options?: DownloadOptions,
+  ): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
   biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
   notifications(options?: {
     requestPermission?: boolean;
@@ -182,6 +187,9 @@ export interface ShellDeviceService {
   files(
     options?: FileOptions,
   ): Promise<DevicePermissionResponse<DeviceFilesResult>>;
+  download(
+    options?: {reason?:string},
+  ): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
   biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
   notifications(options?: {
     requestPermission?: boolean;
@@ -319,6 +327,7 @@ export class BrowserFederationBridge {
       camera: (opts) => svc.device.camera(opts),
       gallery: (opts) => svc.device.gallery(opts),
       files: (opts) => svc.device.files(opts),
+      download: (opts) => svc.device.download(opts),
       biometric: (opts) => svc.device.biometric(opts),
       notifications: (opts) => svc.device.notifications(opts),
       network: () => svc.device.network(),
