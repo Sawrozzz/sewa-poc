@@ -6,6 +6,8 @@ import type {
   DeviceLocationResult,
   DeviceGalleryResult,
   DeviceFilesResult,
+  DeviceDownloadResult,
+  DownloadOptions,
   DevicePermissionResponse,
   FileModule,
   FileOptions,
@@ -355,6 +357,72 @@ export function createShellServices(
           status: "denied",
           error: error?.message || "File selection cancelled",
         } as unknown as DevicePermissionResponse<DeviceFilesResult>;
+      }
+    },
+    download: async (options?: DownloadOptions) => {
+      try {
+        if (!options?.url || !options?.fileName) {
+          throw new Error("url and fileName are required");
+        }
+
+        const resp = await fetch(options.url);
+        if (!resp.ok) throw new Error(`Failed to fetch file: ${resp.status}`);
+
+        const blob = await resp.blob();
+
+
+
+        const saveFile = async (): Promise<string> => {
+          const supportsFilePicker = typeof (window as any).showSaveFilePicker === "function";
+          if (supportsFilePicker) {
+            const handle = await (window as any).showSaveFilePicker({
+              suggestedName: options!.fileName,
+            });
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            return URL.createObjectURL(blob);
+          }
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = blobUrl;
+          a.download = options!.fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          return blobUrl;
+        };
+
+        const blobUrl = await saveFile();
+
+        const ext = options.fileName.split(".").pop()?.toLowerCase() || "";
+        const fileModule: FileModule = {
+          url: blobUrl,
+          previewUrl: blobUrl,
+          fileName: options.fileName,
+          mimeType: options.mimeType || blob.type || getFallbackMimeType(ext),
+          extension: ext,
+          byteSize: blob.size,
+        };
+
+        return {
+          status: "granted",
+          data: {
+            file: fileModule,
+          },
+        } as unknown as DevicePermissionResponse<DeviceDownloadResult>;
+      } catch (error: any) {
+        const isCancelled =
+          error?.name === "AbortError" ||
+          error?.message?.toLowerCase().includes("abort") ||
+          error?.message?.toLowerCase().includes("cancelled") ||
+          error?.message?.toLowerCase().includes("canceled");
+        return {
+          status: "denied",
+          error: isCancelled
+            ? "Download cancelled"
+            : error?.message || "Download failed",
+        } as unknown as DevicePermissionResponse<DeviceDownloadResult>;
       }
     },
     biometric: async (_options?: { reason?: string }) =>

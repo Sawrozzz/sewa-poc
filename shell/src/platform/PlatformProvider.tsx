@@ -72,47 +72,47 @@ export function PlatformProvider({
       });
 
       // File picker
-      lock(window, 'showOpenFilePicker', undefined);
-      lock(window, 'showSaveFilePicker', undefined);
-      lock(window, 'showDirectoryPicker', undefined);
+      // lock(window, 'showOpenFilePicker', undefined);
+      // lock(window, 'showSaveFilePicker', undefined);
+      // lock(window, 'showDirectoryPicker', undefined);
 
-      // Media
-      lock(navigator.mediaDevices, 'getUserMedia', deny('[HostGuard] Use sdk.device.camera().'));
-      lock(navigator.mediaDevices, 'getDisplayMedia', deny('[HostGuard] Screen capture disabled.'));
+      // // Media
+      // lock(navigator.mediaDevices, 'getUserMedia', deny('[HostGuard] Use sdk.device.camera().'));
+      // lock(navigator.mediaDevices, 'getDisplayMedia', deny('[HostGuard] Screen capture disabled.'));
 
-      // Geolocation
-      lock(navigator.geolocation, 'getCurrentPosition', (_success: unknown, error?: unknown) => {
-        if (typeof error === 'function') error(geoErr());
-      });
-      lock(navigator.geolocation, 'watchPosition', (_success: unknown, error?: unknown) => {
-        if (typeof error === 'function') error(geoErr());
-        return -1;
-      });
-      lock(navigator.geolocation, 'clearWatch', () => {});
+      // // Geolocation
+      // lock(navigator.geolocation, 'getCurrentPosition', (_success: unknown, error?: unknown) => {
+      //   if (typeof error === 'function') error(geoErr());
+      // });
+      // lock(navigator.geolocation, 'watchPosition', (_success: unknown, error?: unknown) => {
+      //   if (typeof error === 'function') error(geoErr());
+      //   return -1;
+      // });
+      // lock(navigator.geolocation, 'clearWatch', () => {});
 
-      // Clipboard read
-      lock(navigator.clipboard, 'read', deny('[HostGuard] Clipboard read disabled.'));
-      lock(navigator.clipboard, 'readText', deny('[HostGuard] Clipboard read disabled.'));
+      // // Clipboard read
+      // lock(navigator.clipboard, 'read', deny('[HostGuard] Clipboard read disabled.'));
+      // lock(navigator.clipboard, 'readText', deny('[HostGuard] Clipboard read disabled.'));
 
-      // Notifications
-      if (window.Notification) {
-        lock(Notification, 'requestPermission', () => Promise.resolve('denied'));
-        try { Object.defineProperty(Notification, 'permission', { get: () => 'denied', configurable: false }); } catch {}
-      }
+      // // Notifications
+      // if (window.Notification) {
+      //   lock(Notification, 'requestPermission', () => Promise.resolve('denied'));
+      //   try { Object.defineProperty(Notification, 'permission', { get: () => 'denied', configurable: false }); } catch {}
+      // }
 
-      // Service workers
-      lock(navigator.serviceWorker, 'register', deny('[HostGuard] Service workers disabled.'));
+      // // Service workers
+      // lock(navigator.serviceWorker, 'register', deny('[HostGuard] Service workers disabled.'));
 
-      // WebRTC
-      lock(window, 'RTCPeerConnection', undefined);
-      lock(window, 'webkitRTCPeerConnection', undefined);
+      // // WebRTC
+      // lock(window, 'RTCPeerConnection', undefined);
+      // lock(window, 'webkitRTCPeerConnection', undefined);
 
-      // Hardware APIs
-      lock(navigator, 'bluetooth', undefined);
-      lock(navigator, 'usb', undefined);
-      lock(navigator, 'serial', undefined);
-      lock(navigator, 'hid', undefined);
-      lock(navigator, 'vibrate', () => false);
+      // // Hardware APIs
+      // lock(navigator, 'bluetooth', undefined);
+      // lock(navigator, 'usb', undefined);
+      // lock(navigator, 'serial', undefined);
+      // lock(navigator, 'hid', undefined);
+      // lock(navigator, 'vibrate', () => false);
     }
 
     async function init() {
