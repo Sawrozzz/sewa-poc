@@ -92,11 +92,18 @@ function requestConsent(params: {
   return new Promise((resolve) => {
     const dialog = document.createElement("dialog");
     dialog.style.cssText = [
+      // Tailwind's preflight zeroes the UA stylesheet's `margin: auto` on
+      // dialog, so centering has to be restated here.
+      "position: fixed",
+      "inset: 0",
+      "margin: auto",
       "border: none",
       "border-radius: 16px",
       "padding: 24px 20px",
       "max-width: 320px",
       "width: calc(100vw - 48px)",
+      "max-height: calc(100dvh - 48px)",
+      "background: #fff",
       "box-shadow: 0 8px 32px rgba(0,0,0,0.25)",
       "font-family: inherit",
     ].join(";");
@@ -144,6 +151,16 @@ function requestConsent(params: {
     dialog.showModal();
     allowBtn.focus();
   });
+}
+
+/** Resolves true when the mini-app gave no reason (nothing to prime) or the user allowed. */
+function ensureConsent(
+  reason: string | undefined,
+  title: string,
+  allowLabel?: string,
+): Promise<boolean> {
+  if (!reason) return Promise.resolve(true);
+  return requestConsent({ title, reason, allowLabel });
 }
 
 function getFallbackMimeType(ext: string): string {
@@ -341,6 +358,13 @@ export function createShellServices(
       reason?: string;
     }) => {
       try {
+        if (!(await ensureConsent(_options?.reason, "Location Access"))) {
+          return {
+            status: "denied",
+            data: null,
+            error: "User declined location access",
+          } as unknown as DevicePermissionResponse<DeviceLocationResult>;
+        }
         if (!navigator.geolocation)
           throw new Error("Geolocation not supported");
         const result = await new Promise<DevicePermissionResponse<DeviceLocationResult>>(
@@ -378,18 +402,12 @@ export function createShellServices(
     },
     camera: async (options?: { facing?: "front" | "back"; reason?: string }) => {
       try {
-        if (options?.reason) {
-          const consented = await requestConsent({
-            title: "Camera Access",
-            reason: options.reason,
-          });
-          if (!consented) {
-            return {
-              status: "denied",
-              data: null,
-              error: "User declined camera access",
-            } as unknown as DevicePermissionResponse<DeviceCameraResult>;
-          }
+        if (!(await ensureConsent(options?.reason, "Camera Access"))) {
+          return {
+            status: "denied",
+            data: null,
+            error: "User declined camera access",
+          } as unknown as DevicePermissionResponse<DeviceCameraResult>;
         }
         const file = await new Promise<File>((resolve, reject) => {
           const input = document.createElement("input");
@@ -441,6 +459,12 @@ export function createShellServices(
 
     gallery: async (options?: FileOptions) => {
       try {
+        if (!(await ensureConsent(options?.reason, "Photo Access"))) {
+          return {
+            status: "denied",
+            error: "User declined photo access",
+          } as unknown as DevicePermissionResponse<DeviceGalleryResult>;
+        }
         const files = await filePicker({
           multiple: options?.multiple,
           accept: ["image/*", ".png", ".jpg", ".jpeg", ".webp", ".heic"],
@@ -461,6 +485,12 @@ export function createShellServices(
     },
     files: async (options?: FileOptions) => {
       try {
+        if (!(await ensureConsent(options?.reason, "File Access"))) {
+          return {
+            status: "denied",
+            error: "User declined file access",
+          } as unknown as DevicePermissionResponse<DeviceFilesResult>;
+        }
         const files = await filePicker({
           multiple: options?.multiple,
           accept: [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".csv"],
@@ -483,6 +513,13 @@ export function createShellServices(
       try {
         if (!options?.url || !options?.fileName) {
           throw new Error("url and fileName are required");
+        }
+
+        if (!(await ensureConsent(options.reason, "Download File", "Download"))) {
+          return {
+            status: "denied",
+            error: "User declined the download",
+          } as unknown as DevicePermissionResponse<DeviceDownloadResult>;
         }
 
         const resp = await fetch(options.url);
