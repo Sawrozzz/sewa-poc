@@ -22,7 +22,7 @@ interface MiniAppLoaderProps {
 export function MiniAppLoader({
   name,
   icon,
-  color = "#007bc8",
+  color = "#dc9a0d",
   messages = DEFAULT_MESSAGES,
   messageIntervalMs = 2200,
 }: MiniAppLoaderProps) {

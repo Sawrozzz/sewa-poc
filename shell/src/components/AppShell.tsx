@@ -8,11 +8,11 @@ export function AppShell() {
   const t = useTranslations("HomePage");
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-50">
+    <div className="min-h-screen bg-linear-to-br from-gov-50 via-white to-gov-50">
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-10 bg-linear-to-br from-gov-600 via-gov-700 to-gov-900 rounded-2xl p-8 text-white shadow-xl shadow-gov-200/50 relative overflow-hidden">
+        <div className="mb-10 bg-linear-to-br from-gov-800 via-gov-900 to-gov-950 rounded-2xl p-8 text-white shadow-xl shadow-gov-300/50 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -mr-32 -mt-32" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full -ml-20 -mb-20" />
           <div className="absolute top-1/2 right-8 -translate-y-1/2 opacity-10 hidden md:block">
@@ -49,7 +49,7 @@ export function AppShell() {
                   All services are secure and encrypted
                 </div>
                 <div className="flex items-center gap-2 text-gov-200 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-blue-400 shadow-lg shadow-blue-400/50" />
+                  <span className="w-2 h-2 rounded-full bg-gov-400 shadow-lg shadow-gov-400/50" />
                   Real-time updates
                 </div>
               </div>
@@ -63,7 +63,7 @@ export function AppShell() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 bg-gov-600 rounded-md flex items-center justify-center">
+                <div className="w-7 h-7 bg-gov-500 rounded-md flex items-center justify-center">
                   <span className="text-white text-xs">🏛️</span>
                 </div>
                 <span className="text-sm font-semibold text-gray-900">Citizen Portal</span>

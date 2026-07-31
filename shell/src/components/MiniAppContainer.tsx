@@ -236,7 +236,7 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
                     <h1 className="text-lg font-semibold text-gray-900 mb-2">{loadError}</h1>
                     <button
                         onClick={() => router.push("/")}
-                        className="text-sm text-gov-600 hover:underline"
+                        className="text-sm text-gov-800 hover:underline"
                     >
                         ←
                     </button>
@@ -250,7 +250,7 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
             <div className="flex flex-row col-span-full">
                 <button
                     onClick={() => router.push("/")}
-                    className="group mr-5 flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gov-600"
+                    className="group mr-5 flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gov-800"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"

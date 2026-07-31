@@ -66,7 +66,7 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gov-600 rounded-lg flex items-center justify-center">
+            <div className="w-9 h-9 bg-gov-500 rounded-lg flex items-center justify-center">
               <span className="text-white text-lg">🏛️</span>
             </div>
             <div>

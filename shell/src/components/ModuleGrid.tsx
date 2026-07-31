@@ -83,7 +83,7 @@ export function ModuleGrid() {
       {Object.keys(fallbackGroups).length > 0 && (
         <div>
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gov-100 rounded-lg flex items-center justify-center">
               <span className="text-amber-600 text-sm">🛠️</span>
             </div>
             <div>
@@ -101,8 +101,8 @@ export function ModuleGrid() {
 
       <div>
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-            <span className="text-blue-600 text-sm">📦</span>
+          <div className="w-8 h-8 bg-gov-100 rounded-lg flex items-center justify-center">
+            <span className="text-gov-800 text-sm">📦</span>
           </div>
           <div>
             <h2 className="text-lg font-bold text-gray-900">Available Services</h2>
@@ -127,7 +127,7 @@ export function ModuleGrid() {
             </p>
             <button
               onClick={() => refetch()}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gov-600 text-white rounded-lg hover:bg-gov-700 transition text-sm font-medium"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gov-500 text-gov-950 rounded-lg hover:bg-gov-600 transition text-sm font-medium"
             >
               <span>🔄</span>
               Try Again

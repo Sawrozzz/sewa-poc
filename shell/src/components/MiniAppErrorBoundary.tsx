@@ -71,7 +71,7 @@ export class MiniAppErrorBoundary extends Component<MiniAppErrorBoundaryProps, S
               {this.state.retryCount < MAX_RETRIES && (
                 <button
                   onClick={this.handleRetry}
-                  className="px-4 py-2 text-sm bg-gov-600 text-white rounded-lg hover:bg-gov-700 transition"
+                  className="px-4 py-2 text-sm bg-gov-500 text-gov-950 rounded-lg hover:bg-gov-600 transition"
                 >
                   Retry ({MAX_RETRIES - this.state.retryCount} left)
                 </button>

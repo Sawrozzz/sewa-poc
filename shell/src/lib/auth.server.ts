@@ -4,6 +4,7 @@ import { nextCookies } from "better-auth/next-js";
 import { createAuthEndpoint } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { z } from "zod";
+import { MOCK_CITIZEN, MOCK_OTP, normalisePhoneNumber, toE164 } from "./mock-user";
 
 const db: Record<string, any[]> = {
   user: [],
@@ -12,58 +13,85 @@ const db: Record<string, any[]> = {
   verification: [],
 };
 
-const MOCK_USER = {
-  email: "citizen@gov.np",
-  password: "password",
-  name: "Demo Citizen",
-};
-
-const ropcLoginPlugin = {
-  id: "ropc-login",
+/**
+ * Mock phone + OTP login.
+ *
+ * `send` pretends to dispatch an SMS and echoes the OTP back so the verify
+ * screen can prefill it. `verify` performs no OTP validation (POC) — it only
+ * checks that the phone number is the mocked citizen's.
+ */
+const phoneOtpPlugin = {
+  id: "phone-otp",
   endpoints: {
-    ropcLogin: createAuthEndpoint(
-      "/ropc-login",
+    sendPhoneOtp: createAuthEndpoint(
+      "/phone-otp/send",
       {
         method: "POST",
         body: z.object({
-          username: z.string(),
-          password: z.string(),
-          clientId: z.string(),
-          providerId: z.string(),
+          phoneNumber: z.string().min(1),
         }),
       },
       async (ctx) => {
-        const { username, password } = ctx.body;
+        const phoneNumber = normalisePhoneNumber(ctx.body.phoneNumber);
 
-        if (
-          username !== MOCK_USER.email ||
-          password !== MOCK_USER.password
-        ) {
-          throw new APIError("UNAUTHORIZED", {
-            message: "Invalid credentials",
+        if (phoneNumber.length < 9) {
+          throw new APIError("BAD_REQUEST", {
+            message: "Enter a valid Sri Lankan mobile number",
           });
         }
 
-        const email = username;
+        return ctx.json({
+          success: true,
+          phoneNumber: toE164(phoneNumber),
+          // Mock delivery: returned so the UI can prefill the OTP boxes.
+          otp: MOCK_OTP,
+          expiresIn: 300,
+        });
+      },
+    ),
+
+    verifyPhoneOtp: createAuthEndpoint(
+      "/phone-otp/verify",
+      {
+        method: "POST",
+        body: z.object({
+          phoneNumber: z.string().min(1),
+          // Accepted as-is — no verification in the POC.
+          code: z.string().optional(),
+        }),
+      },
+      async (ctx) => {
+        // No OTP check and no number check — any input signs in as the mock
+        // citizen. The number the user typed is kept on the session so the UI
+        // shows it back.
+        const phoneNumber = normalisePhoneNumber(ctx.body.phoneNumber);
+        const phoneE164 = phoneNumber
+          ? toE164(phoneNumber)
+          : MOCK_CITIZEN.phoneE164;
 
         const existing = await ctx.context.internalAdapter.findUserByEmail(
-          email,
+          MOCK_CITIZEN.email,
         );
 
         let userId: string;
         if (existing) {
           userId = existing.user.id;
+          await ctx.context.internalAdapter.updateUser(userId, {
+            phoneNumber: phoneE164,
+          } as never);
         } else {
           const newUser = await ctx.context.internalAdapter.createUser({
-            email,
-            name: MOCK_USER.name,
-            emailVerified: true,
-          });
+            email: MOCK_CITIZEN.email,
+            name: MOCK_CITIZEN.fullName,
+            emailVerified: MOCK_CITIZEN.emailVerified,
+            phoneNumber: phoneE164,
+            phoneVerified: MOCK_CITIZEN.phoneVerified,
+            nationalId: MOCK_CITIZEN.nationalId,
+          } as never);
           userId = newUser.id;
         }
 
         const session = await ctx.context.internalAdapter.createSession(userId);
-
         const user = await ctx.context.internalAdapter.findUserById(userId);
 
         await setSessionCookie(ctx, { session, user: user! });
@@ -76,8 +104,15 @@ const ropcLoginPlugin = {
 
 export const auth = betterAuth({
   database: memoryAdapter(db),
+  user: {
+    additionalFields: {
+      phoneNumber: { type: "string", required: false, input: false },
+      phoneVerified: { type: "boolean", required: false, input: false },
+      nationalId: { type: "string", required: false, input: false },
+    },
+  },
   plugins: [
     nextCookies(),
-    ropcLoginPlugin,
+    phoneOtpPlugin,
   ],
 });
