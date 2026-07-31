@@ -7,7 +7,33 @@
   "LocaleSwitcher": {
     "label": "Language"
   },
+  "Welcome": {
+    "title": "Welcome to Super App",
+    "subtitle": "All your government services in one place — licenses, payments, documents and more.",
+    "continue": "Continue"
+  },
+  "LanguageSelect": {
+    "title": "Choose your language",
+    "subtitle": "You can change this later from the app settings.",
+    "continue": "Continue"
+  },
   "LoginPage": {
-    "portal_title": "Government Citizen Portal"
+    "portal_title": "Government Citizen Portal",
+    "subtitle": "Sign in with your mobile number",
+    "heading": "Citizen Login",
+    "description": "We will send a one-time password to your mobile number.",
+    "phone_label": "Mobile number",
+    "phone_placeholder": "71 234 5678",
+    "send_otp": "Send OTP",
+    "sending_otp": "Sending OTP...",
+    "hint": "Demo number: 71 234 5678"
+  },
+  "OtpPage": {
+    "heading": "Verify OTP",
+    "description": "Enter the 6-digit code sent to {phone}",
+    "confirm": "Confirm",
+    "confirming": "Verifying...",
+    "change_number": "Change number",
+    "resend": "Resend code"
   }
 }

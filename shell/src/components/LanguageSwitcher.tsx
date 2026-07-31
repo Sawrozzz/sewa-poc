@@ -26,7 +26,7 @@ export function LocaleSwitcher() {
     <div className="relative inline-flex items-center">
       <Globe
         size={18}
-        className="pointer-events-none absolute left-3 text-emerald-600"
+        className="pointer-events-none absolute left-3 text-gov-700"
       />
 
       <select
@@ -38,7 +38,7 @@ export function LocaleSwitcher() {
           appearance-none
           rounded-full
           border
-          border-emerald-200
+          border-gov-200
           bg-white
           shadow-sm
           outline-none
@@ -53,11 +53,11 @@ export function LocaleSwitcher() {
           font-medium
           text-gray-700
 
-          hover:border-emerald-400
-          hover:bg-emerald-50
-          focus:border-emerald-500
+          hover:border-gov-400
+          hover:bg-gov-50
+          focus:border-gov-500
           focus:ring-2
-          focus:ring-emerald-200
+          focus:ring-gov-200
 
           disabled:cursor-not-allowed
           disabled:opacity-60

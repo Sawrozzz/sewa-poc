@@ -6,7 +6,7 @@ let modulesStore: MiniAppModule[] = [
     name: 'Digital Driving License',
     description: 'Apply for, renew, and verify your digital driving license.',
     icon: '🚗',
-    color: '#007bc8',
+    color: '#dc9a0d',
     entryUrl: 'http://localhost:3001/remoteEntry.js',
     route: '/mini-app/driving-license',
     requiredPermissions: ['driving:read'],

@@ -49,23 +49,23 @@ export function InstallPrompt() {
   if (isStandalone || !isMobile || !showCustomPrompt) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-lg z-50">
+    <div className="fixed bottom-4 left-4 right-4 bg-gov-50 border border-gov-200 rounded-lg p-4 shadow-lg z-50">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-blue-900">Install App</h3>
+          <h3 className="font-semibold text-gov-900">Install App</h3>
           {isIOS ? (
-            <p className="text-sm text-blue-700">
+            <p className="text-sm text-gov-800">
               Tap Share → "Add to Home Screen" to install
             </p>
           ) : (
-            <p className="text-sm text-blue-700">
+            <p className="text-sm text-gov-800">
               Tap to install this app to your home screen
             </p>
           )}
         </div>
         <button
           onClick={handleInstallClick}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition"
+          className="bg-gov-500 text-gov-950 font-medium px-4 py-2 rounded-lg text-sm hover:bg-gov-600 transition"
         >
           {isIOS ? 'Instructions' : 'Install'}
         </button>
