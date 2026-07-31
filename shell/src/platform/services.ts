@@ -268,6 +268,49 @@ function randomChallenge(): Uint8Array<ArrayBuffer> {
   return crypto.getRandomValues(new Uint8Array(new ArrayBuffer(32)));
 }
 
+/** FIDO Registry §3.1 user verification methods, as reported by the `uvm` extension. */
+const USER_VERIFY_FINGERPRINT = 0x00000002;
+
+/**
+ * When true, a ceremony that does not *prove* it used a fingerprint is rejected.
+ * That includes every browser which declines to implement the optional `uvm`
+ * extension — i.e. most of them, including on phones that do have a sensor — so
+ * this trades false accepts for false rejects. Left off by default; flip it if
+ * you would rather biometric() fail than let a PIN through.
+ */
+const STRICT_FINGERPRINT_ONLY = false;
+
+/** Outcome of one WebAuthn ceremony, split so the caller can explain a refusal. */
+type FingerprintOutcome = "verified" | "cancelled" | "not-fingerprint";
+
+/** TypeScript's DOM lib does not type the `uvm` extension on either side. */
+const UVM_EXTENSION = {
+  uvm: true,
+} as unknown as AuthenticationExtensionsClientInputs;
+
+/**
+ * WebAuthn cannot ask for a specific sensor — `userVerification: "required"`
+ * means "verify the user somehow", and on Android the platform authenticator is
+ * backed by the screen lock, so PIN and pattern satisfy it too. The `uvm`
+ * extension is the only hook that reports *which* method ran, and authenticators
+ * may omit it. So this is a best-effort filter, not a guarantee: a real
+ * fingerprint-only policy needs the native layer (Android BiometricPrompt with
+ * BIOMETRIC_STRONG and no DEVICE_CREDENTIAL, iOS
+ * deviceOwnerAuthenticationWithBiometrics, Flutter local_auth biometricOnly).
+ */
+function checkUvm(credential: PublicKeyCredential): FingerprintOutcome {
+  const { uvm } = credential.getClientExtensionResults() as {
+    uvm?: number[][];
+  };
+  if (!uvm?.length) {
+    return STRICT_FINGERPRINT_ONLY ? "not-fingerprint" : "verified";
+  }
+  // Each entry is [userVerificationMethod, keyProtectionType, matcherProtectionType].
+  return uvm.some(([method]) => method === USER_VERIFY_FINGERPRINT)
+    ? "verified"
+    : "not-fingerprint";
+}
+
 /**
  * Drives the device's own fingerprint prompt through WebAuthn's platform
  * authenticator. The first call enrolls a passkey (the enrolment sheet itself
@@ -278,12 +321,18 @@ function randomChallenge(): Uint8Array<ArrayBuffer> {
  * authenticated identity. Any server-trusted flow needs a real challenge issued
  * and verified by the backend.
  */
-async function verifyFingerprint(user: PlatformUser | null): Promise<boolean> {
-  if (typeof window === "undefined" || !window.PublicKeyCredential) return false;
+async function verifyFingerprint(
+  user: PlatformUser | null,
+): Promise<FingerprintOutcome> {
+  if (typeof window === "undefined" || !window.PublicKeyCredential) {
+    return "cancelled";
+  }
 
-  const hasSensor =
+  // True for *any* screen lock, sensor or not — it cannot tell us a fingerprint
+  // reader exists, only that user verification is possible at all.
+  const hasUserVerification =
     await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-  if (!hasSensor) return false;
+  if (!hasUserVerification) return "cancelled";
 
   const storedId = localStorage.getItem(BIOMETRIC_CREDENTIAL_KEY);
 
@@ -309,12 +358,16 @@ async function verifyFingerprint(user: PlatformUser | null): Promise<boolean> {
         },
         timeout: 60_000,
         attestation: "none",
+        extensions: UVM_EXTENSION,
       },
     })) as PublicKeyCredential | null;
 
-    if (!created) return false;
+    if (!created) return "cancelled";
+
+    // Keep the credential either way — it can still be asserted with a
+    // fingerprint later, even if enrolment itself fell back to the screen lock.
     localStorage.setItem(BIOMETRIC_CREDENTIAL_KEY, base64UrlEncode(created.rawId));
-    return true;
+    return checkUvm(created);
   }
 
   const assertion = (await navigator.credentials.get({
@@ -326,10 +379,11 @@ async function verifyFingerprint(user: PlatformUser | null): Promise<boolean> {
       ],
       userVerification: "required",
       timeout: 60_000,
+      extensions: UVM_EXTENSION,
     },
   })) as PublicKeyCredential | null;
 
-  return assertion !== null;
+  return assertion ? checkUvm(assertion) : "cancelled";
 }
 
 interface PickedContact {
@@ -961,7 +1015,14 @@ export function createShellServices(
       }
 
       try {
-        return { success: await verifyFingerprint(getConfig().getUser()) };
+        const outcome = await verifyFingerprint(getConfig().getUser());
+        if (outcome === "not-fingerprint") {
+          await showNotice(
+            "Fingerprint required",
+            "This device verified you with a PIN, pattern or face instead of a fingerprint. Add a fingerprint in your device settings and try again.",
+          );
+        }
+        return { success: outcome === "verified" } as DeviceBiometricResult;
       } catch (error: any) {
         // NotAllowedError covers both "user cancelled" and "no matching
         // credential on this device" — neither is recoverable here, and the
