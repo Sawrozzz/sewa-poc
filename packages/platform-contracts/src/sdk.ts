@@ -16,6 +16,7 @@ import type {
   ApiSdkModule,
   HttpMethod,
   ApiResult,
+  DeviceExtraOptions,
 } from '@lizuz/mini-app-types';
 
 export type {
@@ -68,6 +69,11 @@ export interface DeviceCameraResult {
   fileName?: string;
   mimeType?: string;
   byteSize?: number;
+}
+
+export interface DeviceContactResult {
+  contactName?: string;
+  number: number;
 }
 
 export interface FileOptions {
@@ -212,6 +218,7 @@ export interface DeviceSdkModule {
   gallery(options?: FileOptions): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
   files(options?: FileOptions): Promise<DevicePermissionResponse<DeviceFilesResult>>;
   download(options?: DownloadOptions): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
+  contact(options?: DeviceExtraOptions): Promise<DevicePermissionResponse<DeviceContactResult>>;
   biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
   notifications(options?: { requestPermission?: boolean }): Promise<DeviceNotificationResult>;
   network(): Promise<DeviceNetworkResult>;

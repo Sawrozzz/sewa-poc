@@ -403,6 +403,10 @@ export class ShellCommunicator {
         const result = await this.services.device.download(payload);
         return this.okResponse(msg, result);
       }
+      case "device.contact": {
+        const result = await this.services.device.contact(payload);
+        return this.okResponse(msg, result);
+      }
 
       case "device.biometric": {
         const result = await this.services.device.biometric(payload);

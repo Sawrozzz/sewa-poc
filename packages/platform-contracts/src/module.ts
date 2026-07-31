@@ -22,9 +22,11 @@ import type {
   DeviceNetworkResult,
   DeviceInfoResult,
   HttpResult,
+  DeviceContactResult,
 } from './sdk';
 import type { PlatformEvent } from './events';
 import type { BridgeEnvelope } from './bridge';
+import { DeviceExtraOptions } from '@lizuz/mini-app-types';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ComponentType<Props = {}> {
   (props: Props): unknown;
@@ -185,6 +187,7 @@ export interface PluginServices {
     gallery(options?: { maxCount?: number ; reason?:string  }): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
     files(options?: { accept?: string[]; multiple?: boolean }): Promise<DevicePermissionResponse<DeviceFilesResult>>;
     download(options?: DownloadOptions): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
+    contact(options?: DeviceExtraOptions): Promise<DevicePermissionResponse<DeviceContactResult>>;
     biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
     notifications(options?: { requestPermission?: boolean }): Promise<DeviceNotificationResult>;
     network(): Promise<DeviceNetworkResult>;
