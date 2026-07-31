@@ -112,8 +112,8 @@ export interface DownloadOptions {
 }
 
 export interface DeviceBiometricResult {
+  /** True only when the device's own fingerprint prompt verified the user. */
   success: boolean;
-  method: 'fingerprint' | 'face' | 'pin';
 }
 
 export interface DeviceNotificationResult {

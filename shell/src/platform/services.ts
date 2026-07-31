@@ -4,6 +4,7 @@ import type {
   NavigationState,
   ChatMessage,
   DeviceLocationResult,
+  DeviceBiometricResult,
   DeviceCameraResult,
   DeviceContactResult,
   DeviceGalleryResult,
@@ -162,6 +163,173 @@ function ensureConsent(
 ): Promise<boolean> {
   if (!reason) return Promise.resolve(true);
   return requestConsent({ title, reason, allowLabel });
+}
+
+/** Single-button variant of requestConsent — nothing to decide, just to read. */
+function showNotice(title: string, message: string): Promise<void> {
+  return new Promise((resolve) => {
+    const dialog = document.createElement("dialog");
+    dialog.style.cssText = [
+      // Same centering caveat as requestConsent().
+      "position: fixed",
+      "inset: 0",
+      "margin: auto",
+      "border: none",
+      "border-radius: 16px",
+      "padding: 24px 20px",
+      "max-width: 320px",
+      "width: calc(100vw - 48px)",
+      "max-height: calc(100dvh - 48px)",
+      "background: #fff",
+      "box-shadow: 0 8px 32px rgba(0,0,0,0.25)",
+      "font-family: inherit",
+    ].join(";");
+
+    const heading = document.createElement("h2");
+    heading.textContent = title;
+    heading.style.cssText =
+      "margin: 0 0 8px; font-size: 17px; font-weight: 600;";
+
+    const body = document.createElement("p");
+    body.textContent = message;
+    body.style.cssText =
+      "margin: 0 0 20px; font-size: 14px; line-height: 1.5; color: #555;";
+
+    const actions = document.createElement("div");
+    actions.style.cssText =
+      "display: flex; gap: 12px; justify-content: flex-end;";
+
+    const okBtn = document.createElement("button");
+    okBtn.textContent = "Got it";
+    okBtn.style.cssText =
+      "font-size: 14px; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: none; cursor: pointer; background: #0b57d0; color: #fff;";
+
+    const close = () => {
+      dialog.close();
+      dialog.remove();
+      resolve();
+    };
+
+    okBtn.onclick = close;
+    dialog.oncancel = (e) => {
+      e.preventDefault();
+      close();
+    };
+
+    actions.append(okBtn);
+    dialog.append(heading, body, actions);
+    document.body.appendChild(dialog);
+    dialog.showModal();
+    okBtn.focus();
+  });
+}
+
+/** True once the Shell is running from the home screen rather than a browser tab. */
+function isInstalledPwa(): boolean {
+  if (typeof window === "undefined") return false;
+  // iOS Safari never reports display-mode for home-screen apps.
+  if ((navigator as Navigator & { standalone?: boolean }).standalone === true) {
+    return true;
+  }
+  return [
+    "standalone",
+    "fullscreen",
+    "minimal-ui",
+    "window-controls-overlay",
+  ].some((mode) => window.matchMedia(`(display-mode: ${mode})`).matches);
+}
+
+/**
+ * Credential id of the passkey this device enrolled, base64url encoded. Wiping
+ * this key is how a user re-enrolls (e.g. after restoring to a new phone, where
+ * the old credential no longer resolves).
+ */
+const BIOMETRIC_CREDENTIAL_KEY = "gov:biometric-credential";
+
+function base64UrlEncode(buffer: ArrayBuffer): string {
+  let binary = "";
+  new Uint8Array(buffer).forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+// The Uint8Array<ArrayBuffer> annotations matter: WebAuthn's BufferSource
+// rejects the SharedArrayBuffer-backed default TS infers for a bare Uint8Array.
+function base64UrlDecode(value: string): Uint8Array<ArrayBuffer> {
+  const padded = value.replace(/-/g, "+").replace(/_/g, "/");
+  const binary = atob(padded.padEnd(Math.ceil(padded.length / 4) * 4, "="));
+  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function randomChallenge(): Uint8Array<ArrayBuffer> {
+  return crypto.getRandomValues(new Uint8Array(new ArrayBuffer(32)));
+}
+
+/**
+ * Drives the device's own fingerprint prompt through WebAuthn's platform
+ * authenticator. The first call enrolls a passkey (the enrolment sheet itself
+ * asks for the fingerprint), later calls assert against it.
+ *
+ * The challenge is generated and discarded client-side: with no server to sign
+ * it back to, this proves "the device owner is present at this device", not an
+ * authenticated identity. Any server-trusted flow needs a real challenge issued
+ * and verified by the backend.
+ */
+async function verifyFingerprint(user: PlatformUser | null): Promise<boolean> {
+  if (typeof window === "undefined" || !window.PublicKeyCredential) return false;
+
+  const hasSensor =
+    await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  if (!hasSensor) return false;
+
+  const storedId = localStorage.getItem(BIOMETRIC_CREDENTIAL_KEY);
+
+  if (!storedId) {
+    const created = (await navigator.credentials.create({
+      publicKey: {
+        challenge: randomChallenge(),
+        rp: { name: "Sewa", id: window.location.hostname },
+        user: {
+          id: new TextEncoder().encode(user?.id ?? "sewa-device-user"),
+          name: user?.email ?? "sewa-device-user",
+          displayName: user?.fullName ?? "Sewa user",
+        },
+        // ES256 first, RS256 as the fallback Windows Hello still prefers.
+        pubKeyCredParams: [
+          { type: "public-key", alg: -7 },
+          { type: "public-key", alg: -257 },
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: "platform",
+          userVerification: "required",
+          residentKey: "preferred",
+        },
+        timeout: 60_000,
+        attestation: "none",
+      },
+    })) as PublicKeyCredential | null;
+
+    if (!created) return false;
+    localStorage.setItem(BIOMETRIC_CREDENTIAL_KEY, base64UrlEncode(created.rawId));
+    return true;
+  }
+
+  const assertion = (await navigator.credentials.get({
+    publicKey: {
+      challenge: randomChallenge(),
+      rpId: window.location.hostname,
+      allowCredentials: [
+        { type: "public-key", id: base64UrlDecode(storedId) },
+      ],
+      userVerification: "required",
+      timeout: 60_000,
+    },
+  })) as PublicKeyCredential | null;
+
+  return assertion !== null;
 }
 
 interface PickedContact {
@@ -776,11 +944,32 @@ export function createShellServices(
         } as unknown as DevicePermissionResponse<DeviceContactResult>;
       }
     },
-    biometric: async (_options?: { reason?: string }) =>
-      ({
-        status: "granted",
-        data: { granted: false, method: "pin" },
-      }) as unknown as any,
+    biometric: async (options?: { reason?: string }) => {
+      // A browser tab can technically run WebAuthn, but the platform sensor is
+      // only wired up for the installed app in this build — say so rather than
+      // dropping the user into a prompt that goes nowhere.
+      if (!isInstalledPwa()) {
+        await showNotice(
+          "Not available in the browser",
+          "Fingerprint unlock only works in the installed Sewa app. Add Sewa to your home screen and try again.",
+        );
+        return { success: false } as DeviceBiometricResult;
+      }
+
+      if (!(await ensureConsent(options?.reason, "Fingerprint Unlock", "Continue"))) {
+        return { success: false } as DeviceBiometricResult;
+      }
+
+      try {
+        return { success: await verifyFingerprint(getConfig().getUser()) };
+      } catch (error: any) {
+        // NotAllowedError covers both "user cancelled" and "no matching
+        // credential on this device" — neither is recoverable here, and the
+        // contract carries no error channel, so both land on success: false.
+        console.log("[biometric] failed:", error?.name ?? error);
+        return { success: false } as DeviceBiometricResult;
+      }
+    },
     notifications: async (_options?: {
       requestPermission?: boolean;
       reason?: string;
