@@ -73,7 +73,11 @@ export interface DeviceCameraResult {
 
 export interface DeviceContactResult {
   contactName?: string;
-  number: number;
+  /**
+   * Kept as a string: phone numbers carry leading zeros and a `+<country>`
+   * prefix, both of which a JS number silently destroys.
+   */
+  number: string;
 }
 
 export interface FileOptions {
