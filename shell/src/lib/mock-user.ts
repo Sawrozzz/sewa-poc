@@ -12,9 +12,9 @@ export const MOCK_OTP = "123456";
 
 export const MOCK_CITIZEN = {
   /** National significant number, i.e. without the +94 dial code. */
-  phoneNumber: "712345678",
+  phoneNumber: "984049910",
   /** Full E.164 number used as the login identifier. */
-  phoneE164: `${SRI_LANKA_DIAL_CODE}9840499100
+  phoneE164: `${SRI_LANKA_DIAL_CODE}984049910
   `,
 
   email: "nimal.perera@citizen.gov.lk",
