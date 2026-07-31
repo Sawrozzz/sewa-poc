@@ -1019,7 +1019,7 @@ export function createShellServices(
         if (outcome === "not-fingerprint") {
           await showNotice(
             "Fingerprint required",
-            "This device verified you with a PIN, pattern or face instead of a fingerprint. Add a fingerprint in your device settings and try again.",
+            "This device verified you with a PIN or password instead of a fingerprint. Add a fingerprint in your device settings and try again.",
           );
         }
         return { success: outcome === "verified" } as DeviceBiometricResult;
