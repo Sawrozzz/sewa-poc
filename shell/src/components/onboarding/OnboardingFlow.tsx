@@ -5,6 +5,7 @@ import { WelcomeScreen } from "./WelcomeScreen";
 import { LanguageScreen } from "./LanguageScreen";
 import { PhoneLoginScreen } from "./PhoneLoginScreen";
 import { OtpScreen } from "./OtpScreen";
+import { privileged } from "@/platform/host-privileges";
 
 type Step = "welcome" | "language" | "login" | "otp";
 
@@ -25,13 +26,13 @@ export function OnboardingFlow({
   useEffect(() => {
     const onboarded =
       typeof window !== "undefined" &&
-      window.localStorage.getItem(ONBOARDED_KEY) === "true";
+      privileged.localStorage?.getItem(ONBOARDED_KEY) === "true";
     setStep(onboarded ? "login" : "welcome");
   }, []);
 
   const completeIntro = () => {
     try {
-      window.localStorage.setItem(ONBOARDED_KEY, "true");
+      privileged.localStorage?.setItem(ONBOARDED_KEY, "true");
     } catch {
       // Private mode / storage disabled — the intro simply shows again.
     }

@@ -18,6 +18,7 @@ import type {
   ShellApiService,
   ShellStorageService,
 } from "@sewa/host-platform";
+import { privileged } from "./host-privileges";
 
 interface LocalApiRequestParams {
   method?: string;
@@ -334,10 +335,10 @@ async function verifyFingerprint(
     await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
   if (!hasUserVerification) return "cancelled";
 
-  const storedId = localStorage.getItem(BIOMETRIC_CREDENTIAL_KEY);
+  const storedId = privileged.localStorage?.getItem(BIOMETRIC_CREDENTIAL_KEY) ?? null;
 
   if (!storedId) {
-    const created = (await navigator.credentials.create({
+    const created = (await privileged.credentials?.create({
       publicKey: {
         challenge: randomChallenge(),
         rp: { name: "Sewa", id: window.location.hostname },
@@ -366,11 +367,11 @@ async function verifyFingerprint(
 
     // Keep the credential either way — it can still be asserted with a
     // fingerprint later, even if enrolment itself fell back to the screen lock.
-    localStorage.setItem(BIOMETRIC_CREDENTIAL_KEY, base64UrlEncode(created.rawId));
+    privileged.localStorage?.setItem(BIOMETRIC_CREDENTIAL_KEY, base64UrlEncode(created.rawId));
     return checkUvm(created);
   }
 
-  const assertion = (await navigator.credentials.get({
+  const assertion = (await privileged.credentials?.get({
     publicKey: {
       challenge: randomChallenge(),
       rpId: window.location.hostname,
@@ -735,11 +736,11 @@ export function createShellServices(
             error: "User declined location access",
           } as unknown as DevicePermissionResponse<DeviceLocationResult>;
         }
-        if (!navigator.geolocation)
+        if (!privileged.geolocation)
           throw new Error("Geolocation not supported");
         const result = await new Promise<DevicePermissionResponse<DeviceLocationResult>>(
           (resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(
+            privileged.geolocation!.getCurrentPosition(
               (pos) =>
                 resolve({
                   status: "granted",
@@ -1046,21 +1047,21 @@ export function createShellServices(
     storage: {
       get: async (key: string) => {
         try {
-          return localStorage.getItem(`gov:${key}`);
+          return privileged.localStorage?.getItem(`gov:${key}`) ?? null;
         } catch {
           return null;
         }
       },
       set: async (key: string, value: string) => {
         try {
-          localStorage.setItem(`gov:${key}`, value);
+          privileged.localStorage?.setItem(`gov:${key}`, value);
         } catch {
           /* */
         }
       },
       remove: async (key: string) => {
         try {
-          localStorage.removeItem(`gov:${key}`);
+          privileged.localStorage?.removeItem(`gov:${key}`);
         } catch {
           /* */
         }

@@ -25,7 +25,7 @@ import { PLATFORM_EVENTS } from '../events';
 import type { Transport } from '../transport';
 import { WindowEventTransport } from '../transport';
 import type { EventBus } from '../event-bus';
-import type { ShellServiceMap } from '../contracts/services';
+import type { ShellServiceMap } from '../contracts';
 import type { NavigationTarget } from '../contracts/sdk';
 import { MethodRegistry, type RpcContext } from './method-registry';
 import axios from 'axios';

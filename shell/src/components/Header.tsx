@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
 import { LocaleSwitcher } from "./LanguageSwitcher";
 import { RefreshCcwIcon } from "lucide-react";
+import { privileged } from "@/platform/host-privileges";
 
 export function Header() {
   const router = useRouter();
@@ -24,16 +25,21 @@ export function Header() {
 
     setIsRefreshing(true);
 
-    const request = indexedDB.deleteDatabase("sewa-plugin-cache");
+    const request = privileged.indexedDB?.deleteDatabase("sewa-plugin-cache") ?? null;
 
     const finish = () => {
-      sessionStorage.setItem("app-refreshed", "true");
+      privileged.sessionStorage?.setItem("app-refreshed", "true");
       router.push("/");
 
       setTimeout(() => {
         window.location.reload();
       }, 500);
     };
+
+    if (!request) {
+      finish();
+      return;
+    }
 
     request.onsuccess = finish;
 
@@ -49,8 +55,8 @@ export function Header() {
   };
 
   useEffect(() => {
-    if (sessionStorage.getItem("app-refreshed")) {
-      sessionStorage.removeItem("app-refreshed");
+    if (privileged.sessionStorage?.getItem("app-refreshed")) {
+      privileged.sessionStorage.removeItem("app-refreshed");
 
       setShowSuccess(true);
 

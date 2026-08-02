@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { privileged } from "@/platform/host-privileges";
 
 /* ──────────────────────────────────────────────
    Types
@@ -288,11 +289,11 @@ export function CommunicationDebugger() {
 
   /* ── keyboard toggle ── */
   useEffect(() => {
-    if (localStorage.getItem(STORAGE_KEY) === 'true') setVisible(true);
+    if (privileged.localStorage?.getItem(STORAGE_KEY) === 'true') setVisible(true);
     const fn = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'D') {
         e.preventDefault();
-        setVisible(v => { localStorage.setItem(STORAGE_KEY, String(!v)); return !v; });
+        setVisible(v => { privileged.localStorage?.setItem(STORAGE_KEY, String(!v)); return !v; });
       }
     };
     window.addEventListener('keydown', fn);
