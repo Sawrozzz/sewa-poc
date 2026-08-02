@@ -7,10 +7,11 @@
  * lightweight metrics.
  */
 
-import type { PlatformEvent } from './events';
-import type { EventSchema } from './events';
-import type { EventRegistryEntry } from './events';
-import { createPlatformEvent } from './events';
+import { generateId } from '../utils';
+import type { PlatformEvent } from './platform-event';
+import type { EventSchema } from './platform-event';
+import type { EventRegistryEntry } from './platform-event';
+import { createPlatformEvent } from './platform-event';
 
 export type EventHandler<T = unknown> = (event: PlatformEvent<T>) => void | Promise<void>;
 export type EventMiddleware = (
@@ -291,11 +292,4 @@ export class EventBus {
 
 export function createEventBus(options?: EventBusOptions): EventBus {
   return new EventBus(options);
-}
-
-function generateId(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }

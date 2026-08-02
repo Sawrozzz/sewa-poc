@@ -6,6 +6,7 @@
  */
 
 import type { DeviceExtraOptions } from '@lizuz/mini-app-types';
+import type { PlatformEvent } from '../events';
 import type {
   PlatformUser,
   NavigationTarget,
@@ -24,13 +25,7 @@ import type {
   DeviceInfoResult,
   HttpResult,
   DeviceContactResult,
-} from './sdk';
-import type { PlatformEvent } from '../events';
-
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ComponentType<Props = {}> {
-  (props: Props): unknown;
-}
+} from './sdk.types';
 
 /** The only loading strategy; shell downloads and evaluates the bundle on demand */
 export type LoadStrategy = 'plugin';
@@ -80,23 +75,6 @@ export interface ModuleCompatibility {
 
 export type PlatformType = 'WEB' | 'ANDROID' | 'IOS';
 
-export interface ModuleRegistration {
-  manifest: ModuleManifest;
-  status: ModuleStatus;
-  lastLoadedAt?: number;
-  loadCount: number;
-  failureCount: number;
-  lastError?: string;
-}
-
-export type ModuleStatus =
-  | 'registered'
-  | 'loading'
-  | 'loaded'
-  | 'failed'
-  | 'disabled'
-  | 'incompatible';
-
 /** Result of loading a plugin bundle into the shell */
 export interface RemoteLoadResult {
   moduleId: string;
@@ -109,13 +87,6 @@ export interface RemoteLoadResult {
   };
   error?: string;
   version?: string;
-}
-
-export interface VersionNegotiationResult {
-  compatible: boolean;
-  negotiatedVersion: string;
-  warnings: string[];
-  blockers: string[];
 }
 
 export interface PluginLoadOptions {
@@ -188,6 +159,3 @@ export interface MiniAppBundle {
   mount: (container: HTMLElement, props?: Record<string, unknown>) => void;
   unmount: (container: HTMLElement) => void;
 }
-
-export const MINI_APP_SDK_VERSION = '1.0.0';
-export const BRIDGE_VERSION = '1.0.0';

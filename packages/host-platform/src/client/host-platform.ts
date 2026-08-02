@@ -12,10 +12,10 @@
  * by calling `createHostPlatform({ services, ... })` then `await platform.initialize()`.
  */
 
-import { createEventBus, type EventBus, type EventBusOptions } from '../event-bus';
+import { createEventBus, type EventBus, type EventBusOptions } from '../events';
 import type { Transport } from '../transport';
-import type { ShellServiceMap } from '../contracts';
-import { RpcServer, createRpcServer } from './rpc-server';
+import type { ShellServiceMap } from '../types';
+import { RpcServer, createRpcServer } from '../rpc';
 
 export interface HostPlatformOptions {
   services: ShellServiceMap;

@@ -4,7 +4,7 @@
  * These describe what the shell's concrete service implementations must
  * satisfy. The `RpcServer` routes mini app RPC calls to a `ShellServiceMap`
  * supplied by the shell. Deliberately separate from the SDK-facing module
- * shapes (`contracts/sdk.ts`) because the shell services are host-internal
+ * shapes (`types/sdk.types.ts`) because the shell services are host-internal
  * and may expose extra surface (e.g. `refresh`, `onNavigate`).
  */
 
@@ -23,7 +23,7 @@ import type {
   ChatMessage,
   FileOptions,
   HttpResult,
-} from './sdk';
+} from './sdk.types';
 import type {
   ShellApiService,
   ShellStorageService,
@@ -32,7 +32,7 @@ import type {
   ShellFlagsService,
   ShellConfigService,
   ShellNavigationService,
-} from './sdk';
+} from './sdk.types';
 
 export interface ShellChatService {
   chat(

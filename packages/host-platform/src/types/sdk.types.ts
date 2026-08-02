@@ -11,24 +11,18 @@ import type {
   DevicePermissionStatus,
   FileModule,
   DeviceGalleryResult,
-  StorageSdkModule,
   HttpResult,
-  ApiSdkModule,
   HttpMethod,
   ApiResult,
-  DeviceExtraOptions,
 } from '@lizuz/mini-app-types';
 
 export type {
   NavigationTarget,
   FileModule,
   DeviceGalleryResult,
-  StorageSdkModule,
   HttpResult,
-  ApiSdkModule,
   HttpMethod,
   ApiResult,
-  DeviceExtraOptions,
 };
 
 export interface PlatformUser {
@@ -59,10 +53,6 @@ export interface DeviceLocationResult {
   longitude: number;
   accuracy?: number;
   timestamp?: string;
-}
-
-export interface DeviceLocationOptionsModule {
-  reason?: string;
 }
 
 export interface DeviceCameraResult {
@@ -128,11 +118,6 @@ export interface DeviceNetworkResult {
   effectiveType?: string;
 }
 
-export interface DeviceStorageResult {
-  key: string;
-  value: string | null;
-}
-
 export interface DeviceInfoResult {
   platform: PlatformTypeLiteral;
   osVersion: string;
@@ -143,104 +128,6 @@ export interface DeviceInfoResult {
 }
 
 export type PlatformTypeLiteral = 'WEB' | 'FLUTTER';
-
-/** Mini App service registration — allows apps to expose functions to other apps */
-export interface ServiceRegistration {
-  method: string;
-  handler: (payload: unknown, context: { source: string; traceId: string }) => unknown | Promise<unknown>;
-}
-
-/** Public SDK interface exposed to mini app vendors */
-export interface MiniAppSdkInterface {
-  readonly miniAppId: string;
-  readonly gsaProtocolVersion: string;
-  readonly traceId: string;
-
-  auth: AuthSdkModule;
-  permissions: PermissionsSdkModule;
-  flags: FlagsSdkModule;
-  config: ConfigSdkModule;
-  navigation: NavigationSdkModule;
-  platform: PlatformSdkModule;
-  device: DeviceSdkModule;
-  api: ApiSdkModule;
-  storage: StorageSdkModule;
-  http: HttpSdkModule;
-  chat: ChatSdkModule;
-
-  initialize(): Promise<void>;
-  destroy(): void;
-
-  /** RPC — call another mini app's registered service */
-  invoke(method: string, payload?: unknown): Promise<unknown>;
-  /** RPC — register a service for other mini apps to call */
-  register(method: string, handler: ServiceRegistration['handler']): void;
-
-  /** Events — listen for platform or mini app events */
-  on(event: string, handler: (payload: unknown) => void): () => void;
-  /** Events — emit an event to subscribers */
-  emit(event: string, payload?: unknown): void;
-}
-
-export interface AuthSdkModule {
-  getUser(): Promise<PlatformUser | null>;
-  isAuthenticated(): Promise<boolean>;
-  logout(): Promise<void>;
-}
-
-export interface PermissionsSdkModule {
-  has(permission: string): Promise<boolean>;
-  list(): Promise<string[]>;
-}
-
-export interface FlagsSdkModule {
-  isEnabled(flag: string): Promise<boolean>;
-  getAll(): Promise<Record<string, boolean>>;
-}
-
-export interface ConfigSdkModule {
-  get<T = unknown>(key: string): Promise<T | undefined>;
-  getAll(): Promise<Record<string, unknown>>;
-}
-
-export interface NavigationSdkModule {
-  navigate(target: NavigationTarget): Promise<void>;
-  getCurrent(): Promise<NavigationState>;
-}
-
-export interface PlatformSdkModule {
-  readonly type: PlatformTypeLiteral;
-  isWeb(): boolean;
-  isFlutter(): boolean;
-  isMobile(): boolean;
-}
-
-export interface DeviceSdkModule {
-  location(options?: { highAccuracy?: boolean; timeout?: number }): Promise<DevicePermissionResponse<DeviceLocationResult>>;
-  camera(options?: { facing?: 'front' | 'back' }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
-  gallery(options?: FileOptions): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
-  files(options?: FileOptions): Promise<DevicePermissionResponse<DeviceFilesResult>>;
-  download(options?: DownloadOptions): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
-  contact(options?: DeviceExtraOptions): Promise<DevicePermissionResponse<DeviceContactResult>>;
-  biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
-  notifications(options?: { requestPermission?: boolean }): Promise<DeviceNotificationResult>;
-  network(): Promise<DeviceNetworkResult>;
-  storage: {
-    get(key: string): Promise<string | null>;
-    set(key: string, value: string): Promise<void>;
-    remove(key: string): Promise<void>;
-  };
-  info(): Promise<DeviceInfoResult>;
-}
-
-/** HTTP types — used by sdk.http.get() through the Shell HTTP proxy */
-export interface HttpSdkModule {
-  get<T = unknown>(endpoint?: string, query?: Record<string, string>): Promise<HttpResult<T>>;
-  post<T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>): Promise<HttpResult<T>>;
-  put<T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>): Promise<HttpResult<T>>;
-  patch<T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>): Promise<HttpResult<T>>;
-  delete<T = unknown>(endpoint?: string, headers?: Record<string, string>): Promise<HttpResult<T>>;
-}
 
 export interface ApiRequestParams<TBody = unknown> {
   method: HttpMethod;
@@ -302,13 +189,4 @@ export interface ModelCompletionOptions {
 
 export interface ChatSdkModule {
   chat(messages: ChatMessage[], options?: ModelCompletionOptions): AsyncIterable<string>;
-}
-
-export interface ShellServices {
-  auth: ShellAuthService;
-  permissions: ShellPermissionsService;
-  chat: ChatSdkModule;
-  flags: ShellFlagsService;
-  config: ShellConfigService;
-  navigation: ShellNavigationService;
 }

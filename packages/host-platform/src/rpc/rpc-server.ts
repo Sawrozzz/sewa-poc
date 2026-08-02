@@ -11,23 +11,23 @@
  */
 
 import type { HostPlatformMessage } from '../protocol';
+import { splitEventType, createMessage } from '../protocol';
 import {
   PROTOCOL_VERSION,
   MESSAGE_CHANNEL,
   SDK_CAPABILITIES,
   ACTIONS,
   NAMESPACES,
-  splitEventType,
-  createMessage,
-} from '../protocol';
+} from '../constants';
 import type { PlatformEvent } from '../events';
 import { PLATFORM_EVENTS } from '../events';
 import type { Transport } from '../transport';
 import { WindowEventTransport } from '../transport';
-import type { EventBus } from '../event-bus';
-import type { ShellServiceMap } from '../contracts';
-import type { NavigationTarget } from '../contracts/sdk';
+import type { EventBus } from '../events';
+import type { ShellServiceMap } from '../types';
+import type { NavigationTarget } from '../types/sdk.types';
 import { MethodRegistry, type RpcContext } from './method-registry';
+import { RpcMethodError } from '../errors';
 import axios from 'axios';
 
 export interface RpcServerOptions {
@@ -909,19 +909,6 @@ export class RpcServer {
     const [shellMajor] = PROTOCOL_VERSION.split('.');
     if (major === shellMajor) return PROTOCOL_VERSION;
     return `${shellMajor}.0.0`;
-  }
-}
-
-/** Host-side RPC error carrying a stable wire `code`. */
-export class RpcMethodError extends Error {
-  readonly code: string;
-  readonly retryable: boolean;
-
-  constructor(code: string, message: string, retryable = false) {
-    super(message);
-    this.name = 'RpcMethodError';
-    this.code = code;
-    this.retryable = retryable;
   }
 }
 
