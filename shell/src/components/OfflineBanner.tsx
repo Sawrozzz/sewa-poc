@@ -42,7 +42,7 @@ export function OfflineBanner() {
         {!isOffline && (
           <button
             onClick={() => window.location.reload()}
-            className="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+            className="text-xs px-3 py-1 bg-gov-500 text-gov-950 font-medium rounded hover:bg-gov-600 transition"
           >
             Retry
           </button>

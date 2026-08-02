@@ -16,6 +16,7 @@ import type {
   ApiSdkModule,
   HttpMethod,
   ApiResult,
+  DeviceExtraOptions,
 } from '@lizuz/mini-app-types';
 
 export type {
@@ -70,6 +71,15 @@ export interface DeviceCameraResult {
   byteSize?: number;
 }
 
+export interface DeviceContactResult {
+  contactName?: string;
+  /**
+   * Kept as a string: phone numbers carry leading zeros and a `+<country>`
+   * prefix, both of which a JS number silently destroys.
+   */
+  number: string;
+}
+
 export interface FileOptions {
   reason?:string;
   multiple?: boolean;
@@ -102,8 +112,8 @@ export interface DownloadOptions {
 }
 
 export interface DeviceBiometricResult {
+  /** True only when the device's own fingerprint prompt verified the user. */
   success: boolean;
-  method: 'fingerprint' | 'face' | 'pin';
 }
 
 export interface DeviceNotificationResult {
@@ -212,6 +222,7 @@ export interface DeviceSdkModule {
   gallery(options?: FileOptions): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
   files(options?: FileOptions): Promise<DevicePermissionResponse<DeviceFilesResult>>;
   download(options?: DownloadOptions): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
+  contact(options?: DeviceExtraOptions): Promise<DevicePermissionResponse<DeviceContactResult>>;
   biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
   notifications(options?: { requestPermission?: boolean }): Promise<DeviceNotificationResult>;
   network(): Promise<DeviceNetworkResult>;

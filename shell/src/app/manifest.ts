@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
         description: 'Your all-in-one super app for Sri Lanka',
         start_url: '/',
         display: 'standalone',
-        background_color: '#fafafa',
-        theme_color: '#18181b',
+        background_color: '#fffbea',
+        theme_color: '#3d2806',
         orientation: 'portrait',
         icons: [
             {

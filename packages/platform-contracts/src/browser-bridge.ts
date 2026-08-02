@@ -8,6 +8,7 @@
  * All calls are direct function invocations — zero serialization overhead.
  * No postMessage, no iframes, no transport layer.
  */
+import { DeviceExtraOptions } from "@lizuz/mini-app-types";
 import type {
   PlatformUser,
   NavigationTarget,
@@ -25,6 +26,7 @@ import type {
   FileOptions,
   HttpResult,
   DevicePermissionResponse,
+  DeviceContactResult,
   DownloadOptions,
   ApiRequestParams,
   ApiResult,
@@ -93,6 +95,7 @@ export interface BridgeDeviceService {
   download(
     options?: DownloadOptions,
   ): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
+  contact(options?: DeviceExtraOptions) : Promise<DevicePermissionResponse<DeviceContactResult>>
   biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
   notifications(options?: {
     requestPermission?: boolean;
@@ -190,6 +193,9 @@ export interface ShellDeviceService {
   download(
     options?: {reason?:string},
   ): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
+  contact(
+    options?: {reason?:string},
+  ): Promise<DevicePermissionResponse<DeviceContactResult>>;
   biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
   notifications(options?: {
     requestPermission?: boolean;
@@ -325,6 +331,7 @@ export class BrowserFederationBridge {
       // device
       location: (opts) => svc.device.location(opts),
       camera: (opts) => svc.device.camera(opts),
+      contact: (opts) => svc.device.contact(opts),
       gallery: (opts) => svc.device.gallery(opts),
       files: (opts) => svc.device.files(opts),
       download: (opts) => svc.device.download(opts),

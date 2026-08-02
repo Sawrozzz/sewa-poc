@@ -4,7 +4,9 @@ import type {
   NavigationState,
   ChatMessage,
   DeviceLocationResult,
+  DeviceBiometricResult,
   DeviceCameraResult,
+  DeviceContactResult,
   DeviceGalleryResult,
   DeviceFilesResult,
   DeviceDownloadResult,
@@ -161,6 +163,374 @@ function ensureConsent(
 ): Promise<boolean> {
   if (!reason) return Promise.resolve(true);
   return requestConsent({ title, reason, allowLabel });
+}
+
+/** Single-button variant of requestConsent — nothing to decide, just to read. */
+function showNotice(title: string, message: string): Promise<void> {
+  return new Promise((resolve) => {
+    const dialog = document.createElement("dialog");
+    dialog.style.cssText = [
+      // Same centering caveat as requestConsent().
+      "position: fixed",
+      "inset: 0",
+      "margin: auto",
+      "border: none",
+      "border-radius: 16px",
+      "padding: 24px 20px",
+      "max-width: 320px",
+      "width: calc(100vw - 48px)",
+      "max-height: calc(100dvh - 48px)",
+      "background: #fff",
+      "box-shadow: 0 8px 32px rgba(0,0,0,0.25)",
+      "font-family: inherit",
+    ].join(";");
+
+    const heading = document.createElement("h2");
+    heading.textContent = title;
+    heading.style.cssText =
+      "margin: 0 0 8px; font-size: 17px; font-weight: 600;";
+
+    const body = document.createElement("p");
+    body.textContent = message;
+    body.style.cssText =
+      "margin: 0 0 20px; font-size: 14px; line-height: 1.5; color: #555;";
+
+    const actions = document.createElement("div");
+    actions.style.cssText =
+      "display: flex; gap: 12px; justify-content: flex-end;";
+
+    const okBtn = document.createElement("button");
+    okBtn.textContent = "Got it";
+    okBtn.style.cssText =
+      "font-size: 14px; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: none; cursor: pointer; background: #0b57d0; color: #fff;";
+
+    const close = () => {
+      dialog.close();
+      dialog.remove();
+      resolve();
+    };
+
+    okBtn.onclick = close;
+    dialog.oncancel = (e) => {
+      e.preventDefault();
+      close();
+    };
+
+    actions.append(okBtn);
+    dialog.append(heading, body, actions);
+    document.body.appendChild(dialog);
+    dialog.showModal();
+    okBtn.focus();
+  });
+}
+
+/** True once the Shell is running from the home screen rather than a browser tab. */
+function isInstalledPwa(): boolean {
+  if (typeof window === "undefined") return false;
+  // iOS Safari never reports display-mode for home-screen apps.
+  if ((navigator as Navigator & { standalone?: boolean }).standalone === true) {
+    return true;
+  }
+  return [
+    "standalone",
+    "fullscreen",
+    "minimal-ui",
+    "window-controls-overlay",
+  ].some((mode) => window.matchMedia(`(display-mode: ${mode})`).matches);
+}
+
+/**
+ * Credential id of the passkey this device enrolled, base64url encoded. Wiping
+ * this key is how a user re-enrolls (e.g. after restoring to a new phone, where
+ * the old credential no longer resolves).
+ */
+const BIOMETRIC_CREDENTIAL_KEY = "gov:biometric-credential";
+
+function base64UrlEncode(buffer: ArrayBuffer): string {
+  let binary = "";
+  new Uint8Array(buffer).forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+// The Uint8Array<ArrayBuffer> annotations matter: WebAuthn's BufferSource
+// rejects the SharedArrayBuffer-backed default TS infers for a bare Uint8Array.
+function base64UrlDecode(value: string): Uint8Array<ArrayBuffer> {
+  const padded = value.replace(/-/g, "+").replace(/_/g, "/");
+  const binary = atob(padded.padEnd(Math.ceil(padded.length / 4) * 4, "="));
+  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function randomChallenge(): Uint8Array<ArrayBuffer> {
+  return crypto.getRandomValues(new Uint8Array(new ArrayBuffer(32)));
+}
+
+/** FIDO Registry §3.1 user verification methods, as reported by the `uvm` extension. */
+const USER_VERIFY_FINGERPRINT = 0x00000002;
+
+/**
+ * When true, a ceremony that does not *prove* it used a fingerprint is rejected.
+ * That includes every browser which declines to implement the optional `uvm`
+ * extension — i.e. most of them, including on phones that do have a sensor — so
+ * this trades false accepts for false rejects. Left off by default; flip it if
+ * you would rather biometric() fail than let a PIN through.
+ */
+const STRICT_FINGERPRINT_ONLY = false;
+
+/** Outcome of one WebAuthn ceremony, split so the caller can explain a refusal. */
+type FingerprintOutcome = "verified" | "cancelled" | "not-fingerprint";
+
+/** TypeScript's DOM lib does not type the `uvm` extension on either side. */
+const UVM_EXTENSION = {
+  uvm: true,
+} as unknown as AuthenticationExtensionsClientInputs;
+
+/**
+ * WebAuthn cannot ask for a specific sensor — `userVerification: "required"`
+ * means "verify the user somehow", and on Android the platform authenticator is
+ * backed by the screen lock, so PIN and pattern satisfy it too. The `uvm`
+ * extension is the only hook that reports *which* method ran, and authenticators
+ * may omit it. So this is a best-effort filter, not a guarantee: a real
+ * fingerprint-only policy needs the native layer (Android BiometricPrompt with
+ * BIOMETRIC_STRONG and no DEVICE_CREDENTIAL, iOS
+ * deviceOwnerAuthenticationWithBiometrics, Flutter local_auth biometricOnly).
+ */
+function checkUvm(credential: PublicKeyCredential): FingerprintOutcome {
+  const { uvm } = credential.getClientExtensionResults() as {
+    uvm?: number[][];
+  };
+  if (!uvm?.length) {
+    return STRICT_FINGERPRINT_ONLY ? "not-fingerprint" : "verified";
+  }
+  // Each entry is [userVerificationMethod, keyProtectionType, matcherProtectionType].
+  return uvm.some(([method]) => method === USER_VERIFY_FINGERPRINT)
+    ? "verified"
+    : "not-fingerprint";
+}
+
+/**
+ * Drives the device's own fingerprint prompt through WebAuthn's platform
+ * authenticator. The first call enrolls a passkey (the enrolment sheet itself
+ * asks for the fingerprint), later calls assert against it.
+ *
+ * The challenge is generated and discarded client-side: with no server to sign
+ * it back to, this proves "the device owner is present at this device", not an
+ * authenticated identity. Any server-trusted flow needs a real challenge issued
+ * and verified by the backend.
+ */
+async function verifyFingerprint(
+  user: PlatformUser | null,
+): Promise<FingerprintOutcome> {
+  if (typeof window === "undefined" || !window.PublicKeyCredential) {
+    return "cancelled";
+  }
+
+  // True for *any* screen lock, sensor or not — it cannot tell us a fingerprint
+  // reader exists, only that user verification is possible at all.
+  const hasUserVerification =
+    await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  if (!hasUserVerification) return "cancelled";
+
+  const storedId = localStorage.getItem(BIOMETRIC_CREDENTIAL_KEY);
+
+  if (!storedId) {
+    const created = (await navigator.credentials.create({
+      publicKey: {
+        challenge: randomChallenge(),
+        rp: { name: "Sewa", id: window.location.hostname },
+        user: {
+          id: new TextEncoder().encode(user?.id ?? "sewa-device-user"),
+          name: user?.email ?? "sewa-device-user",
+          displayName: user?.fullName ?? "Sewa user",
+        },
+        // ES256 first, RS256 as the fallback Windows Hello still prefers.
+        pubKeyCredParams: [
+          { type: "public-key", alg: -7 },
+          { type: "public-key", alg: -257 },
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: "platform",
+          userVerification: "required",
+          residentKey: "preferred",
+        },
+        timeout: 60_000,
+        attestation: "none",
+        extensions: UVM_EXTENSION,
+      },
+    })) as PublicKeyCredential | null;
+
+    if (!created) return "cancelled";
+
+    // Keep the credential either way — it can still be asserted with a
+    // fingerprint later, even if enrolment itself fell back to the screen lock.
+    localStorage.setItem(BIOMETRIC_CREDENTIAL_KEY, base64UrlEncode(created.rawId));
+    return checkUvm(created);
+  }
+
+  const assertion = (await navigator.credentials.get({
+    publicKey: {
+      challenge: randomChallenge(),
+      rpId: window.location.hostname,
+      allowCredentials: [
+        { type: "public-key", id: base64UrlDecode(storedId) },
+      ],
+      userVerification: "required",
+      timeout: 60_000,
+      extensions: UVM_EXTENSION,
+    },
+  })) as PublicKeyCredential | null;
+
+  return assertion ? checkUvm(assertion) : "cancelled";
+}
+
+interface PickedContact {
+  contactName?: string;
+  number: string;
+}
+
+/** Resolves null when the user closes the sheet without picking anyone. */
+function manualContactEntry(): Promise<PickedContact | null> {
+  return new Promise((resolve) => {
+    const dialog = document.createElement("dialog");
+    dialog.style.cssText = [
+      // Same centering caveat as requestConsent(): Tailwind's preflight kills
+      // the UA stylesheet's `margin: auto` on dialog.
+      "position: fixed",
+      "inset: 0",
+      "margin: auto",
+      "border: none",
+      "border-radius: 16px",
+      "padding: 24px 20px",
+      "max-width: 320px",
+      "width: calc(100vw - 48px)",
+      "max-height: calc(100dvh - 48px)",
+      "background: #fff",
+      "box-shadow: 0 8px 32px rgba(0,0,0,0.25)",
+      "font-family: inherit",
+    ].join(";");
+
+    const title = document.createElement("h2");
+    title.textContent = "Select a contact";
+    title.style.cssText = "margin: 0 0 8px; font-size: 17px; font-weight: 600;";
+
+    const message = document.createElement("p");
+    message.textContent =
+      "This browser cannot open your device contact list. Enter the contact to share instead.";
+    message.style.cssText =
+      "margin: 0 0 16px; font-size: 14px; line-height: 1.5; color: #555;";
+
+    const inputBase =
+      "width: 100%; box-sizing: border-box; font-size: 14px; font-family: inherit; padding: 10px 12px; border: 1px solid #d5d5d5; border-radius: 10px; margin-bottom: 12px;";
+
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.placeholder = "Name (optional)";
+    nameInput.autocomplete = "name";
+    nameInput.style.cssText = inputBase;
+
+    const numberInput = document.createElement("input");
+    numberInput.type = "tel";
+    numberInput.placeholder = "Phone number";
+    numberInput.autocomplete = "tel";
+    numberInput.style.cssText = inputBase;
+
+    const error = document.createElement("p");
+    error.style.cssText =
+      "margin: -4px 0 12px; font-size: 13px; color: #c5221f; display: none;";
+
+    const actions = document.createElement("div");
+    actions.style.cssText =
+      "display: flex; gap: 12px; justify-content: flex-end;";
+
+    const buttonBase =
+      "font-size: 14px; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: none; cursor: pointer;";
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.style.cssText = `${buttonBase} background: #f0f0f0; color: #333;`;
+
+    const shareBtn = document.createElement("button");
+    shareBtn.textContent = "Share";
+    shareBtn.style.cssText = `${buttonBase} background: #0b57d0; color: #fff;`;
+
+    const close = (result: PickedContact | null) => {
+      dialog.close();
+      dialog.remove();
+      resolve(result);
+    };
+
+    const submit = () => {
+      const number = numberInput.value.trim();
+      if (!/^\+?[\d\s-]{7,20}$/.test(number)) {
+        error.textContent = "Enter a valid phone number.";
+        error.style.display = "block";
+        numberInput.focus();
+        return;
+      }
+      close({ contactName: nameInput.value.trim() || undefined, number });
+    };
+
+    cancelBtn.onclick = () => close(null);
+    shareBtn.onclick = submit;
+    numberInput.onkeydown = (e) => {
+      if (e.key === "Enter") submit();
+    };
+    // Esc key / back gesture
+    dialog.oncancel = (e) => {
+      e.preventDefault();
+      close(null);
+    };
+
+    actions.append(cancelBtn, shareBtn);
+    dialog.append(title, message, nameInput, numberInput, error, actions);
+    document.body.appendChild(dialog);
+    dialog.showModal();
+    numberInput.focus();
+  });
+}
+
+/**
+ * Native Contact Picker where the browser has it (Chrome on Android only, and
+ * only in a secure top-level context — which the Shell is and the mini-app
+ * iframe is not, so this has to live host-side), manual entry everywhere else.
+ * Resolves null when the user cancels either one.
+ */
+async function contactPicker(): Promise<PickedContact | null> {
+  const nav = navigator as Navigator & {
+    contacts?: {
+      select: (
+        properties: string[],
+        options?: { multiple?: boolean },
+      ) => Promise<Array<{ name?: string[]; tel?: string[] }>>;
+    };
+  };
+
+  if (nav.contacts && "ContactsManager" in window) {
+    try {
+      const selected = await nav.contacts.select(["name", "tel"], {
+        multiple: false,
+      });
+      if (selected.length === 0) return null;
+
+      const number = selected[0].tel?.find((t) => t.trim())?.trim();
+      if (!number) {
+        throw new Error("The selected contact has no phone number");
+      }
+      return {
+        contactName: selected[0].name?.find((n) => n.trim())?.trim(),
+        number,
+      };
+    } catch (err: any) {
+      // The API is advertised but unusable here (insecure context, embedded
+      // frame, unsupported properties). Fall back rather than fail outright.
+      if (err?.name !== "TypeError" && err?.name !== "SecurityError") throw err;
+    }
+  }
+
+  return manualContactEntry();
 }
 
 function getFallbackMimeType(ext: string): string {
@@ -594,11 +964,73 @@ export function createShellServices(
         } as unknown as DevicePermissionResponse<DeviceDownloadResult>;
       }
     },
-    biometric: async (_options?: { reason?: string }) =>
-      ({
-        status: "granted",
-        data: { granted: false, method: "pin" },
-      }) as unknown as any,
+    contact: async (options?: { reason?: string }) => {
+      try {
+        if (!(await ensureConsent(options?.reason, "Contact Access", "Share"))) {
+          return {
+            status: "denied",
+            data: null,
+            error: "User declined contact access",
+          } as unknown as DevicePermissionResponse<DeviceContactResult>;
+        }
+
+        const picked = await contactPicker();
+        if (!picked) {
+          return {
+            status: "denied",
+            data: null,
+            error: "Contact selection cancelled",
+          } as unknown as DevicePermissionResponse<DeviceContactResult>;
+        }
+
+        return {
+          status: "granted",
+          data: {
+            contactName: picked.contactName,
+            number: picked.number,
+          },
+        } as unknown as DevicePermissionResponse<DeviceContactResult>;
+      } catch (error: any) {
+        return {
+          status: "denied",
+          data: null,
+          error: error?.message || "Contact selection cancelled",
+        } as unknown as DevicePermissionResponse<DeviceContactResult>;
+      }
+    },
+    biometric: async (options?: { reason?: string }) => {
+      // A browser tab can technically run WebAuthn, but the platform sensor is
+      // only wired up for the installed app in this build — say so rather than
+      // dropping the user into a prompt that goes nowhere.
+      if (!isInstalledPwa()) {
+        await showNotice(
+          "Not available in the browser",
+          "Fingerprint unlock only works in the installed Sewa app. Add Sewa to your home screen and try again.",
+        );
+        return { success: false } as DeviceBiometricResult;
+      }
+
+      if (!(await ensureConsent(options?.reason, "Fingerprint Unlock", "Continue"))) {
+        return { success: false } as DeviceBiometricResult;
+      }
+
+      try {
+        const outcome = await verifyFingerprint(getConfig().getUser());
+        if (outcome === "not-fingerprint") {
+          await showNotice(
+            "Fingerprint required",
+            "This device verified you with a PIN or password instead of a fingerprint. Add a fingerprint in your device settings and try again.",
+          );
+        }
+        return { success: outcome === "verified" } as DeviceBiometricResult;
+      } catch (error: any) {
+        // NotAllowedError covers both "user cancelled" and "no matching
+        // credential on this device" — neither is recoverable here, and the
+        // contract carries no error channel, so both land on success: false.
+        console.log("[biometric] failed:", error?.name ?? error);
+        return { success: false } as DeviceBiometricResult;
+      }
+    },
     notifications: async (_options?: {
       requestPermission?: boolean;
       reason?: string;
