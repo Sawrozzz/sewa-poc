@@ -3,7 +3,7 @@
  * Defines all interfaces and types used across the loader, cache, and utility modules.
  */
 
-import type { RemoteLoadResult, PluginServices } from "@sewa/platform-contracts";
+import type { RemoteLoadResult, PluginServices } from "@sewa/host-platform";
 import type { PluginCacheDB } from "./cache";
 
 /**

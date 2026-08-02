@@ -123,12 +123,11 @@ export type DeviceCapability =
   | 'storage'
   | 'info';
 
-
 export function createPlatformEvent<T>(
   type: string,
   source: string,
   payload: T,
-  options?: { version?: string; traceId?: string; id?: string }
+  options?: { version?: string; traceId?: string; id?: string },
 ): PlatformEvent<T> {
   return {
     id: options?.id ?? generateId(),
@@ -141,7 +140,11 @@ export function createPlatformEvent<T>(
   };
 }
 
-export function parseEventType(type: string): { namespace: string; entity: string; action: string } {
+export function parseEventType(type: string): {
+  namespace: string;
+  entity: string;
+  action: string;
+} {
   const parts = type.split('.');
   return {
     namespace: parts[0] ?? 'unknown',

@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { authClient, mapSessionUser } from '@/lib/auth-client';
 import { useMiniApps, useFallbackMiniApps } from '@/lib/use-mini-apps';
 import { MiniAppCard } from './MiniAppCard';
-import type { ModuleManifest } from '@sewa/platform-contracts';
+import type { ModuleManifest } from '@sewa/host-platform';
 
 function filterByPermission(mods: ModuleManifest[], permissions: string[]) {
   return mods

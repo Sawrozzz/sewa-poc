@@ -17,7 +17,7 @@ import type {
   HttpResult,
   ShellApiService,
   ShellStorageService,
-} from "@sewa/platform-contracts";
+} from "@sewa/host-platform";
 
 interface LocalApiRequestParams {
   method?: string;

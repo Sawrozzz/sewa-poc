@@ -1,14 +1,21 @@
-import {
-  type PlatformEvent,
-  type EventSchema,
-  type EventRegistryEntry,
-  createPlatformEvent,
-} from '@sewa/platform-contracts';
+/**
+ * Shell-owned Event Bus.
+ *
+ * Mini Apps NEVER access this directly — all events flow through the
+ * `RpcServer`. This is the host's governance layer for cross-boundary
+ * events: schema validation, middleware, replay for late joiners, and
+ * lightweight metrics.
+ */
+
+import type { PlatformEvent } from './events';
+import type { EventSchema } from './events';
+import type { EventRegistryEntry } from './events';
+import { createPlatformEvent } from './events';
 
 export type EventHandler<T = unknown> = (event: PlatformEvent<T>) => void | Promise<void>;
 export type EventMiddleware = (
   event: PlatformEvent,
-  next: () => Promise<void>
+  next: () => Promise<void>,
 ) => Promise<void>;
 
 export interface EventBusMetrics {
@@ -35,11 +42,6 @@ interface Subscription {
   createdAt: number;
 }
 
-/**
- * Shell-owned Event Bus.
- *
- * Mini Apps NEVER access this directly — all events flow through Shell Communicator.
- */
 export class EventBus {
   private registry = new Map<string, EventRegistryEntry>();
   private subscriptions = new Map<string, Subscription[]>();
@@ -106,7 +108,7 @@ export class EventBus {
           } catch (err) {
             this.onError?.(err instanceof Error ? err : new Error(String(err)), event);
           }
-        })
+        }),
       );
     };
 
@@ -133,7 +135,7 @@ export class EventBus {
     type: string,
     source: string,
     payload: T,
-    options?: { version?: string; traceId?: string }
+    options?: { version?: string; traceId?: string },
   ): Promise<boolean> {
     return this.publish(createPlatformEvent(type, source, payload, options));
   }
@@ -165,14 +167,14 @@ export class EventBus {
     if (!subs) return;
     this.subscriptions.set(
       type,
-      subs.filter((s) => s.id !== subscriptionId)
+      subs.filter((s) => s.id !== subscriptionId),
     );
   }
 
   /** Replay buffered events to a new subscriber (for late joiners) */
   replay(type: string, handler: EventHandler, since?: number): void {
     const events = this.replayBuffer.filter(
-      (e) => this.matchesType(e.type, type) && (!since || e.timestamp >= since)
+      (e) => this.matchesType(e.type, type) && (!since || e.timestamp >= since),
     );
     for (const event of events) {
       Promise.resolve(handler(event)).catch((err: unknown) => {
@@ -189,7 +191,7 @@ export class EventBus {
       throughputPerSecond: recent.length,
       activeSubscriptions: Array.from(this.subscriptions.values()).reduce(
         (sum, subs) => sum + subs.length,
-        0
+        0,
       ),
       replayBufferSize: this.replayBuffer.length,
     };
@@ -220,7 +222,7 @@ export class EventBus {
     if (schema) {
       if (schema.deprecated && this.enableTracing) {
         console.warn(
-          `[EventBus] Deprecated event ${event.type} from ${event.source}. Migrate to: ${schema.migrateTo ?? 'N/A'}`
+          `[EventBus] Deprecated event ${event.type} from ${event.source}. Migrate to: ${schema.migrateTo ?? 'N/A'}`,
         );
       }
       return schema.validate(event.payload);

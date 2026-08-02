@@ -9,19 +9,19 @@ import React, {
   type ReactNode,
 } from "react";
 import ReactDOM from "react-dom/client";
-import { createEventBus, type EventBus } from "@sewa/event-bus";
+import { createEventBus, type EventBus } from "@sewa/host-platform";
 
 import {
-  createShellCommunicator,
-  type ShellCommunicator,
-} from "@sewa/shell-communicator";
+  createHostPlatform,
+  type HostPlatformHandle,
+} from "@sewa/host-platform";
 import { createRuntimeLoader, type RuntimeLoader } from "@sewa/runtime-loader";
-import { type ShellServiceMap, PostMessageTransport } from "@sewa/platform-contracts";
+import { type ShellServiceMap, PostMessageTransport } from "@sewa/host-platform";
 import { createShellServices, type PlatformServicesConfig } from "./services";
 
 export interface PlatformContextValue {
   eventBus: EventBus;
-  communicator: ShellCommunicator;
+  communicator: HostPlatformHandle;
   loader: RuntimeLoader;
   services: ShellServiceMap;
   isReady: boolean;
@@ -146,24 +146,24 @@ export function PlatformProvider({
         },
       });
 
-        const communicator = createShellCommunicator({
+        const communicator = createHostPlatform({
           services,
           eventBus,
           transport: new PostMessageTransport(),
-        allowedOrigins: ["*"],
-        onModuleConnected: (moduleId) => {
-          eventBus.emit("module.lifecycle.loaded", moduleId, {
-            moduleId,
-            version: "",
-          });
-        },
-        onModuleDisconnected: (moduleId) => {
-          eventBus.emit("module.lifecycle.unloaded", moduleId, {
-            moduleId,
-            version: "",
-          });
-        },
-      });
+          allowedOrigins: ["*"],
+          onModuleConnected: (moduleId) => {
+            eventBus.emit("module.lifecycle.loaded", moduleId, {
+              moduleId,
+              version: "",
+            });
+          },
+          onModuleDisconnected: (moduleId) => {
+            eventBus.emit("module.lifecycle.unloaded", moduleId, {
+              moduleId,
+              version: "",
+            });
+          },
+        });
 
       const platform: PlatformContextValue = {
         eventBus,

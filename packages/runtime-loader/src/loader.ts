@@ -15,7 +15,7 @@
 import type {
   RemoteLoadResult,
   PluginLoadOptions,
-} from "@sewa/platform-contracts";
+} from "@sewa/host-platform";
 import { PluginCacheDB } from "./cache";
 import { delay, mountWithIsolation } from "./utils";
 import type {

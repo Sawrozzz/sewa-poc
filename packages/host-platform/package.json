@@ -1,7 +1,7 @@
 {
-  "name": "@sewa/shell-communicator",
+  "name": "@sewa/host-platform",
   "version": "1.0.0",
-  "description": "Privileged Shell gateway — routes SDK requests to Shell services and Event Bus",
+  "description": "Privileged host gateway for the sewa mini-app platform — protocol, transports, event bus, RPC server, and service contracts in one package",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -10,7 +10,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "sideEffects": false,
   "scripts": {
@@ -19,11 +20,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@sewa/event-bus": "workspace:*",
-    "@sewa/platform-contracts": "workspace:*",
+    "@lizuz/mini-app-types": "^1.0.0",
     "axios": "^1.18.1"
   },
   "devDependencies": {
+    "@types/node": "^26.0.0",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3"
   }

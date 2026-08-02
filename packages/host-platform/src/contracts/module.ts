@@ -5,6 +5,7 @@
  * in the same JS context as the shell. No Module Federation, no iframes.
  */
 
+import type { DeviceExtraOptions } from '@lizuz/mini-app-types';
 import type {
   PlatformUser,
   NavigationTarget,
@@ -24,15 +25,14 @@ import type {
   HttpResult,
   DeviceContactResult,
 } from './sdk';
-import type { PlatformEvent } from './events';
-import type { BridgeEnvelope } from './bridge';
-import { DeviceExtraOptions } from '@lizuz/mini-app-types';
+import type { PlatformEvent } from '../events';
+
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ComponentType<Props = {}> {
   (props: Props): unknown;
 }
 
-/** The only loading strategy; shell downloads and evalutes the bundle on demand */
+/** The only loading strategy; shell downloads and evaluates the bundle on demand */
 export type LoadStrategy = 'plugin';
 
 export type EntryType = 'framework-agnostic';
@@ -126,35 +126,6 @@ export interface PluginLoadOptions {
   validateIntegrity?: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// Window Bridge — communication layer between Shell and plugin bundles
-// ---------------------------------------------------------------------------
-
-/** Message types the bridge uses in the same JS context */
-export type BridgeMessage = BridgeEnvelope;
-
-/** Request from plugin → shell */
-export interface BridgeRequestMsg extends BridgeEnvelope {
-  type: 'request';
-}
-
-/** Response from shell → plugin */
-export interface BridgeResponseMsg extends BridgeEnvelope {
-  type: 'response';
-}
-
-/** Stream chunk from shell → plugin (e.g. chat) */
-export interface BridgeStreamMsg extends BridgeEnvelope {
-  type: 'stream';
-  streamIndex?: number;
-  streamLast?: boolean;
-}
-
-/** Event broadcast to plugins */
-export interface BridgeEventMsg extends BridgeEnvelope {
-  type: 'event';
-}
-
 /** The Shell exposes these services to plugins. Plugins never touch browser APIs directly. */
 export interface PluginServices {
   auth: {
@@ -182,9 +153,9 @@ export interface PluginServices {
   chat: ChatSdkModule;
   /** Device capabilities — only accessible through the shell bridge */
   device: {
-    location(options?: { highAccuracy?: boolean; timeout?: number ; reson?:string }): Promise<DevicePermissionResponse<DeviceLocationResult>>;
-    camera(options?: { facing?: 'front' | 'back' ; reason?:string }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
-    gallery(options?: { maxCount?: number ; reason?:string  }): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
+    location(options?: { highAccuracy?: boolean; timeout?: number; reason?: string }): Promise<DevicePermissionResponse<DeviceLocationResult>>;
+    camera(options?: { facing?: 'front' | 'back'; reason?: string }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
+    gallery(options?: { maxCount?: number; reason?: string }): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
     files(options?: { accept?: string[]; multiple?: boolean }): Promise<DevicePermissionResponse<DeviceFilesResult>>;
     download(options?: DownloadOptions): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
     contact(options?: DeviceExtraOptions): Promise<DevicePermissionResponse<DeviceContactResult>>;

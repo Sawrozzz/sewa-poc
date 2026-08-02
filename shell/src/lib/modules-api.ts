@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { ModuleManifest } from "@sewa/platform-contracts";
+import type { ModuleManifest } from "@sewa/host-platform";
 
 interface MiniAppRecord {
   miniAppId: string;

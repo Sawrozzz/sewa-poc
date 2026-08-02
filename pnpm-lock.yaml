@@ -15,11 +15,14 @@ importers:
         specifier: ^2.9.18
         version: 2.10.6
 
-  packages/event-bus:
+  packages/host-platform:
     dependencies:
-      '@sewa/platform-contracts':
-        specifier: workspace:*
-        version: link:../platform-contracts
+      '@lizuz/mini-app-types':
+        specifier: ^1.0.0
+        version: 1.0.0
+      axios:
+        specifier: ^1.18.1
+        version: 1.18.1
     devDependencies:
       '@types/node':
         specifier: ^26.0.0
@@ -31,26 +34,11 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
-  packages/platform-contracts:
-    devDependencies:
-      '@lizuz/mini-app-types':
-        specifier: ^1.0.0
-        version: 1.0.0
-      '@sewa/event-bus':
-        specifier: workspace:*
-        version: link:../event-bus
-      tsup:
-        specifier: ^8.5.1
-        version: 8.5.1(@swc/core@1.15.46)(jiti@2.7.0)(postcss@8.5.22)(typescript@6.0.3)(yaml@2.9.0)
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
-
   packages/runtime-loader:
     dependencies:
-      '@sewa/platform-contracts':
+      '@sewa/host-platform':
         specifier: workspace:*
-        version: link:../platform-contracts
+        version: link:../host-platform
     devDependencies:
       '@types/react':
         specifier: ^19.2.17
@@ -74,42 +62,17 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
-  packages/shell-communicator:
-    dependencies:
-      '@sewa/event-bus':
-        specifier: workspace:*
-        version: link:../event-bus
-      '@sewa/platform-contracts':
-        specifier: workspace:*
-        version: link:../platform-contracts
-      axios:
-        specifier: ^1.18.1
-        version: 1.18.1
-    devDependencies:
-      tsup:
-        specifier: ^8.5.1
-        version: 8.5.1(@swc/core@1.15.46)(jiti@2.7.0)(postcss@8.5.22)(typescript@6.0.3)(yaml@2.9.0)
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
-
   shell:
     dependencies:
       '@google/genai':
         specifier: ^2.11.0
         version: 2.13.0
-      '@sewa/event-bus':
+      '@sewa/host-platform':
         specifier: workspace:*
-        version: link:../packages/event-bus
-      '@sewa/platform-contracts':
-        specifier: workspace:*
-        version: link:../packages/platform-contracts
+        version: link:../packages/host-platform
       '@sewa/runtime-loader':
         specifier: workspace:*
         version: link:../packages/runtime-loader
-      '@sewa/shell-communicator':
-        specifier: workspace:*
-        version: link:../packages/shell-communicator
       '@tanstack/react-query':
         specifier: ^5.101.3
         version: 5.101.4(react@19.2.8)
@@ -6764,7 +6727,7 @@ snapshots:
       proc-log: 6.1.0
       semver: 7.7.2
       tar: 7.5.11
-      tinyglobby: 0.2.12
+      tinyglobby: 0.2.17
       undici: 6.27.0
       which: 6.0.1
 

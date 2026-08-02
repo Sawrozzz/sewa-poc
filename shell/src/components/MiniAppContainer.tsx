@@ -17,8 +17,8 @@ import { useMiniApp } from "@/lib/use-mini-apps";
 import { MiniAppErrorBoundary } from "./MiniAppErrorBoundary";
 import { MiniAppLoader } from "./MiniAppLoader";
 import { Header } from "./Header";
-import type { EventBus } from "@sewa/event-bus";
-import type { RemoteLoadResult } from "@sewa/platform-contracts";
+import type { EventBus } from "@sewa/host-platform";
+import type { RemoteLoadResult } from "@sewa/host-platform";
 
 interface SDKBridge {
     invoke<T = unknown>(action: string, payload?: unknown): Promise<T>;

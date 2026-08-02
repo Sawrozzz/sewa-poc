@@ -6,7 +6,7 @@
  * Provides both in-memory and persistent storage layers.
  */
 
-import type { PluginLoadOptions } from "@sewa/platform-contracts";
+import type { PluginLoadOptions } from "@sewa/host-platform";
 import type { ViteManifest, CachedFile, CacheOrder } from "./types";
 
 /** IndexedDB database name */

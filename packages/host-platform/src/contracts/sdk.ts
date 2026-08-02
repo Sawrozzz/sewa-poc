@@ -1,8 +1,8 @@
 /**
- * SDK surface contracts — implemented by Mini App SDK, fulfilled by Shell Communicator
+ * SDK surface contracts — implemented by Mini App SDK, fulfilled by the host.
  *
  * Types that are identical between the SDK and host are imported from
- * `@sewa/mini-app-types`. Types that differ (shell-side services,
+ * `@lizuz/mini-app-types`. Types that differ (shell-side services,
  * platform-specific shapes) are defined locally.
  */
 
@@ -28,6 +28,7 @@ export type {
   ApiSdkModule,
   HttpMethod,
   ApiResult,
+  DeviceExtraOptions,
 };
 
 export interface PlatformUser {
@@ -61,7 +62,7 @@ export interface DeviceLocationResult {
 }
 
 export interface DeviceLocationOptionsModule {
-  reason?:string
+  reason?: string;
 }
 
 export interface DeviceCameraResult {
@@ -81,17 +82,17 @@ export interface DeviceContactResult {
 }
 
 export interface FileOptions {
-  reason?:string;
+  reason?: string;
   multiple?: boolean;
-  accept?: string[]
+  accept?: string[];
 }
 
 export interface DeviceFilesResult {
-  files: FileModule[]
+  files: FileModule[];
 }
 
 export interface DeviceDownloadResult {
-  file: FileModule
+  file: FileModule;
   /**
    * True when the file was written to a destination the user explicitly picked
    * (File System Access API), so the save is confirmed.
@@ -101,7 +102,7 @@ export interface DeviceDownloadResult {
    * cancellation signal for that path, so the outcome is unknown — the user may
    * still have dismissed the browser's own save dialog.
    */
-  saved: boolean
+  saved: boolean;
 }
 
 export interface DownloadOptions {
@@ -142,7 +143,6 @@ export interface DeviceInfoResult {
 }
 
 export type PlatformTypeLiteral = 'WEB' | 'FLUTTER';
-
 
 /** Mini App service registration — allows apps to expose functions to other apps */
 export interface ServiceRegistration {
@@ -208,7 +208,6 @@ export interface NavigationSdkModule {
   getCurrent(): Promise<NavigationState>;
 }
 
-
 export interface PlatformSdkModule {
   readonly type: PlatformTypeLiteral;
   isWeb(): boolean;
@@ -260,7 +259,7 @@ export interface ShellStorageService {
   remove(key: string): Promise<void>;
 }
 
-/** Shell-side service interfaces fulfilled by the communicator */
+/** Shell-side service interfaces fulfilled by the host */
 export interface ShellAuthService {
   getUser(): Promise<PlatformUser | null>;
   isAuthenticated(): Promise<boolean>;
@@ -289,9 +288,8 @@ export interface ShellNavigationService {
   onNavigate(handler: (state: NavigationState) => void): () => void;
 }
 
-
 export interface ChatMessage {
-  role: "user" | "system" | "ai";
+  role: 'user' | 'system' | 'ai';
   content: string;
 }
 
@@ -304,7 +302,6 @@ export interface ModelCompletionOptions {
 
 export interface ChatSdkModule {
   chat(messages: ChatMessage[], options?: ModelCompletionOptions): AsyncIterable<string>;
-
 }
 
 export interface ShellServices {
@@ -315,4 +312,3 @@ export interface ShellServices {
   config: ShellConfigService;
   navigation: ShellNavigationService;
 }
-
