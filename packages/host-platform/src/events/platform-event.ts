@@ -47,6 +47,10 @@ export const PLATFORM_EVENTS = {
   FLAG_UPDATED: 'flag.runtime.updated',
   DEVICE_REQUEST: 'device.capability.request',
   DEVICE_RESPONSE: 'device.capability.response',
+  LOCALE_CHANGED: 'appearance.locale.changed',
+  THEME_CHANGED: 'appearance.theme.changed',
+  TOKENS_CHANGED: 'appearance.tokens.changed',
+  MESSAGES_CHANGED: 'appearance.messages.changed',
 } as const;
 
 export function createPlatformEvent<T>(

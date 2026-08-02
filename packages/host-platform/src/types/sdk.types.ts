@@ -25,6 +25,17 @@ export type {
   ApiResult,
 };
 
+export type {
+  Direction,
+  ThemePreference,
+  ThemeMode,
+  LocaleState,
+  ThemeState,
+  TranslationBundle,
+  AppearanceState,
+  AppearanceSdkModule,
+} from '@lizuz/mini-app-types';
+
 export interface PlatformUser {
   id: string;
   email: string;
