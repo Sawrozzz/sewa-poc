@@ -327,15 +327,28 @@ function checkUvm(credential: PublicKeyCredential): FingerprintOutcome {
 async function verifyFingerprint(
   user: PlatformUser | null,
 ): Promise<FingerprintOutcome> {
+  // Environment problems throw (rather than the silent "cancelled") so the
+  // caller's error notice can say WHY nothing prompted — otherwise a missing
+  // API is indistinguishable from the user dismissing the sheet.
   if (typeof window === "undefined" || !window.PublicKeyCredential) {
-    return "cancelled";
+    throw new Error(
+      `WebAuthn is not available on this page (origin: ${
+        typeof window === "undefined" ? "ssr" : window.location.origin
+      }, secureContext: ${
+        typeof window === "undefined" ? "n/a" : window.isSecureContext
+      }). Browsers only expose it on HTTPS or localhost — an http:// LAN IP never has it.`,
+    );
   }
 
   // True for *any* screen lock, sensor or not — it cannot tell us a fingerprint
   // reader exists, only that user verification is possible at all.
   const hasUserVerification =
     await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-  if (!hasUserVerification) return "cancelled";
+  if (!hasUserVerification) {
+    throw new Error(
+      "No platform authenticator on this device: set up a screen lock (ideally a fingerprint) in device settings and try again.",
+    );
+  }
 
   const storedId = privileged.localStorage?.getItem(BIOMETRIC_CREDENTIAL_KEY) ?? null;
 
@@ -1014,10 +1027,14 @@ export function createShellServices(
       }
     },
     biometric: async (options?: { reason?: string }) => {
-      // A browser tab can technically run WebAuthn, but the platform sensor is
-      // only wired up for the installed app in this build — say so rather than
-      // dropping the user into a prompt that goes nowhere.
-      if (!isInstalledPwa()) {
+      // A browser tab can technically run WebAuthn, but the product behavior
+      // is installed-app only — except while debugging: dev builds and any URL
+      // opened with ?biometric-debug let the browser tab through so the flow
+      // (and its errors) can be exercised in mobile web.
+      const webDebug =
+        process.env.NODE_ENV === "development" ||
+        new URLSearchParams(window.location.search).has("biometric-debug");
+      if (!isInstalledPwa() && !webDebug) {
         await showNotice(
           "Not available in the browser",
           "Fingerprint unlock only works in the installed Sewa app. Add Sewa to your home screen and try again.",
@@ -1031,6 +1048,9 @@ export function createShellServices(
 
       try {
         const outcome = await verifyFingerprint(getConfig().getUser());
+
+        console.log("Outcome", outcome);
+        
         if (outcome === "not-fingerprint") {
           await showNotice(
             "Fingerprint required",
