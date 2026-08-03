@@ -116,10 +116,10 @@ export function PlatformProvider({
       }
 
       // ── WebAuthn credentials ───────────────────────────────────────
-      if (navigator.credentials) {
-        lock(navigator.credentials, 'create', deny('Use sdk.device.biometric()'));
-        lock(navigator.credentials, 'get', deny('Use sdk.device.biometric()'));
-      }
+      // if (navigator.credentials) {
+      //   lock(navigator.credentials, 'create', deny('Use sdk.device.biometric()'));
+      //   lock(navigator.credentials, 'get', deny('Use sdk.device.biometric()'));
+      // }
 
       // ── Service workers (host PWA must keep working) ───────────────
       if (navigator.serviceWorker && navigator.serviceWorker.register) {

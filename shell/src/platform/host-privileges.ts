@@ -43,10 +43,10 @@ export const privileged = {
    * `navigator.credentials` instance, so holding the object reference
    * would leave the host calling the denied stubs.
    */
-  credentials: safe<Pick<CredentialsContainer, "create" | "get">>(() => ({
-    create: navigator.credentials.create.bind(navigator.credentials),
-    get: navigator.credentials.get.bind(navigator.credentials),
-  })),
+  // credentials: safe<Pick<CredentialsContainer, "create" | "get">>(() => ({
+  //   create: navigator.credentials.create.bind(navigator.credentials),
+  //   get: navigator.credentials.get.bind(navigator.credentials),
+  // })),
   /** Real `window.Notification` (host may surface its own notifications). */
   Notification: safe<typeof Notification>(() => window.Notification),
 } as const;
