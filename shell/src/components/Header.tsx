@@ -37,6 +37,7 @@ export function Header() {
 
     const finish = () => {
       privileged.sessionStorage?.setItem("app-refreshed", "true");
+      privileged.localStorage?.removeItem("sewa.onboarding.completed")
       router.push("/");
 
       setTimeout(() => {
