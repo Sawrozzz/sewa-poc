@@ -10,4 +10,4 @@ allowBuilds:
   protobufjs: true
   sharp: true
 minimumReleaseAgeExclude:
-  - '@lizuz/mini-app-types@1.0.0'
+  - '@lizuz/mini-app-types@1.0.9'
