@@ -37,8 +37,16 @@ export const privileged = {
   mediaDevices: safe<MediaDevices>(() => navigator.mediaDevices),
   /** Real `navigator.clipboard` (reserved for future host clipboard flows). */
   clipboard: safe<Clipboard>(() => navigator.clipboard),
-  /** Real `navigator.credentials` (WebAuthn biometric service). */
-  credentials: safe<CredentialsContainer>(() => navigator.credentials),
+  /**
+   * Real WebAuthn methods (biometric service). Bound copies, not the
+   * container itself: the guard shadows `create`/`get` on the shared
+   * `navigator.credentials` instance, so holding the object reference
+   * would leave the host calling the denied stubs.
+   */
+  credentials: safe<Pick<CredentialsContainer, "create" | "get">>(() => ({
+    create: navigator.credentials.create.bind(navigator.credentials),
+    get: navigator.credentials.get.bind(navigator.credentials),
+  })),
   /** Real `window.Notification` (host may surface its own notifications). */
   Notification: safe<typeof Notification>(() => window.Notification),
 } as const;
