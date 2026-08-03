@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
     root: path.join(__dirname, ".."),
   },
   allowedDevOrigins: [
-    '10.10.20.80', '10.10.20.131'
+    '10.10.20.80', '10.10.20.131', '10.10.30.82'
   ],
   async headers() {
     return [
