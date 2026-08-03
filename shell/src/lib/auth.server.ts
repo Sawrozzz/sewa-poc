@@ -104,6 +104,23 @@ const phoneOtpPlugin = {
 
 export const auth = betterAuth({
   database: memoryAdapter(db),
+  // On-device testing opens the shell from the dev machine's LAN IP, so in
+  // development trust loopback plus the RFC-1918 private ranges. Production
+  // must set BETTER_AUTH_URL to the deployed origin instead.
+  trustedOrigins: [
+    ...(process.env.NODE_ENV === "development"
+      ? [
+          "http://localhost:*",
+          "http://127.0.0.1:*",
+          "http://10.*",
+          "http://172.*",
+          "http://192.168.*",
+        ]
+      : []),
+    ...(process.env.BETTER_AUTH_URL
+      ? [new URL(process.env.BETTER_AUTH_URL).origin]
+      : []),
+  ],
   user: {
     additionalFields: {
       phoneNumber: { type: "string", required: false, input: false },
