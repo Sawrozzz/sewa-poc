@@ -112,9 +112,21 @@ export interface DownloadOptions {
   reason?: string;
 }
 
+/**
+ * Modality the unlock sheet was labelled as: `face` on iOS (Face ID),
+ * `fingerprint` on Android, `biometric` anywhere else.
+ *
+ * Advisory, for matching your copy to the sheet the user sees — NOT a
+ * guarantee of which sensor ran. The web cannot ask a device what hardware it
+ * has, so an older Touch ID iPhone still reports `face`.
+ */
+export type BiometricMethod = 'face' | 'fingerprint' | 'biometric';
+
 export interface DeviceBiometricResult {
-  /** True only when the device's own fingerprint prompt verified the user. */
+  /** True only when the device's own biometric prompt verified the user. */
   success: boolean;
+  /** Which prompt was shown. See {@link BiometricMethod}. */
+  method?: BiometricMethod;
 }
 
 export interface DeviceNotificationResult {
