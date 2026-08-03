@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { ModuleManifest } from "@sewa/host-platform";
 import { fetchMiniApps, fetchMiniApp, getFallbackManifests } from "./modules-api";
 
 const MINI_APPS_KEY = ["mini-apps"] as const;

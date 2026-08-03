@@ -1,6 +1,5 @@
 "use client";
-
-import type { EventBus } from "@sewa/host-platform";
+import { EventBus } from "@sewa/host-platform";
 import type { LocaleState, ThemeState, ThemePreference } from "@sewa/host-platform";
 import { privileged } from "./host-privileges";
 
