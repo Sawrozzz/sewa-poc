@@ -77,7 +77,7 @@ export interface ShellDeviceService {
   contact(
     options?: { reason?: string },
   ): Promise<DevicePermissionResponse<DeviceContactResult>>;
-  biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
+  biometric(options?: { reason?: string }): Promise<DevicePermissionResponse<DeviceBiometricResult>>;
   notifications(options?: {
     requestPermission?: boolean;
     reason?: string;

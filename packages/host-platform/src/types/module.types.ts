@@ -130,7 +130,7 @@ export interface PluginServices {
     files(options?: { accept?: string[]; multiple?: boolean }): Promise<DevicePermissionResponse<DeviceFilesResult>>;
     download(options?: DownloadOptions): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
     contact(options?: DeviceExtraOptions): Promise<DevicePermissionResponse<DeviceContactResult>>;
-    biometric(options?: { reason?: string }): Promise<DeviceBiometricResult>;
+    biometric(options?: { reason?: string }): Promise<DevicePermissionResponse<DeviceBiometricResult>>;
     notifications(options?: { requestPermission?: boolean }): Promise<DeviceNotificationResult>;
     network(): Promise<DeviceNetworkResult>;
     storage: {
