@@ -345,7 +345,9 @@ async function verifyFingerprint(
         challenge: randomChallenge(),
         rp: { name: "Sewa", id: window.location.hostname },
         user: {
-          id: new TextEncoder().encode(user?.id ?? "sewa-device-user"),
+          // WebAuthn caps user.id at 64 bytes; longer ids make create() throw
+          // a TypeError before the fingerprint sheet ever shows.
+          id: new TextEncoder().encode(user?.id ?? "sewa-device-user").slice(0, 64),
           name: user?.email ?? "sewa-device-user",
           displayName: user?.fullName ?? "Sewa user",
         },
@@ -1041,6 +1043,12 @@ export function createShellServices(
         // credential on this device" — neither is recoverable here, and the
         // contract carries no error channel, so both land on success: false.
         console.log("[biometric] failed:", error?.name ?? error);
+        // TODO(debug): remove once biometric is stable — surfaces the real
+        // failure on-device where there's no devtools console.
+        await showNotice(
+          "Biometric error",
+          `${error?.name ?? "Error"}: ${error?.message ?? String(error)}`,
+        );
         return { success: false } as DeviceBiometricResult;
       }
     },
