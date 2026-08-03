@@ -17,13 +17,13 @@ importers:
 
   packages/host-platform:
     dependencies:
-      '@lizuz/mini-app-types':
-        specifier: ^1.0.0
-        version: 1.0.0
       axios:
         specifier: ^1.18.1
         version: 1.18.1
     devDependencies:
+      '@lizuz/mini-app-types':
+        specifier: ^1.0.8
+        version: 1.0.8
       '@types/node':
         specifier: ^26.0.0
         version: 26.1.1
@@ -911,8 +911,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@lizuz/mini-app-types@1.0.0':
-    resolution: {integrity: sha512-RQKoZ2wrpQdhdhutg2vIe2cotcXIsFTeRtT/sKm1ncs65j0m69dCUQ3NYCINDvEONV7tV/Uc5rQemEA3iSIeDQ==}
+  '@lizuz/mini-app-types@1.0.8':
+    resolution: {integrity: sha512-2z33kj1HgB2ssx+KDSd1OQ97NokWi9DytYn2Vy3422Ibt8wEixhvbR8KBW5P+DxNjOlrhsQ03E69Z1bw+JSqIw==}
 
   '@napi-rs/wasm-runtime@0.2.4':
     resolution: {integrity: sha512-9zESzOO5aDByvhIAsOy9TbpZ0Ur2AJbUI7UT73kcUTS2mxAMHOBaa1st/jAymNoCtvrit99kkzT1FZuXVcgfIQ==}
@@ -4580,7 +4580,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@lizuz/mini-app-types@1.0.0': {}
+  '@lizuz/mini-app-types@1.0.8': {}
 
   '@napi-rs/wasm-runtime@0.2.4':
     dependencies:
