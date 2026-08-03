@@ -4,7 +4,6 @@ import type {
   NavigationState,
   ChatMessage,
   DeviceLocationResult,
-  BiometricMethod,
   DeviceBiometricResult,
   DeviceCameraResult,
   DeviceContactResult,
@@ -30,7 +29,6 @@ interface LocalApiRequestParams {
   body?: unknown;
   headers?: Record<string, string>;
 }
-
 
 interface LocalApiResult<T = unknown> {
   status: number;
@@ -273,108 +271,73 @@ function randomChallenge(): Uint8Array<ArrayBuffer> {
   return crypto.getRandomValues(new Uint8Array(new ArrayBuffer(32)));
 }
 
-type BiometricPlatform = "ios" | "android" | "other";
+/** FIDO Registry §3.1 user verification methods, as reported by the `uvm` extension. */
+const USER_VERIFY_FINGERPRINT = 0x00000002;
 
 /**
- * Which biometric sheet the OS will raise, so our copy names the same thing the
- * user is looking at. This drives WORDING ONLY — see runBiometricCeremony() for
- * why the modality itself is not ours to choose.
+ * When true, a ceremony that does not *prove* it used a fingerprint is rejected.
+ * That includes every browser which declines to implement the optional `uvm`
+ * extension — i.e. most of them, including on phones that do have a sensor — so
+ * this trades false accepts for false rejects. Left off by default; flip it if
+ * you would rather biometric() fail than let a PIN through.
  */
-function detectBiometricPlatform(): BiometricPlatform {
-  if (typeof navigator === "undefined") return "other";
-  const ua = navigator.userAgent;
-  if (/iPhone|iPad|iPod/i.test(ua)) return "ios";
-  // iPadOS 13+ ships a desktop-Mac user agent; touch points give it away.
-  if (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1) return "ios";
-  if (/Android/i.test(ua)) return "android";
-  return "other";
+const STRICT_FINGERPRINT_ONLY = false;
+
+/** Outcome of one WebAuthn ceremony, split so the caller can explain a refusal. */
+type FingerprintOutcome = "verified" | "cancelled" | "not-fingerprint";
+
+/** TypeScript's DOM lib does not type the `uvm` extension on either side. */
+const UVM_EXTENSION = {
+  uvm: true,
+} as unknown as AuthenticationExtensionsClientInputs;
+
+/**
+ * WebAuthn cannot ask for a specific sensor — `userVerification: "required"`
+ * means "verify the user somehow", and on Android the platform authenticator is
+ * backed by the screen lock, so PIN and pattern satisfy it too. The `uvm`
+ * extension is the only hook that reports *which* method ran, and authenticators
+ * may omit it. So this is a best-effort filter, not a guarantee: a real
+ * fingerprint-only policy needs the native layer (Android BiometricPrompt with
+ * BIOMETRIC_STRONG and no DEVICE_CREDENTIAL, iOS
+ * deviceOwnerAuthenticationWithBiometrics, Flutter local_auth biometricOnly).
+ */
+function checkUvm(credential: PublicKeyCredential): FingerprintOutcome {
+  const { uvm } = credential.getClientExtensionResults() as {
+    uvm?: number[][];
+  };
+  if (!uvm?.length) {
+    return STRICT_FINGERPRINT_ONLY ? "not-fingerprint" : "verified";
+  }
+  // Each entry is [userVerificationMethod, keyProtectionType, matcherProtectionType].
+  return uvm.some(([method]) => method === USER_VERIFY_FINGERPRINT)
+    ? "verified"
+    : "not-fingerprint";
 }
 
 /**
- * Per-platform copy. `method` is advisory and travels back to the mini app so
- * its own UI can match: an older Touch ID iPhone still reports "face", because
- * the web has no way to ask which sensor a device actually has.
- */
-const BIOMETRIC_UI: Record<
-  BiometricPlatform,
-  {
-    method: BiometricMethod;
-    /** Title on our consent sheet, shown before the OS sheet. */
-    consentTitle: string;
-    /** Shown when the device has no usable authenticator enrolled. */
-    setupHint: string;
-  }
-> = {
-  ios: {
-    method: "face",
-    consentTitle: "Unlock with Face ID",
-    setupHint:
-      "Face ID is not set up on this device. Add it in Settings → Face ID & Passcode, then try again.",
-  },
-  android: {
-    method: "fingerprint",
-    consentTitle: "Unlock with Fingerprint",
-    setupHint:
-      "No fingerprint is enrolled on this device. Add one in Settings → Security → Fingerprint, then try again.",
-  },
-  other: {
-    method: "biometric",
-    consentTitle: "Biometric Unlock",
-    setupHint:
-      "This device has no screen lock set up. Add one in your device settings, then try again.",
-  },
-};
-
-/** Outcome of one WebAuthn ceremony. Environment problems throw instead. */
-type BiometricOutcome = "verified" | "cancelled";
-
-/**
- * Two-step flow over WebAuthn's platform authenticator:
- *
- *   1. ENROL  — first call has no stored credential, so `create()` registers a
- *               passkey. The enrolment sheet itself verifies the user, so this
- *               counts as a successful unlock.
- *   2. ASSERT — later calls `get()` against the stored credential, which raises
- *               the unlock sheet: fingerprint on Android, Face ID on iOS.
- *
- * `userVerification: "required"` is the whole modality request — WebAuthn has
- * no knob for "fingerprint, not face" or "biometric, not PIN". The OS picks the
- * sensor, and on Android a device PIN or pattern also satisfies it. Enforcing
- * one specific modality needs the native layer (Android BiometricPrompt with
- * BIOMETRIC_STRONG and no DEVICE_CREDENTIAL; iOS
- * deviceOwnerAuthenticationWithBiometrics).
+ * Drives the device's own fingerprint prompt through WebAuthn's platform
+ * authenticator. The first call enrolls a passkey (the enrolment sheet itself
+ * asks for the fingerprint), later calls assert against it.
  *
  * The challenge is generated and discarded client-side: with no server to sign
  * it back to, this proves "the device owner is present at this device", not an
  * authenticated identity. Any server-trusted flow needs a real challenge issued
  * and verified by the backend.
  */
-async function runBiometricCeremony(
+async function verifyFingerprint(
   user: PlatformUser | null,
-): Promise<BiometricOutcome> {
-  // Environment problems throw (rather than the silent "cancelled") so the
-  // caller's error notice can say WHY nothing prompted — otherwise a missing
-  // API is indistinguishable from the user dismissing the sheet.
+): Promise<FingerprintOutcome> {
   if (typeof window === "undefined" || !window.PublicKeyCredential) {
-    throw new Error(
-      `WebAuthn is not available on this page (origin: ${
-        typeof window === "undefined" ? "ssr" : window.location.origin
-      }, secureContext: ${
-        typeof window === "undefined" ? "n/a" : window.isSecureContext
-      }). Browsers only expose it on HTTPS or localhost — an http:// LAN IP never has it.`,
-    );
+    return "cancelled";
   }
 
-  // True for *any* screen lock, sensor or not — it cannot tell us a face or
-  // fingerprint sensor exists, only that user verification is possible at all.
+  // True for *any* screen lock, sensor or not — it cannot tell us a fingerprint
+  // reader exists, only that user verification is possible at all.
   const hasUserVerification =
     await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-  if (!hasUserVerification) {
-    throw new Error(BIOMETRIC_UI[detectBiometricPlatform()].setupHint);
-  }
+  if (!hasUserVerification) return "cancelled";
 
-  const storedId =
-    privileged.localStorage?.getItem(BIOMETRIC_CREDENTIAL_KEY) ?? null;
+  const storedId = privileged.localStorage?.getItem(BIOMETRIC_CREDENTIAL_KEY) ?? null;
 
   if (!storedId) {
     const created = (await privileged.credentials?.create({
@@ -382,11 +345,7 @@ async function runBiometricCeremony(
         challenge: randomChallenge(),
         rp: { name: "Sewa", id: window.location.hostname },
         user: {
-          // WebAuthn caps user.id at 64 bytes; longer ids make create() throw
-          // a TypeError before the biometric sheet ever shows.
-          id: new TextEncoder()
-            .encode(user?.id ?? "sewa-device-user")
-            .slice(0, 64),
+          id: new TextEncoder().encode(user?.id ?? "sewa-device-user"),
           name: user?.email ?? "sewa-device-user",
           displayName: user?.fullName ?? "Sewa user",
         },
@@ -402,43 +361,32 @@ async function runBiometricCeremony(
         },
         timeout: 60_000,
         attestation: "none",
+        extensions: UVM_EXTENSION,
       },
     })) as PublicKeyCredential | null;
 
     if (!created) return "cancelled";
 
-    privileged.localStorage?.setItem(
-      BIOMETRIC_CREDENTIAL_KEY,
-      base64UrlEncode(created.rawId),
-    );
-    return "verified";
+    // Keep the credential either way — it can still be asserted with a
+    // fingerprint later, even if enrolment itself fell back to the screen lock.
+    privileged.localStorage?.setItem(BIOMETRIC_CREDENTIAL_KEY, base64UrlEncode(created.rawId));
+    return checkUvm(created);
   }
 
-  try {
-    const assertion = (await privileged.credentials?.get({
-      publicKey: {
-        challenge: randomChallenge(),
-        rpId: window.location.hostname,
-        allowCredentials: [{ type: "public-key", id: base64UrlDecode(storedId) }],
-        userVerification: "required",
-        timeout: 60_000,
-      },
-    })) as PublicKeyCredential | null;
+  const assertion = (await privileged.credentials?.get({
+    publicKey: {
+      challenge: randomChallenge(),
+      rpId: window.location.hostname,
+      allowCredentials: [
+        { type: "public-key", id: base64UrlDecode(storedId) },
+      ],
+      userVerification: "required",
+      timeout: 60_000,
+      extensions: UVM_EXTENSION,
+    },
+  })) as PublicKeyCredential | null;
 
-    return assertion ? "verified" : "cancelled";
-  } catch (error) {
-    // NotAllowedError means EITHER the user dismissed the sheet OR the stored
-    // credential is gone (passkeys cleared, app reinstalled, restored to a new
-    // phone) — WebAuthn deliberately does not say which. Drop the enrolment so
-    // the next attempt re-registers instead of failing forever; the cost when
-    // it was a plain cancel is only that the next tap shows the enrolment sheet,
-    // which verifies the user just the same.
-    if ((error as DOMException)?.name === "NotAllowedError") {
-      privileged.localStorage?.removeItem(BIOMETRIC_CREDENTIAL_KEY);
-      return "cancelled";
-    }
-    throw error;
-  }
+  return assertion ? checkUvm(assertion) : "cancelled";
 }
 
 interface PickedContact {
@@ -1063,35 +1011,43 @@ export function createShellServices(
         } as unknown as DevicePermissionResponse<DeviceContactResult>;
       }
     },
-    biometric: async (options?: { reason?: string }) => {
-      const ui = BIOMETRIC_UI[detectBiometricPlatform()];
-      const fail = () =>
-        ({ success: false, method: ui.method }) as DeviceBiometricResult;
+    biometric: async (options?: {
+      reason?: string;
+    }): Promise<DevicePermissionResponse<DeviceBiometricResult>> => {
+      // A browser tab can technically run WebAuthn, but the platform sensor is
+      // only wired up for the installed app in this build — say so rather than
+      // dropping the user into a prompt that goes nowhere.
       if (!isInstalledPwa()) {
         await showNotice(
           "Not available in the browser",
-          `${ui.consentTitle} only works in the installed Sewa app. Add Sewa to your home screen and try again.`,
+          "Fingerprint unlock only works in the installed Sewa app. Add Sewa to your home screen and try again.",
         );
-        return fail();
+        return {
+          status: "denied",
+          data: { success: false },
+          error: "Biometric unlock requires the installed Sewa app",
+        };
       }
 
-      if (!(await ensureConsent(options?.reason, ui.consentTitle, "Continue"))) {
-        return fail();
+      if (!(await ensureConsent(options?.reason, "Fingerprint Unlock", "Continue"))) {
+        return { status: "denied", data: { success: false } };
       }
 
       try {
-        const outcome = await runBiometricCeremony(getConfig().getUser());
-        return {
-          success: outcome === "verified",
-          method: ui.method,
-        } as DeviceBiometricResult;
+        const outcome = await verifyFingerprint(getConfig().getUser());
+        if (outcome === "not-fingerprint") {
+          await showNotice(
+            "Fingerprint required",
+            "This device verified you with a PIN or password instead of a fingerprint. Add a fingerprint in your device settings and try again.",
+          );
+        }
+        return { status: "granted", data: { success: outcome === "verified" } };
       } catch (error: any) {
-        // Everything reaching here is an environment problem (no WebAuthn, no
-        // enrolled authenticator) — a plain cancel already came back as
-        // "cancelled". Those messages are user-facing on purpose: on-device
-        // there is no console to read.
-        await showNotice(ui.consentTitle, error?.message ?? String(error));
-        return fail();
+        // NotAllowedError covers both "user cancelled" and "no matching
+        // credential on this device" — neither is recoverable here, and the
+        // contract carries no error channel, so both land on success: false.
+        console.log("[biometric] failed:", error?.name ?? error);
+        return { status: "denied", data: { success: false } };
       }
     },
     notifications: async (_options?: {
