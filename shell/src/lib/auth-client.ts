@@ -2,7 +2,10 @@ import { createAuthClient } from "better-auth/react";
 import { MOCK_CITIZEN } from "./mock-user";
 
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_AUTH_API_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "https://sewa-poc-shell-roan.vercel.app/",
+  baseURL:
+    process.env.NEXT_PUBLIC_AUTH_API_URL ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "https://sewa-poc-shell-roan.vercel.app/",
 });
 
 /**
