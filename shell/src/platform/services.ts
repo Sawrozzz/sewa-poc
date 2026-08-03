@@ -17,8 +17,10 @@ import type {
   HttpResult,
   ShellApiService,
   ShellStorageService,
+  ShellAppearanceService,
 } from "@sewa/host-platform";
 import { privileged } from "./host-privileges";
+import type { AppearanceController } from "./appearance-controller";
 
 interface LocalApiRequestParams {
   method?: string;
@@ -549,7 +551,16 @@ function getFallbackMimeType(ext: string): string {
 
 export function createShellServices(
   getConfig: () => PlatformServicesConfig,
+  deps: { appearanceController?: AppearanceController } = {},
 ) {
+  const { appearanceController } = deps;
+
+  const appearance: ShellAppearanceService = appearanceController
+    ? {
+        getLocale: () => Promise.resolve(appearanceController.getLocale()),
+        getTheme: () => Promise.resolve(appearanceController.getTheme()),
+      }
+    : nullAppearance;
   let navigationState: NavigationState = {
     app: "shell",
     route: "/",
@@ -606,7 +617,8 @@ export function createShellServices(
     apiBaseUrl:
       process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.gov.example",
     environment: process.env.NODE_ENV ?? "development",
-    locale: "en-NP",
+    // No hardcoded locale — resolved from the appearance controller (host-driven).
+    locale: appearanceController?.getLocale().locale ?? "en-LK",
     currency: "NPR",
   };
 
@@ -1274,5 +1286,11 @@ export function createShellServices(
     storage,
     api,
     http,
+    appearance,
   };
 }
+
+const nullAppearance: ShellAppearanceService = {
+  getLocale: () => Promise.resolve({ locale: "en-LK", language: "en", direction: "ltr" }),
+  getTheme: () => Promise.resolve({ preference: "system", mode: "light" }),
+};

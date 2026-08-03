@@ -61,9 +61,7 @@ interface PendingRequest {
 }
 
 /** Capabilities the host actually serves, beyond the SDK's built-in set. */
-const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];
-
-export class RpcServer {
+const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk', 'appearance'];export class RpcServer {
   private services: ShellServiceMap;
   private eventBus: EventBus;
   /** The transport bound to this server — also exposed for host observability. */
@@ -221,7 +219,9 @@ export class RpcServer {
 
     const miniAppId = payload.miniAppId ?? msg.source;
     const negotiatedVersion = this.negotiateVersion(payload.protocolVersion ?? payload.sdkVersion ?? PROTOCOL_VERSION);
-    const capabilities = [...SDK_CAPABILITIES, ...HOST_EXTRA_CAPABILITIES];
+    // `appearance` appears in both SDK_CAPABILITIES and HOST_EXTRA_CAPABILITIES;
+    // dedupe so the negotiated list stays clean.
+    const capabilities = Array.from(new Set([...SDK_CAPABILITIES, ...HOST_EXTRA_CAPABILITIES]));
 
     const module: ConnectedModule = {
       moduleId: miniAppId,
@@ -493,7 +493,7 @@ export class RpcServer {
           method: apiPayload.method,
           url: apiPayload.path,
           data: apiPayload.body,
-          headers: apiPayload.headers,
+          headers: await this.withAppearanceHeaders(apiPayload.headers),
         });
         const headers: Record<string, string> = {};
         if (res.headers) {
@@ -519,10 +519,18 @@ export class RpcServer {
       }
     });
 
+    // Appearance — the host notifies mini apps of locale/theme changes; apps
+    // read current state on demand. The host owns no mini-app content.
+    r.register(NAMESPACES.APPEARANCE, ACTIONS.APPEARANCE.GET_LOCALE, () =>
+      this.services.appearance.getLocale(),
+    );
+    r.register(NAMESPACES.APPEARANCE, ACTIONS.APPEARANCE.GET_THEME, () =>
+      this.services.appearance.getTheme(),
+    );
+
     // Events — subscription bookkeeping lives on the ConnectedModule and is
     // consulted by broadcastToModules().
-    r.register(NAMESPACES.EVENT, ACTIONS.EVENT.SUBSCRIBE, (payload, ctx) => {
-      const eventType = (payload as { eventType?: string })?.eventType;
+    r.register(NAMESPACES.EVENT, ACTIONS.EVENT.SUBSCRIBE, (payload, ctx) => {      const eventType = (payload as { eventType?: string })?.eventType;
       if (eventType) this.modules.get(ctx.moduleId)?.eventSubscriptions.add(eventType);
       return null;
     });
@@ -629,6 +637,21 @@ export class RpcServer {
   // HTTP proxy helpers
   // ---------------------------------------------------------------------------
 
+  /**
+   * Merges the active locale into an outbound request's headers so the backend
+   * can localize dynamic content at request time (see HOST-APPEARANCE-ARCHITECTURE
+   * Q5). Best-effort: a failed/absent appearance lookup falls back to the
+   * caller's headers untouched.
+   */
+  private async withAppearanceHeaders(headers?: Record<string, string>): Promise<Record<string, string>> {
+    try {
+      const locale = await this.services.appearance.getLocale();
+      return { ...headers, 'Accept-Language': locale.locale };
+    } catch {
+      return headers ?? {};
+    }
+  }
+
   private async handleHttpRequest(
     method: 'get' | 'post' | 'put' | 'patch' | 'delete',
     payload: Record<string, unknown>,
@@ -643,7 +666,7 @@ export class RpcServer {
         url: endpoint,
         params: method === 'get' ? payload.query : undefined,
         data: method === 'delete' ? undefined : payload.body,
-        headers: payload.headers as Record<string, string> | undefined,
+        headers: await this.withAppearanceHeaders(payload.headers as Record<string, string> | undefined),
       });
       const headers: Record<string, string> = {};
       if (res.headers) {

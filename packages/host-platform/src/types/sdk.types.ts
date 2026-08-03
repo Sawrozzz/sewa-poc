@@ -31,7 +31,6 @@ export type {
   ThemeMode,
   LocaleState,
   ThemeState,
-  TranslationBundle,
   AppearanceState,
   AppearanceSdkModule,
 } from '@lizuz/mini-app-types';

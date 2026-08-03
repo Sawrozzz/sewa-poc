@@ -84,9 +84,9 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
         if (sdkLoaded.current) return;
         sdkLoaded.current = true;
 
-        const CDN_URL = 'https://cdn.jsdelivr.net/npm/@lizuz/sewa-sdk/dist/sewa-sdk.min.js';
+        // const CDN_URL = 'https://cdn.jsdelivr.net/npm/@lizuz/sewa-sdk/dist/sewa-sdk.min.js';
         // const CDN_URL = 'http://10.10.30.82:9000/dist/sewa-sdk.min.js';
-        // const CDN_URL = '/sdk/sewa-sdk.min.js';
+        const CDN_URL = '/sdk/sewa-sdk.min.js';
         let sdkReady = typeof window.getMiniAppBridge === "function";
 
         if (!sdkReady) {

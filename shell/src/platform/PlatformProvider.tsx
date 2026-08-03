@@ -18,12 +18,17 @@ import {
 import { createRuntimeLoader, type RuntimeLoader } from "@sewa/runtime-loader";
 import { type ShellServiceMap, PostMessageTransport } from "@sewa/host-platform";
 import { createShellServices, type PlatformServicesConfig } from "./services";
+import {
+  createAppearanceController,
+  type AppearanceController,
+} from "./appearance-controller";
 
 export interface PlatformContextValue {
   eventBus: EventBus;
   communicator: HostPlatformHandle;
   loader: RuntimeLoader;
   services: ShellServiceMap;
+  appearance: AppearanceController;
   isReady: boolean;
 }
 
@@ -184,7 +189,14 @@ export function PlatformProvider({
         },
       });
 
-      const services = createShellServices(() => authConfigRef.current);
+      // Host-driven appearance: owns locale/theme/tokens/shell catalog. Created
+      // before services so config.locale resolves through it.
+      const appearanceController = createAppearanceController({ eventBus });
+
+      const services = createShellServices(() => authConfigRef.current, {
+        appearanceController,
+      });
+      appearanceController.apply();
 
       const loader = createRuntimeLoader({
         onLoadComplete: (result) => {
@@ -224,6 +236,7 @@ export function PlatformProvider({
         communicator,
         loader,
         services,
+        appearance: appearanceController,
         isReady: false,
       };
 

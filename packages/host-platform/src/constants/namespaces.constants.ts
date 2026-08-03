@@ -53,8 +53,6 @@ export const ACTIONS = {
   APPEARANCE: {
     GET_LOCALE: 'getLocale',
     GET_THEME: 'getTheme',
-    GET_TOKENS: 'getTokens',
-    GET_MESSAGES: 'getMessages',
   },
   EVENT: { SUBSCRIBE: 'subscribe', UNSUBSCRIBE: 'unsubscribe', EMIT: 'emit' },
   HANDSHAKE: { CONNECT: 'connect' },

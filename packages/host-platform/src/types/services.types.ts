@@ -23,6 +23,8 @@ import type {
   ChatMessage,
   FileOptions,
   HttpResult,
+  LocaleState,
+  ThemeState,
 } from './sdk.types';
 import type {
   ShellApiService,
@@ -33,6 +35,18 @@ import type {
   ShellConfigService,
   ShellNavigationService,
 } from './sdk.types';
+
+/**
+ * Shell-side host-driven appearance contract (locale, theme, tokens, host
+ * catalogs). The shell implements this against its `AppearanceController`;
+ * the `RpcServer` serves it to mini apps as the `appearance.*` namespace.
+ * Mini-app catalogs (`app.<moduleId>.*`) are deliberately absent — they live
+ * inside each mini app's own bundle and never reach the host.
+ */
+export interface ShellAppearanceService {
+  getLocale(): Promise<LocaleState>;
+  getTheme(): Promise<ThemeState>;
+}
 
 export interface ShellChatService {
   chat(
@@ -114,4 +128,5 @@ export interface ShellServiceMap {
   storage: ShellStorageService;
   api: ShellApiService;
   http: ShellHttpService;
+  appearance: ShellAppearanceService;
 }

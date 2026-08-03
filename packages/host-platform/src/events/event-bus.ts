@@ -282,6 +282,8 @@ export class EventBus {
       { type: 'module.lifecycle.failed', version: '1.0.0', owner: 'shell', namespace: 'module', description: 'Module load failed', validate: passthrough },
       { type: 'auth.session.changed', version: '1.0.0', owner: 'shell', namespace: 'auth', description: 'Auth state changed', validate: passthrough },
       { type: 'device.capability.request', version: '1.0.0', owner: 'shell', namespace: 'device', description: 'Device capability request', validate: passthrough },
+      { type: 'appearance.locale.changed', version: '1.0.0', owner: 'shell', namespace: 'appearance', description: 'Active locale changed', validate: passthrough },
+      { type: 'appearance.theme.changed', version: '1.0.0', owner: 'shell', namespace: 'appearance', description: 'Theme preference/mode changed', validate: passthrough },
     ];
 
     for (const schema of schemas) {

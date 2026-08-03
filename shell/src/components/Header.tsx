@@ -4,16 +4,24 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
 import { LocaleSwitcher } from "./LanguageSwitcher";
-import { RefreshCcwIcon } from "lucide-react";
+import { RefreshCcwIcon, SunIcon, MoonIcon } from "lucide-react";
 import { privileged } from "@/platform/host-privileges";
+import { usePlatform } from "@/platform";
 
 export function Header() {
   const router = useRouter();
+  const { appearance } = usePlatform();
   const { data: session } = authClient.useSession();
   const user = mapSessionUser(session?.user);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isDark, setIsDark] = useState(() => appearance.getTheme().mode === "dark");
+
+  const handleToggleTheme = () => {
+    appearance.toggleTheme();
+    setIsDark(appearance.getTheme().mode === "dark");
+  };
 
   const handleLogout = async () => {
     await authClient.signOut();
@@ -88,6 +96,14 @@ export function Header() {
           {/* Right: User Menu */}
           <div className="flex items-center gap-4">
             <LocaleSwitcher />
+
+            <button
+              onClick={handleToggleTheme}
+              className="text-sm text-gray-500 hover:text-gov-700 transition px-3 py-1.5 rounded-lg hover:bg-gov-50"
+              title={isDark ? "Switch to light theme" : "Switch to dark theme"}
+            >
+              {isDark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+            </button>
 
             {user && (
               <div className="flex items-center gap-3">
