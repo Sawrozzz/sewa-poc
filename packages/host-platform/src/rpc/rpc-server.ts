@@ -61,7 +61,14 @@ interface PendingRequest {
 }
 
 /** Capabilities the host actually serves, beyond the SDK's built-in set. */
-const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk', 'appearance'];export class RpcServer {
+// TEMP — Flutter parity test. Dropping 'appearance' makes `isMethodAllowed()`
+// reject `appearance.*` requests, so this host looks exactly like the mobile
+// shell to a mini app: locale/theme can only arrive via the `platform.getType`
+// hint. The `appearance.*` EVENTS are unaffected — broadcastToModules() gates
+// on eventSubscriptions, not capabilities — which is correct, since runtime
+// changes must keep working on both shells.
+// To restore: put 'appearance' back in the array.
+const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
   private services: ShellServiceMap;
   private eventBus: EventBus;
   /** The transport bound to this server — also exposed for host observability. */
@@ -375,13 +382,38 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk', 'appearance'];export clas
       this.services.navigation.getCurrent(),
     );
 
-    // platform.getType MUST return a PlatformTypeLiteral string ("web" /
-    // "flutter"), not the whole device.info() object — the SDK stores it as
-    // `platform.type` and derives isWeb()/isFlutter()/isMobile() from it.
+    // platform.getType returns `{ type, appearance }`. `type` MUST be a
+    // PlatformTypeLiteral ("web" / "flutter"), not the whole device.info()
+    // object — the SDK stores it as `platform.type` and derives
+    // isWeb()/isFlutter()/isMobile() from it.
+    //
+    // `appearance` piggybacks the active locale/theme onto a request the mini
+    // app is already awaiting, so it starts in the right locale/theme without
+    // two further `appearance.*` round trips. It's the only channel the
+    // Flutter shell has (it serves no `appearance` namespace), and this host
+    // uses the same one so both shells drive one SDK code path.
+    //
+    // Send the full LocaleState/ThemeState objects rather than bare strings:
+    // given a string, the SDK would re-derive `direction` from the language
+    // subtag. This host already computes it, and its answer is authoritative.
+    //
+    // Best-effort — a failed appearance lookup must not fail `getType`, which
+    // gates the mini app's entire startup. Older SDKs ignore the extra field
+    // and fall back to the `appearance` namespace, which stays registered.
     r.register(NAMESPACES.PLATFORM, ACTIONS.PLATFORM.GET_TYPE, async () => {
       const info = await this.services.device.info();
       const raw = (info as unknown as { platform?: string }).platform ?? 'web';
-      return raw.toUpperCase().startsWith('WEB') ? 'web' : 'flutter';
+      const type = raw.toUpperCase().startsWith('WEB') ? 'web' : 'flutter';
+
+      try {
+        const [locale, theme] = await Promise.all([
+          this.services.appearance.getLocale(),
+          this.services.appearance.getTheme(),
+        ]);
+        return { type, appearance: { locale, theme } };
+      } catch {
+        return { type };
+      }
     });
     r.register(NAMESPACES.PLATFORM, 'isWeb', async () => {
       const info = await this.services.device.info();
