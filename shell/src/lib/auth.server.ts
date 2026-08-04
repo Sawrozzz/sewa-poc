@@ -103,6 +103,7 @@ const phoneOtpPlugin = {
 };
 
 export const auth = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL,
   database: memoryAdapter(db),
   // On-device testing opens the shell from the dev machine's LAN IP, so in
   // development trust loopback plus the RFC-1918 private ranges. Production
