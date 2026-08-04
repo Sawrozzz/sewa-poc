@@ -129,12 +129,6 @@ export const auth = betterAuth({
       nationalId: { type: "string", required: false, input: false },
     },
   },
-  // Allow any origin in dev (LAN IPs, localhost, tunnels). Prod keeps
-  // strict origin checking via baseURL.
-  trustedOrigins: async (request) => {
-    if (process.env.NODE_ENV === "production") return [];
-    return [process.env.BETTER_AUTH_URL, new URL(request?.url ?? "").origin];
-  },
   plugins: [
     nextCookies(),
     phoneOtpPlugin,
