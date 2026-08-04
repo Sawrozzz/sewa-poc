@@ -2,7 +2,7 @@
 /// <reference lib="webworker" />
 import { defaultCache } from "@serwist/turbopack/worker";
 import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig } from "serwist";
-import { Serwist, NetworkFirst, NetworkOnly, NavigationRoute, PrecacheFallbackPlugin, StaleWhileRevalidate, CacheFirst, ExpirationPlugin } from "serwist";
+import { Serwist, NetworkFirst, NetworkOnly, NavigationRoute, PrecacheFallbackPlugin, StaleWhileRevalidate, ExpirationPlugin } from "serwist";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
