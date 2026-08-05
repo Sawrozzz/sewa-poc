@@ -1,4 +1,5 @@
 {
+  "language": "English",
   "HomePage": {
     "title": "Hello world!",
     "welcome_text": "Welcome back, Citizen!",
@@ -8,7 +9,7 @@
     "label": "Language"
   },
   "Welcome": {
-    "title": "Welcome to Super App",
+    "title": "Welcome",
     "subtitle": "All your government services in one place — licenses, payments, documents and more.",
     "continue": "Continue"
   },

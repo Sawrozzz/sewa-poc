@@ -13,7 +13,7 @@ import {
 } from "@/i18n/config";
 import { setLocale } from "@/i18n/actions";
 
-export function LanguageScreen({ onContinue }: { onContinue: () => void }) {
+export function LanguageScreen({ onContinueAction }: { onContinueAction: () => void }) {
   const t = useTranslations("LanguageSelect");
   const activeLocale = useLocale() as Locale;
   const router = useRouter();
@@ -26,7 +26,7 @@ export function LanguageScreen({ onContinue }: { onContinue: () => void }) {
         await setLocale(selected);
         router.refresh();
       }
-      onContinue();
+        onContinueAction();
     });
   };
 

@@ -52,7 +52,7 @@ export function OnboardingFlow({
   }
 
   if (step === "language") {
-    return <LanguageScreen onContinue={completeIntro} />;
+    return <LanguageScreen onContinueAction={completeIntro} />;
   }
 
   if (step === "otp") {

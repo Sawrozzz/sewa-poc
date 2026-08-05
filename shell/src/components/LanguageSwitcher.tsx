@@ -46,7 +46,6 @@ export function LocaleSwitcher() {
           appearance-none
           rounded-full
           border
-          border-gov-200
           bg-white
           shadow-sm
           outline-none
@@ -72,7 +71,7 @@ export function LocaleSwitcher() {
 
           w-12
           sm:w-auto
-          sm:min-w-[150px]
+          sm:min-w-37.5
         "
       >
         {locales.map((code) => (

@@ -5,11 +5,11 @@ import type {
   ShellAppearanceService,
 } from "@sewa/host-platform";
 import type { AppearanceController } from "../appearance-controller";
-import type { PlatformServicesConfig } from "./types";
 import { createDeviceService } from "./device";
 import { createHttpService } from "./http";
+import type {PlatformServicesConfig} from "@/types/services";
 
-export type { PlatformServicesConfig } from "./types";
+export type { PlatformServicesConfig } from "@/types/services";
 
 export function createShellServices(
   getConfig: () => PlatformServicesConfig,

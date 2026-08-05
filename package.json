@@ -14,8 +14,8 @@
   "scripts": {
     "build:turbo": "turbo run build",
     "build:platform": "pnpm --filter @sewa/host-platform build && pnpm --filter @sewa/runtime-loader build",
-    "build": "pnpm build:platform && pnpm --filter @sewa/shell-app build",
-    "dev": "pnpm --filter @sewa/shell-app dev",
+    "build": "pnpm build:platform && pnpm --filter @sewa/shell build",
+    "dev": "pnpm --filter @sewa/shell dev",
     "lint": "turbo run lint",
     "clean": "turbo run clean",
     "link:env": "ln -s ../.env shell/.env",
