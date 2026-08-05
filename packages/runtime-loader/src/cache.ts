@@ -99,8 +99,8 @@ export class PluginCacheDB {
     // FIFO: evict from the front (oldest entries)
     const evicted: string[] = [];
     while (this.moduleOrder.length > this.maxModules) {
-      const [evictedId] = this.moduleOrder.shift()!;
-      evicted.push(evictedId);
+      const evictedId = this.moduleOrder.shift();
+      if (evictedId !== undefined) evicted.push(evictedId);
     }
 
     if (evicted.length > 0) {
@@ -272,9 +272,11 @@ export class PluginCacheDB {
       await Promise.all(putPromises);
       console.log("[PluginCacheDB] All files stored in IndexedDB for:", moduleId);
 
-      // Update in-memory cache
+      // Update in-memory cache (scoped keys, matching IndexedDB)
       if (!this._manifestCache) this._manifestCache = {};
-      Object.assign(this._manifestCache, files);
+      for (const [fileName, content] of Object.entries(files)) {
+        this._manifestCache[`${moduleId}/${fileName}`] = content;
+      }
 
       // Enforce cache limit using FIFO eviction
       await this.enforceCacheLimit(moduleId);
