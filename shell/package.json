@@ -8,7 +8,7 @@
     "build:platform": "cd .. && pnpm --filter @sewa/host-platform build && pnpm --filter @sewa/runtime-loader build",
     "start": "next start -p 3000",
     "lint": "next lint",
-    "test": "node --test src/platform/mini-app-sdk-host.test.ts",
+    "test": "node --test src/platform/sdk-bootstrap/core.test.ts",
     "clean": "rm -rf .next"
   },
   "dependencies": {

@@ -16,7 +16,7 @@ import {
 import {
     loadMiniAppSdk,
     destroyMiniAppSdk,
-} from "@/platform/mini-app-sdk-host";
+} from "@/platform/sdk-bootstrap";
 import { useMiniApp } from "@/lib/use-mini-apps";
 import { MiniAppErrorBoundary } from "./MiniAppErrorBoundary";
 import { MiniAppLoader } from "./MiniAppLoader";
