@@ -13,6 +13,10 @@ import {
     useEventBus,
     usePlatform,
 } from "@/platform";
+import {
+    loadMiniAppSdk,
+    destroyMiniAppSdk,
+} from "@/platform/mini-app-sdk-host";
 import { useMiniApp } from "@/lib/use-mini-apps";
 import { MiniAppErrorBoundary } from "./MiniAppErrorBoundary";
 import { MiniAppLoader } from "./MiniAppLoader";
@@ -24,28 +28,6 @@ interface SDKBridge {
     invoke<T = unknown>(action: string, payload?: unknown): Promise<T>;
     emit(event: string, payload?: unknown): void;
     subscribe(event: string, callback: (payload?: unknown) => void): () => void;
-}
-
-/**
- * @lizuz/sewa-sdk v1.x CDN contract:
- *  - The host seeds `window.__GSA_SDK__` with a `MiniAppSdkOptions` object
- *    BEFORE the CDN <script> runs. The bundle reads it, constructs a single
- *    `MiniAppSdk`, and stores the live instance back on the same key.
- *  - `window.__GSA_HOST_DESCRIPTOR__` is read at construction time to expose
- *    the static host descriptor (type, version, capabilities, sdkVersion).
- *  - One instance per tab; `destroy()` removes it from the global again.
- */
-const SDK_GLOBAL_KEY = "__GSA_SDK__";
-const HOST_DESCRIPTOR_GLOBAL_KEY = "__GSA_HOST_DESCRIPTOR__";
-// const SDK_CDN_URL =
-//     "https://cdn.jsdelivr.net/npm/@lizuz/sewa-sdk@1.0.2/dist/sewa-sdk.min.js";
-// const SDK_CDN_URL = 'http://10.10.30.82:9000/dist/sewa-sdk.min.js';
-const SDK_CDN_URL = '/sdk/sewa-sdk.min.js';
-
-/** The live SDK instance on `window.__GSA_SDK__`, or null when absent/not ready. */
-function getSdkInstance() {
-    const sdk = window.__GSA_SDK__;
-    return sdk && typeof sdk.initialize === "function" ? sdk : null;
 }
 
 interface Runtime {
@@ -104,65 +86,10 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
 
     const initMiniAppBridge = useCallback(async () => {
         if (sdkLoaded.current) return;
-
-        const w = window as unknown as Record<string, unknown>;
-        let sdk = getSdkInstance();
-
-        if (!sdk) {
-            // Seed the config the CDN build reads at load. `targetOrigin` is
-            // pinned to the shell's own origin: mini apps run in this same
-            // window, so the SDK's `window.parent.postMessage` round-trips to
-            // itself — exact-origin delivery works, and inbound messages from
-            // any other origin are dropped.
-            w[SDK_GLOBAL_KEY] = {
-                miniAppId,
-                timeout: 30000,
-                retryAttempts: 5,
-                retryDelayMs: 500,
-                maxRetryDelayMs: 10000,
-                targetOrigin: window.location.origin,
-            };
-            w[HOST_DESCRIPTOR_GLOBAL_KEY] = {
-                type: "web",
-                version: "1.0.0",
-                capabilities: [
-                    "auth",
-                    "permissions",
-                    "flags",
-                    "config",
-                    "navigation",
-                    "platform",
-                    "device",
-                    "storage",
-                    "api",
-                    "http",
-                    "appearance",
-                    "event",
-                    "ai",
-                    "sdk",
-                ],
-                sdkVersion: "1.0.2",
-            };
-
-            await new Promise<void>((resolve, reject) => {
-                const script = document.createElement("script");
-                script.src = SDK_CDN_URL;
-                script.async = true;
-                script.onload = () => resolve();
-                script.onerror = () => reject(new Error("Failed to load SDK from CDN"));
-                document.head.appendChild(script);
-            });
-
-            sdk = getSdkInstance();
-            if (!sdk) {
-                throw new Error("Mini App SDK did not initialize after loading");
-            }
-        }
-
-        // The CDN build starts `initialize()` itself; awaiting it (idempotent
-        // and concurrency-safe) guarantees the handshake completed before the
-        // mini-app bundle mounts and starts calling SDK methods.
-        await sdk.initialize();
+        const { source, initTimeMs } = await loadMiniAppSdk(miniAppId);
+        console.log(
+            `[mini-app-sdk] initialized (source: ${source}, handshake: ${initTimeMs}ms)`,
+        );
         sdkLoaded.current = true;
     }, [miniAppId]);
 
@@ -258,7 +185,7 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
                 cleanupDone.current = false;
                 loader.unload(miniAppId);
                 communicator.disconnectModule(miniAppId);
-                window.__GSA_SDK__?.destroy();
+                destroyMiniAppSdk();
             };
         }
 
