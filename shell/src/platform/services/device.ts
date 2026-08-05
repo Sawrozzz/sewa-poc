@@ -357,29 +357,6 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
           type: navigator.onLine ? 'unknown' : 'none',
         },
       }) as unknown as DeviceNetworkResult,
-    storage: {
-      get: async (key: string) => {
-        try {
-          return privileged.localStorage?.getItem(`gov:${key}`) ?? null;
-        } catch {
-          return null;
-        }
-      },
-      set: async (key: string, value: string) => {
-        try {
-          privileged.localStorage?.setItem(`gov:${key}`, value);
-        } catch {
-          /* */
-        }
-      },
-      remove: async (key: string) => {
-        try {
-          privileged.localStorage?.removeItem(`gov:${key}`);
-        } catch {
-          /* */
-        }
-      },
-    },
     info: async () => {
       const ua = navigator.userAgent;
       const isMobile = /Mobi|Android/i.test(ua);

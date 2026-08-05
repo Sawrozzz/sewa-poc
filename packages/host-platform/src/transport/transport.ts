@@ -23,5 +23,3 @@ export interface Transport {
   subscribe(handler: MessageHandler): () => void;
   destroy(): void;
 }
-
-export const SDK_CHANNEL_EVENT = 'gov-platform-sdk';

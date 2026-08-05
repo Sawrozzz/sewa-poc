@@ -1,12 +1,11 @@
 import { createDeviceService } from "./device";
-import { createHttpService } from "./http";
+import { createStorageService } from "./http";
 
 import type { AppearanceController } from "../appearance-controller";
 import type {PlatformServicesConfig} from "@/types/services";
 import type {
   NavigationTarget,
   NavigationState,
-  ChatMessage,
   ShellAppearanceService,
 } from "@sewa/host-platform";
 
@@ -127,77 +126,7 @@ export function createShellServices(
     },
   };
 
-  const chat = {
-    chat: async function* (
-      messages: ChatMessage[],
-      _options?: Record<string, unknown>,
-    ) {
-      try {
-        const resp = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: messages.map((m) => ({
-              role: m.role,
-              content: m.content,
-            })),
-          }),
-        });
-
-        if (!resp.ok || !resp.body) {
-          throw new Error(`HTTP ${resp.status}`);
-        }
-
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const jsonStr = line.slice(6).trim();
-              if (jsonStr === "[DONE]") continue;
-              try {
-                const json = JSON.parse(jsonStr);
-                const content = json.choices?.[0]?.delta?.content || "";
-                if (content) yield content;
-              } catch {
-                /* skip */
-              }
-            }
-          }
-        }
-
-        if (buffer.startsWith("data: ")) {
-          const jsonStr = buffer.slice(6).trim();
-          if (jsonStr !== "[DONE]") {
-            try {
-              const json = JSON.parse(jsonStr);
-              const content = json.choices?.[0]?.delta?.content || "";
-              if (content) yield content;
-            } catch {
-              /* skip */
-            }
-          }
-        }
-      } catch (err) {
-        console.error(
-          "[chat] error:",
-          err instanceof Error ? err.message : err,
-        );
-        yield "[error fetching reply]";
-      }
-    },
-  };
-
-  const { http, api, storage } = createHttpService();
+  const { storage } = createStorageService();
   const device = createDeviceService(() => getConfig().getUser());
 
   return {
@@ -206,11 +135,8 @@ export function createShellServices(
     flags,
     config,
     navigation,
-    chat,
     device,
     storage,
-    api,
-    http,
     appearance,
   };
 }

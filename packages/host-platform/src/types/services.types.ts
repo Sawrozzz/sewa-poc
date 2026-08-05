@@ -6,6 +6,9 @@
  * supplied by the shell. Deliberately separate from the SDK-facing module
  * shapes (`types/sdk.types.ts`) because the shell services are host-internal
  * and may expose extra surface (e.g. `refresh`, `onNavigate`).
+ *
+ * `http`/`api` are intentionally absent: the RpcServer serves those
+ * namespaces itself via axios, so the shell does not re-implement them.
  */
 
 import type {
@@ -20,12 +23,9 @@ import type {
   DeviceInfoResult,
   DevicePermissionResponse,
   DeviceContactResult,
-  ChatMessage,
   FileOptions,
-  HttpResult,
   LocaleState,
   ThemeState,
-  ShellApiService,
   ShellStorageService,
   ShellAuthService,
   ShellPermissionsService,
@@ -44,13 +44,6 @@ import type {
 export interface ShellAppearanceService {
   getLocale(): Promise<LocaleState>;
   getTheme(): Promise<ThemeState>;
-}
-
-export interface ShellChatService {
-  chat(
-    messages: ChatMessage[],
-    options?: Record<string, unknown>,
-  ): AsyncIterable<string>;
 }
 
 export interface ShellDeviceService {
@@ -81,38 +74,7 @@ export interface ShellDeviceService {
     reason?: string;
   }): Promise<DeviceNotificationResult>;
   network(): Promise<DeviceNetworkResult>;
-  storage: {
-    get(key: string): Promise<string | null>;
-    set(key: string, value: string): Promise<void>;
-    remove(key: string): Promise<void>;
-  };
   info(): Promise<DeviceInfoResult>;
-}
-
-export interface ShellHttpService {
-  get<T = unknown>(
-    endpoint?: string,
-    query?: Record<string, string>,
-  ): Promise<HttpResult<T>>;
-  post<T = unknown>(
-    endpoint?: string,
-    body?: unknown,
-    headers?: Record<string, string>,
-  ): Promise<HttpResult<T>>;
-  put<T = unknown>(
-    endpoint?: string,
-    body?: unknown,
-    headers?: Record<string, string>,
-  ): Promise<HttpResult<T>>;
-  patch<T = unknown>(
-    endpoint?: string,
-    body?: unknown,
-    headers?: Record<string, string>,
-  ): Promise<HttpResult<T>>;
-  delete<T = unknown>(
-    endpoint?: string,
-    headers?: Record<string, string>,
-  ): Promise<HttpResult<T>>;
 }
 
 export interface ShellServiceMap {
@@ -121,10 +83,7 @@ export interface ShellServiceMap {
   flags: ShellFlagsService;
   config: ShellConfigService;
   navigation: ShellNavigationService;
-  chat: ShellChatService;
   device: ShellDeviceService;
   storage: ShellStorageService;
-  api: ShellApiService;
-  http: ShellHttpService;
   appearance: ShellAppearanceService;
 }

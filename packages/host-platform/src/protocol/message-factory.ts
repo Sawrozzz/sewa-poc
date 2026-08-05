@@ -10,13 +10,13 @@ import { MESSAGE_CHANNEL, PROTOCOL_VERSION } from '../constants';
 import { generateId } from '../utils';
 
 import type {
-  HostMessageType,
+  MessageType,
   HostPlatformMessage,
   CreateMessageOptions,
 } from './message.types';
 
 export function createMessage<T>(
-  type: HostMessageType,
+  type: MessageType,
   namespace: string,
   action: string,
   source: string,
@@ -37,8 +37,5 @@ export function createMessage<T>(
     error: options.error,
     traceId: options.traceId ?? generateId(),
     timestamp: Date.now(),
-    streamIndex: options.streamIndex,
-    streamTotal: options.streamTotal,
-    streamLast: options.streamLast,
   };
 }

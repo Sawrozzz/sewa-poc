@@ -1,9 +1,8 @@
 /**
- * Method Registry — replaces the `RpcServer`'s giant `switch`.
+ * Method Registry — maps each RPC method (`namespace.action`) to a handler.
  *
- * Each RPC method (`namespace.action`) maps to a handler. Handlers receive
- * the raw payload plus an `RpcContext` carrying routing metadata and a
- * `send` escape hatch for streaming responses.
+ * Handlers receive the raw payload plus an `RpcContext` carrying routing
+ * metadata and a `send` escape hatch for out-of-band responses.
  */
 
 import type { HostPlatformMessage } from '../protocol';
@@ -17,7 +16,7 @@ export interface RpcContext {
   requestId: string;
   /** The window the request came from (if any) — used for replies. */
   source?: Window | null;
-  /** Low-level escape hatch for streaming / multi-message responses. */
+  /** Low-level escape hatch for multi-message responses. */
   send(message: HostPlatformMessage, target?: Window | null): void;
 }
 
@@ -26,17 +25,8 @@ export type RpcHandler<TPayload = unknown, TResult = unknown> = (
   context: RpcContext,
 ) => TResult | Promise<TResult>;
 
-export interface MethodRegistryOptions {
-  onUnknownMethod?: (namespace: string, action: string) => void;
-}
-
 export class MethodRegistry {
   private methods = new Map<string, RpcHandler>();
-  private readonly onUnknownMethod?: (namespace: string, action: string) => void;
-
-  constructor(options: MethodRegistryOptions = {}) {
-    this.onUnknownMethod = options.onUnknownMethod;
-  }
 
   private key(namespace: string, action: string): string {
     return `${namespace}.${action}`;
@@ -61,30 +51,8 @@ export class MethodRegistry {
     this.methods.set(this.key(namespace, action), handler);
   }
 
-  resolve(
-    namespace: string,
-    action: string,
-  ): RpcHandler | undefined {
-    return this.methods.get(this.key(namespace, action));
-  }
-
-  has(namespace: string, action: string): boolean {
-    return this.methods.has(this.key(namespace, action));
-  }
-
-  /** All registered `namespace.action` keys. */
-  listMethods(): string[] {
-    return Array.from(this.methods.keys());
-  }
-
-  /** Distinct namespaces with at least one registered method. */
-  namespaces(): string[] {
-    return Array.from(new Set(this.listMethods().map((k) => k.split('.')[0])));
-  }
-
   /**
-   * Invoke a method by `namespace.action`. Returns `undefined` when the
-   * method is unknown; on success returns the handler's result.
+   * Invoke a method by `namespace.action`. Throws when the method is unknown.
    */
   async invoke<T = unknown>(
     namespace: string,
@@ -94,7 +62,6 @@ export class MethodRegistry {
   ): Promise<T> {
     const handler = this.methods.get(this.key(namespace, action));
     if (!handler) {
-      this.onUnknownMethod?.(namespace, action);
       throw new Error(`Unknown method: ${namespace}.${action}`);
     }
     return handler(payload, context) as Promise<T>;

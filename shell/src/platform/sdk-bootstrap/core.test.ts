@@ -89,33 +89,34 @@ test("bootstrap reuses an existing instance without loading any script", async (
   assert.equal(scriptLoads, 0);
 });
 
-test("bootstrap loads from the first source that yields an instance", async () => {
+test("bootstrap seeds the config and loads the configured source", async () => {
   const w = makeFakeWindow();
   const sdk = makeFakeSdk();
-  const seen: string[] = [];
+  let loadedSource = "";
+  const seenConfig: unknown[] = [];
 
   const env = {
     window: w,
     loadScript: async (source: string) => {
-      seen.push(source);
-      if (source === "good") {
-        (w as unknown as Record<string, unknown>)[SDK_GLOBAL_KEY] = sdk;
-      }
+      loadedSource = source;
+      seenConfig.push((w as unknown as Record<string, unknown>)[SDK_GLOBAL_KEY]);
+      (w as unknown as Record<string, unknown>)[SDK_GLOBAL_KEY] = sdk;
     },
     now: () => 1000,
   };
 
   const result = await bootstrapMiniAppSdk(
     "license",
-    { sources: ["bad", "good"] },
+    { source: "good.js" },
     env,
   );
   assert.equal(result.sdk, sdk);
-  assert.equal(result.source, "good");
-  assert.deepEqual(seen, ["bad", "good"]);
+  assert.equal(result.source, "good.js");
+  assert.equal(loadedSource, "good.js");
+  assert.equal(seenConfig.length, 1);
 });
 
-test("bootstrap re-seeds the config before each source attempt", async () => {
+test("bootstrap throws when the source loads without producing an instance", async () => {
   const w = makeFakeWindow();
   const env = {
     window: w,
@@ -123,31 +124,25 @@ test("bootstrap re-seeds the config before each source attempt", async () => {
     now: () => 1000,
   };
 
-  // First source leaves a bogus non-instance value behind; a stale instance
-  // from a previous bundle must not be mistaken for a fresh one.
-  const g = w as unknown as Record<string, unknown>;
-  g[SDK_GLOBAL_KEY] = { miniAppId: "stale-config" };
-
   await assert.rejects(
-    bootstrapMiniAppSdk("license", { sources: ["a", "b"] }, env),
-    /Mini App SDK did not initialize after loading/,
+    bootstrapMiniAppSdk("license", {}, env),
+    /Mini App SDK did not initialize from \/sdk\/sewa-sdk\.min\.js/,
   );
 });
 
-test("bootstrap throws with per-source details when every source fails", async () => {
+test("bootstrap propagates load errors from the script", async () => {
   const w = makeFakeWindow();
   const env = {
     window: w,
-    loadScript: async (source: string) => {
-      if (source === "broken") throw new Error("404");
-      // "loaded-but-empty": resolves without producing an instance
+    loadScript: async () => {
+      throw new Error("404");
     },
     now: () => 1000,
   };
 
   await assert.rejects(
-    bootstrapMiniAppSdk("license", { sources: ["broken", "empty"] }, env),
-    /Mini App SDK did not initialize after loading\. Attempted: broken: 404 \| empty: loaded but produced no SDK instance/,
+    bootstrapMiniAppSdk("license", {}, env),
+    /404/,
   );
 });
 

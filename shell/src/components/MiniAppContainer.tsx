@@ -7,50 +7,12 @@ import { Header } from './Header';
 import { MiniAppErrorBoundary } from './MiniAppErrorBoundary';
 import { MiniAppLoader } from './MiniAppLoader';
 
-import type { EventBus, RemoteLoadResult } from '@sewa/host-platform';
+import type { RemoteLoadResult } from '@sewa/host-platform';
 
 import { authClient } from '@/lib/auth-client';
 import { useMiniApp } from '@/lib/use-mini-apps';
 import { useRuntimeLoader, useEventBus, usePlatform } from '@/platform';
 import { loadMiniAppSdk, destroyMiniAppSdk } from '@/platform/sdk-bootstrap';
-
-interface SDKBridge {
-  invoke<T = unknown>(action: string, payload?: unknown): Promise<T>;
-  emit(event: string, payload?: unknown): void;
-  subscribe(event: string, callback: (payload?: unknown) => void): () => void;
-}
-
-interface Runtime {
-  sdk: SDKBridge;
-  config: Record<string, unknown>;
-}
-
-function createMiniAppRuntime(eventBus: EventBus, _communicator: unknown): Runtime {
-  const sdk: SDKBridge = {
-    async invoke<T = unknown>(action: string, payload?: unknown): Promise<T> {
-      switch (action) {
-        case 'host.getTenantConfig':
-          return { tenantId: 'acme-corp', plan: 'enterprise' } as T;
-        case 'host.showToast':
-          console.log('[MiniApp Toast]', payload);
-          return { shown: true } as T;
-        default:
-          throw new Error(`Unknown SDK action: ${action}`);
-      }
-    },
-    emit(event, payload) {
-      eventBus.emit(event, 'mini-app', payload);
-    },
-    subscribe(event, callback) {
-      return eventBus.subscribe(event, (evt) => callback(evt.payload));
-    },
-  };
-
-  return {
-    sdk,
-    config: {},
-  };
-}
 
 export interface MiniAppContainerProps {
   miniAppId: string;
@@ -130,18 +92,12 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
     if (!loadedModule?.bundle) return;
 
     const container = containerRef.current;
-    const runtime = createMiniAppRuntime(eventBus, communicator);
-    const mountRuntime = {
-      ...runtime,
-      initialPath: window.location.hash.slice(1) || '',
-    } as unknown as Parameters<typeof loadedModule.bundle.mount>[1];
-
-    loadedModule.bundle.mount(container, mountRuntime);
+    loadedModule.bundle.mount(container);
 
     return () => {
       loadedModule.bundle.unmount(container);
     };
-  }, [loadState, miniAppId, loader, eventBus, communicator]);
+  }, [loadState, miniAppId, loader]);
 
   useEffect(() => {
     if (authLoading || manifestLoading) return;

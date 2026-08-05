@@ -1,7 +1,7 @@
 import {
   SDK_GLOBAL_KEY,
   HOST_DESCRIPTOR_GLOBAL_KEY,
-  DEFAULT_SDK_SOURCES,
+  DEFAULT_SDK_SOURCE,
   DEFAULT_HOST_CAPABILITIES,
 } from "./constants.ts";
 
@@ -65,11 +65,11 @@ async function initializeSdk(
 
 /**
  * Ensures a live, initialized SDK instance exists for `miniAppId`. Reuses an
- * existing instance if present; otherwise seeds the globals and tries each
- * bundle source until one yields an instance. `initialize()` is idempotent,
- * so waiting on it guarantees the handshake completed before returning.
+ * existing instance if present; otherwise seeds the globals and loads the
+ * configured bundle source. `initialize()` is idempotent, so waiting on it
+ * guarantees the handshake completed before returning.
  *
- * Throws if every source fails to load, throws during evaluation, or loads
+ * Throws if the source fails to load, throws during evaluation, or loads
  * without producing an instance.
  */
 export async function bootstrapMiniAppSdk(
@@ -86,30 +86,14 @@ export async function bootstrapMiniAppSdk(
     };
   }
 
-  const sources = options.sources?.length
-    ? [...options.sources]
-    : [...DEFAULT_SDK_SOURCES];
-  const failures: string[] = [];
-
-  for (const source of sources) {
-    seedSdkConfig(env.window, miniAppId, options);
-    try {
-      await env.loadScript(source);
-    } catch (err) {
-      failures.push(`${source}: ${err instanceof Error ? err.message : String(err)}`);
-      continue;
-    }
-    const sdk = readSdkInstance(env.window);
-    if (sdk) {
-      return { sdk, source, initTimeMs: await initializeSdk(sdk, env.now) };
-    }
-    failures.push(`${source}: loaded but produced no SDK instance`);
+  const source = options.source ?? DEFAULT_SDK_SOURCE;
+  seedSdkConfig(env.window, miniAppId, options);
+  await env.loadScript(source);
+  const sdk = readSdkInstance(env.window);
+  if (!sdk) {
+    throw new Error(`Mini App SDK did not initialize from ${source}`);
   }
-
-  const detail = failures.length
-    ? ` Attempted: ${failures.join(" | ")}.`
-    : " No SDK sources were configured.";
-  throw new Error(`Mini App SDK did not initialize after loading.${detail}`);
+  return { sdk, source, initTimeMs: await initializeSdk(sdk, env.now) };
 }
 
 /** Tears down the instance on a given window. */

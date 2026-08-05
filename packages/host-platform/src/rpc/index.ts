@@ -2,7 +2,6 @@ export {
   MethodRegistry,
   type RpcHandler,
   type RpcContext,
-  type MethodRegistryOptions,
 } from './method-registry';
 export {
   RpcServer,

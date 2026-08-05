@@ -1,41 +1,26 @@
 /**
  * Constants shared by the host-side Mini App SDK bootstrap.
  *
- * The two global keys mirror the SDK's own constants (`SDK_GLOBAL_KEY` /
- * `HOST_DESCRIPTOR_GLOBAL_KEY`). They live here as the host's single source
- * of truth so no other host code hardcodes the strings. If the SDK renames a
- * key, update this module (and bump the pinned version).
+ * The global keys and capability list are already exported by
+ * `@sewa/host-platform` (which mirrors `@lizuz/mini-app-types`), so they are
+ * imported rather than re-declared — one source of truth.
  */
 
-/** Mirrors `@lizuz/sewa-sdk`'s `SDK_GLOBAL_KEY`. */
-export const SDK_GLOBAL_KEY = "__GSA_SDK__";
-/** Mirrors `@lizuz/sewa-sdk`'s `HOST_DESCRIPTOR_GLOBAL_KEY`. */
-export const HOST_DESCRIPTOR_GLOBAL_KEY = "__GSA_HOST_DESCRIPTOR__";
+import {
+  SDK_GLOBAL_KEY,
+  HOST_DESCRIPTOR_GLOBAL_KEY,
+  SDK_CAPABILITIES,
+} from "@sewa/host-platform";
 
-/**
- * Bundle sources tried in order; the first one that yields a live instance
- * wins. Self-hosted first: the published `@lizuz/sewa-sdk@1.0.2` on jsdelivr
- * is a stale pre-refactor build, so the pinned local bundle is preferred.
- */
-export const DEFAULT_SDK_SOURCES = [
-  "/sdk/sewa-sdk.min.js",
-  "https://cdn.jsdelivr.net/npm/@lizuz/sewa-sdk@1.0.2/dist/sewa-sdk.min.js",
-];
+export { SDK_GLOBAL_KEY, HOST_DESCRIPTOR_GLOBAL_KEY, SDK_CAPABILITIES };
 
-/** Capability strings the host advertises to mini apps via the host descriptor. */
+/** Bundle source used to load the SDK. Self-hosted first: the published
+ * `@lizuz/sewa-sdk@1.0.2` on jsdelivr is a stale pre-refactor build, so the
+ * pinned local bundle is preferred. */
+export const DEFAULT_SDK_SOURCE = "/sdk/sewa-sdk.min.js";
+
+/** Capabilities the host advertises: the SDK's built-in set plus `event`. */
 export const DEFAULT_HOST_CAPABILITIES = [
-  "auth",
-  "permissions",
-  "flags",
-  "config",
-  "navigation",
-  "platform",
-  "device",
-  "storage",
-  "api",
-  "http",
-  "appearance",
+  ...SDK_CAPABILITIES,
   "event",
-  "ai",
-  "sdk",
 ] as const;
