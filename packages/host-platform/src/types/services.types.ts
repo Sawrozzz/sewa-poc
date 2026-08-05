@@ -25,15 +25,13 @@ import type {
   HttpResult,
   LocaleState,
   ThemeState,
-} from './sdk.types';
-import type {
   ShellApiService,
   ShellStorageService,
   ShellAuthService,
   ShellPermissionsService,
   ShellFlagsService,
   ShellConfigService,
-  ShellNavigationService,
+  ShellNavigationService
 } from './sdk.types';
 
 /**

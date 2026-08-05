@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+
 import { isValidLocale } from "./config";
 
 export async function setLocale(locale: string) {

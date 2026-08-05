@@ -1,16 +1,16 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const response = await fetch("http://10.10.30.122:3000/v1/miniapps", {
-      cache: "no-store",
+    const response = await fetch('http://10.10.30.122:3000/v1/miniapps', {
+      cache: 'no-store',
     });
 
     if (!response.ok) {
       return NextResponse.json(
         {
           success: false,
-          message: "Failed to fetch mini apps.",
+          message: 'Failed to fetch mini apps.',
         },
         {
           status: response.status,
@@ -24,7 +24,7 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        message: "Server error while fetching mini apps.",
+        message: 'Server error while fetching mini apps.',
       },
       {
         status: 500,

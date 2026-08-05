@@ -1,8 +1,9 @@
 "use client";
 
-import { ModuleGrid } from "./ModuleGrid";
-import { Header } from "./Header";
 import { useTranslations } from "next-intl";
+
+import { Header } from "./Header";
+import { ModuleGrid } from "./ModuleGrid";
 
 export function AppShell() {
   const t = useTranslations("HomePage");

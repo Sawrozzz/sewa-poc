@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useTranslations } from "next-intl";
 import { ArrowLeft } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useRef, useState } from "react";
+
 import { MOCK_OTP, SRI_LANKA_DIAL_CODE } from "@/lib/mock-user";
 
 const OTP_LENGTH = 6;

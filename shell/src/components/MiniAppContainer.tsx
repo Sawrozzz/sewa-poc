@@ -1,13 +1,21 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
     useCallback,
     useEffect,
     useRef,
     useState,
 } from "react";
-import { useRouter } from "next/navigation";
+
+import { Header } from "./Header";
+import { MiniAppErrorBoundary } from "./MiniAppErrorBoundary";
+import { MiniAppLoader } from "./MiniAppLoader";
+
+import type { EventBus, RemoteLoadResult  } from "@sewa/host-platform";
+
 import { authClient, mapSessionUser } from "@/lib/auth-client";
+import { useMiniApp } from "@/lib/use-mini-apps";
 import {
     useRuntimeLoader,
     useEventBus,
@@ -17,12 +25,7 @@ import {
     loadMiniAppSdk,
     destroyMiniAppSdk,
 } from "@/platform/sdk-bootstrap";
-import { useMiniApp } from "@/lib/use-mini-apps";
-import { MiniAppErrorBoundary } from "./MiniAppErrorBoundary";
-import { MiniAppLoader } from "./MiniAppLoader";
-import { Header } from "./Header";
-import type { EventBus } from "@sewa/host-platform";
-import type { RemoteLoadResult } from "@sewa/host-platform";
+
 
 interface SDKBridge {
     invoke<T = unknown>(action: string, payload?: unknown): Promise<T>;

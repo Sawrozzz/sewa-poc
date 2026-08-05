@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { useState } from "react";
+
+import { SriLankaFlag } from "./SriLankaFlag";
+
 import { LocaleSwitcher } from "@/components/LanguageSwitcher";
 import { SRI_LANKA_DIAL_CODE } from "@/lib/mock-user";
-import { SriLankaFlag } from "./SriLankaFlag";
+
 
 /** Groups a bare national number as "71 234 5678" while typing. */
 function formatPhone(digits: string) {

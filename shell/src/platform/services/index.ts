@@ -1,13 +1,14 @@
+import { createDeviceService } from "./device";
+import { createHttpService } from "./http";
+
+import type { AppearanceController } from "../appearance-controller";
+import type {PlatformServicesConfig} from "@/types/services";
 import type {
   NavigationTarget,
   NavigationState,
   ChatMessage,
   ShellAppearanceService,
 } from "@sewa/host-platform";
-import type { AppearanceController } from "../appearance-controller";
-import { createDeviceService } from "./device";
-import { createHttpService } from "./http";
-import type {PlatformServicesConfig} from "@/types/services";
 
 export type { PlatformServicesConfig } from "@/types/services";
 

@@ -6,8 +6,8 @@
  * Provides both in-memory and persistent storage layers.
  */
 
-import type { PluginLoadOptions } from "@sewa/host-platform";
 import type { ViteManifest, CachedFile, CacheOrder } from "./types";
+import type { PluginLoadOptions } from "@sewa/host-platform";
 
 /** IndexedDB database name */
 const DB_NAME = "sewa-plugin-cache";
@@ -404,13 +404,11 @@ export class PluginCacheDB {
         const tx = db.transaction(STORE_NAME, "readwrite");
         const store = tx.objectStore(STORE_NAME);
         const cursorReq = store.openCursor();
-        let count = 0;
         cursorReq.onsuccess = () => {
           const cursor = cursorReq.result;
           if (cursor) {
             if ((cursor.key as string).startsWith(`${moduleId}/`)) {
               cursor.delete();
-              count++;
             }
             cursor.continue();
           }

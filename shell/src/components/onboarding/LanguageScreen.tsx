@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { useState, useTransition } from "react";
+
+import { setLocale } from "@/i18n/actions";
 import {
   localeEnglishLabels,
   localeLabels,
@@ -11,7 +13,6 @@ import {
   locales,
   type Locale,
 } from "@/i18n/config";
-import { setLocale } from "@/i18n/actions";
 
 export function LanguageScreen({ onContinueAction }: { onContinueAction: () => void }) {
   const t = useTranslations("LanguageSelect");

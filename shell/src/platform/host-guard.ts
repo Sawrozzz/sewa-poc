@@ -67,7 +67,7 @@ export function installHostApiGuard(): void {
   // ── Notifications ──────────────────────────────────────────────
   if (window.Notification) {
     lock(Notification, "requestPermission", () => Promise.resolve("denied"));
-    try { Object.defineProperty(Notification, "permission", { get: () => "denied", configurable: false }); } catch {}
+    try { Object.defineProperty(Notification, "permission", { get: () => "denied", configurable: false }); } catch { /* already defined */ }
   }
 
   // ── WebAuthn credentials ───────────────────────────────────────

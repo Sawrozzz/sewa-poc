@@ -1,7 +1,8 @@
 "use client";
-import { EventBus } from "@sewa/host-platform";
-import type { LocaleState, ThemeState, ThemePreference } from "@sewa/host-platform";
 import { privileged } from "./host-privileges";
+
+import type { EventBus, LocaleState, ThemeState, ThemePreference  } from "@sewa/host-platform";
+
 
 /**
  * Maps the shell's internal locale codes (en / sri / tam — next-intl

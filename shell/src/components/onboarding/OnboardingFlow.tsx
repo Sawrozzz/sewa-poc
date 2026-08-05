@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { WelcomeScreen } from "./WelcomeScreen";
+
 import { LanguageScreen } from "./LanguageScreen";
-import { PhoneLoginScreen } from "./PhoneLoginScreen";
 import { OtpScreen } from "./OtpScreen";
+import { PhoneLoginScreen } from "./PhoneLoginScreen";
+import { WelcomeScreen } from "./WelcomeScreen";
+
 import { privileged } from "@/platform/host-privileges";
 
 type Step = "welcome" | "language" | "login" | "otp";

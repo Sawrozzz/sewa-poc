@@ -1,4 +1,5 @@
 import axios from "axios";
+
 import type { ModuleManifest } from "@sewa/host-platform";
 
 interface MiniAppRecord {

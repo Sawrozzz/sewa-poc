@@ -3,10 +3,13 @@
  * Used when mini apps run in the same JS context as the shell (no iframes).
  */
 
-import type { HostPlatformMessage } from '../protocol';
 import { MESSAGE_CHANNEL } from '../constants';
-import type { Transport, MessageHandler } from './transport';
+
 import { SDK_CHANNEL_EVENT } from './transport';
+
+import type { HostPlatformMessage } from '../protocol';
+import type { Transport, MessageHandler } from './transport';
+
 
 export class WindowEventTransport implements Transport {
   private handler: ((event: Event) => void) | null = null;

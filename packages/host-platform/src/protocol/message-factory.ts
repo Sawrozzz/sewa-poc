@@ -8,6 +8,7 @@
 
 import { MESSAGE_CHANNEL, PROTOCOL_VERSION } from '../constants';
 import { generateId } from '../utils';
+
 import type {
   HostMessageType,
   HostPlatformMessage,

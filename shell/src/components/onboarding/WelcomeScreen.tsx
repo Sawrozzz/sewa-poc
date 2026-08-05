@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+
 import { WelcomeIllustration } from "./WelcomeIllustration";
 
 export function WelcomeScreen({ onContinue }: { onContinue: () => void }) {

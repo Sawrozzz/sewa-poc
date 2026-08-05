@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+
 import type { ModuleManifest } from "@sewa/host-platform";
 
 interface MiniAppCardProps {

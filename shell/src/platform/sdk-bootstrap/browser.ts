@@ -2,6 +2,7 @@ import {
   bootstrapMiniAppSdk,
   destroySdkInstance,
 } from "./core.ts";
+
 import type {
   MiniAppSdkHostOptions,
   MiniAppSdkLoadResult,

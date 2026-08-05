@@ -1,4 +1,5 @@
 import { createAuthClient } from "better-auth/react";
+
 import { MOCK_CITIZEN } from "./mock-user";
 
 export const authClient = createAuthClient({

@@ -5,7 +5,6 @@
  * in the same JS context as the shell. No Module Federation, no iframes.
  */
 
-import type { DeviceExtraOptions } from '@lizuz/mini-app-types';
 import type { PlatformEvent } from '../events';
 import type {
   PlatformUser,
@@ -26,6 +25,7 @@ import type {
   HttpResult,
   DeviceContactResult,
 } from './sdk.types';
+import type { DeviceExtraOptions } from '@lizuz/mini-app-types';
 
 /** The only loading strategy; shell downloads and evaluates the bundle on demand */
 export type LoadStrategy = 'plugin';

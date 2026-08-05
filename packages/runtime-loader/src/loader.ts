@@ -12,12 +12,9 @@
  * and optional Shadow DOM isolation.
  */
 
-import type {
-  RemoteLoadResult,
-  PluginLoadOptions,
-} from "@sewa/host-platform";
 import { PluginCacheDB } from "./cache";
 import { delay, mountWithIsolation } from "./utils";
+
 import type {
   MiniAppBundle,
   LoadedModule,
@@ -28,6 +25,10 @@ import type {
   MiniAppRuntime,
   ManifestEntry,
 } from "./types";
+import type {
+  RemoteLoadResult,
+  PluginLoadOptions,
+} from "@sewa/host-platform";
 
 export class RuntimeLoader {
   /** Map of loaded modules by ID */

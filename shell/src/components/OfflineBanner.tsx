@@ -1,7 +1,8 @@
 'use client';
 
-import { useOffline } from '@/lib/OfflineContext';
 import { useState, useEffect } from 'react';
+
+import { useOffline } from '@/lib/OfflineContext';
 
 export function OfflineBanner() {
   const { isOffline } = useOffline();

@@ -1,3 +1,10 @@
+import { privileged } from "../host-privileges";
+
+import { isInstalledPwa, verifyFingerprint } from "./biometric";
+import { ensureConsent, showNotice } from "./consent";
+import { contactPicker } from "./contact-picker";
+import { filePicker, getFallbackMimeType } from "./file-picker";
+
 import type {
   PlatformUser,
   DeviceLocationResult,
@@ -12,11 +19,6 @@ import type {
   FileModule,
   FileOptions,
 } from "@sewa/host-platform";
-import { privileged } from "../host-privileges";
-import { ensureConsent, showNotice } from "./consent";
-import { filePicker, getFallbackMimeType } from "./file-picker";
-import { contactPicker } from "./contact-picker";
-import { isInstalledPwa, verifyFingerprint } from "./biometric";
 
 export function createDeviceService(getUser: () => PlatformUser | null) {
   const device = {

@@ -1,21 +1,19 @@
-import type { MiniAppSdkInterface } from "@lizuz/mini-app-types";
 import {
   SDK_GLOBAL_KEY,
   HOST_DESCRIPTOR_GLOBAL_KEY,
   DEFAULT_SDK_SOURCES,
   DEFAULT_HOST_CAPABILITIES,
 } from "./constants.ts";
+
 import type {
   MiniAppSdkHostOptions,
   MiniAppSdkLoadResult,
   SdkBootstrapEnv,
 } from "./types.ts";
+import type { MiniAppSdkInterface } from "@lizuz/mini-app-types";
 
 /**
- * Environment-injected, DOM-free core of the host-side Mini App SDK bootstrap
- * (`@lizuz/sewa-sdk` v1.x).
- *
- * Contract (documented in the SDK's README and `src/cdn.ts`):
+ * Contract:
  *  - The host seeds `window.__GSA_SDK__` with a `MiniAppSdkOptions` object
  *    BEFORE the SDK `<script>` runs. The bundle reads it, constructs a single
  *    `MiniAppSdk`, and stores the live instance back on the same key.
@@ -24,7 +22,6 @@ import type {
  *  - One instance per tab; `destroy()` removes it from the global again.
  */
 
-/** The live SDK instance on `__GSA_SDK__`, or null when absent/not an instance. */
 export function readSdkInstance(
   w: Window & typeof globalThis,
 ): MiniAppSdkInterface | null {
@@ -35,7 +32,6 @@ export function readSdkInstance(
     : null;
 }
 
-/** Writes the `MiniAppSdkOptions` + host descriptor globals before a bundle loads. */
 export function seedSdkConfig(
   w: Window & typeof globalThis,
   miniAppId: string,
@@ -48,9 +44,6 @@ export function seedSdkConfig(
     retryAttempts: options.retryAttempts ?? 5,
     retryDelayMs: options.retryDelayMs ?? 500,
     maxRetryDelayMs: options.maxRetryDelayMs ?? 10_000,
-    // Pinned to the shell's own origin: mini apps run in this same window, so
-    // the SDK's `window.parent.postMessage` round-trips to itself — exact-
-    // origin delivery works, and inbound messages from other origins drop.
     targetOrigin: w.location?.origin ?? "*",
   };
   global[HOST_DESCRIPTOR_GLOBAL_KEY] = {
@@ -119,7 +112,7 @@ export async function bootstrapMiniAppSdk(
   throw new Error(`Mini App SDK did not initialize after loading.${detail}`);
 }
 
-/** Tears down the instance on a given window — separate for testability. */
+/** Tears down the instance on a given window. */
 export function destroySdkInstance(
   w: Window & typeof globalThis,
 ): void {

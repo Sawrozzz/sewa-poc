@@ -4,6 +4,7 @@
  */
 
 import { MESSAGE_CHANNEL } from '../constants';
+
 import type {
   HostPlatformMessage,
   PlatformMessage,

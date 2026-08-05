@@ -1,5 +1,9 @@
 "use client";
 
+import { createEventBus, type EventBus,
+  createHostPlatform,
+  type HostPlatformHandle, type ShellServiceMap, PostMessageTransport  } from "@sewa/host-platform";
+import { createRuntimeLoader, type RuntimeLoader } from "@sewa/runtime-loader";
 import React, {
   createContext,
   useContext,
@@ -9,20 +13,13 @@ import React, {
   type ReactNode,
 } from "react";
 import ReactDOM from "react-dom/client";
-import { createEventBus, type EventBus } from "@sewa/host-platform";
 
-import {
-  createHostPlatform,
-  type HostPlatformHandle,
-} from "@sewa/host-platform";
-import { createRuntimeLoader, type RuntimeLoader } from "@sewa/runtime-loader";
-import { type ShellServiceMap, PostMessageTransport } from "@sewa/host-platform";
-import { createShellServices, type PlatformServicesConfig } from "./services";
 import {
   createAppearanceController,
   type AppearanceController,
 } from "./appearance-controller";
 import { installHostApiGuard } from "./host-guard";
+import { createShellServices, type PlatformServicesConfig } from "./services";
 
 export interface PlatformContextValue {
   eventBus: EventBus;
@@ -149,7 +146,7 @@ export function PlatformProvider({
       }
     };
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   if (!platformRef.current || !isReady) {

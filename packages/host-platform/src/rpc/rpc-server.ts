@@ -10,8 +10,8 @@
  * and routed here.
  */
 
-import type { HostPlatformMessage } from '../protocol';
-import { splitEventType, createMessage } from '../protocol';
+import axios from 'axios';
+
 import {
   PROTOCOL_VERSION,
   MESSAGE_CHANNEL,
@@ -19,16 +19,21 @@ import {
   ACTIONS,
   NAMESPACES,
 } from '../constants';
-import type { PlatformEvent } from '../events';
+import { RpcMethodError } from '../errors';
 import { PLATFORM_EVENTS } from '../events';
-import type { Transport } from '../transport';
+import { splitEventType, createMessage } from '../protocol';
 import { WindowEventTransport } from '../transport';
-import type { EventBus } from '../events';
+
+import { MethodRegistry, type RpcContext } from './method-registry';
+
+import type { PlatformEvent, EventBus  } from '../events';
+import type { HostPlatformMessage } from '../protocol';
+import type { Transport } from '../transport';
 import type { ShellServiceMap } from '../types';
 import type { NavigationTarget } from '../types/sdk.types';
-import { MethodRegistry, type RpcContext } from './method-registry';
-import { RpcMethodError } from '../errors';
-import axios from 'axios';
+
+
+
 
 export interface RpcServerOptions {
   services: ShellServiceMap;

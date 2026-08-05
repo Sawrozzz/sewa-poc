@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+
 import {
   addModule,
   getAllModules,
@@ -8,8 +9,8 @@ import {
   updateModuleById,
 } from '@/lib/modules-store';
 import {
-  type MiniAppModule,
   type ApiResponse,
+  type MiniAppModule,
   type ModuleRegistrationRequest,
 } from '@/types/modules';
 

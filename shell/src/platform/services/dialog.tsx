@@ -1,7 +1,7 @@
 "use client";
 
-import { createRoot } from "react-dom/client";
 import { useEffect, type ReactNode } from "react";
+import { createRoot } from "react-dom/client";
 
 export type DialogVariant = "primary" | "secondary";
 

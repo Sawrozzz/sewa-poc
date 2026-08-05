@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+
 import { createSerwistRoute } from "@serwist/turbopack";
 
 const revision =

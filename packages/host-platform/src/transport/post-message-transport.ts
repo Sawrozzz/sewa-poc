@@ -4,8 +4,9 @@
  * the host, since it matches the SDK's own `DefaultTransport`.
  */
 
-import type { HostPlatformMessage } from '../protocol';
 import { MESSAGE_CHANNEL } from '../constants';
+
+import type { HostPlatformMessage } from '../protocol';
 import type { Transport, MessageHandler } from './transport';
 
 export class PostMessageTransport implements Transport {

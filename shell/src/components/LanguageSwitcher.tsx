@@ -1,11 +1,12 @@
 "use client";
 
 import { Globe } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { localeLabels, locales, type Locale } from "@/i18n/config";
+
 import { setLocale } from "@/i18n/actions";
+import { localeLabels, locales, type Locale } from "@/i18n/config";
 import { usePlatform } from "@/platform/PlatformProvider";
 
 export function LocaleSwitcher() {

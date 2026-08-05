@@ -8,10 +8,10 @@
  */
 
 import { generateId } from '../utils';
-import type { PlatformEvent } from './platform-event';
-import type { EventSchema } from './platform-event';
-import type { EventRegistryEntry } from './platform-event';
+
 import { createPlatformEvent } from './platform-event';
+
+import type { PlatformEvent, EventSchema , EventRegistryEntry  } from './platform-event';
 
 export type EventHandler<T = unknown> = (event: PlatformEvent<T>) => void | Promise<void>;
 export type EventMiddleware = (

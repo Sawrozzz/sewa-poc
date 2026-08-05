@@ -1,9 +1,10 @@
 import { betterAuth, APIError } from "better-auth";
 import { memoryAdapter } from "better-auth/adapters/memory";
-import { nextCookies } from "better-auth/next-js";
 import { createAuthEndpoint } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
+import { nextCookies } from "better-auth/next-js";
 import { z } from "zod";
+
 import { MOCK_CITIZEN, MOCK_OTP, normalisePhoneNumber, toE164 } from "./mock-user";
 
 const db: Record<string, any[]> = {

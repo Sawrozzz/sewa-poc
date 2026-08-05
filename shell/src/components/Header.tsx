@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { authClient, mapSessionUser } from "@/lib/auth-client";
-import { LocaleSwitcher } from "./LanguageSwitcher";
 import { RefreshCcwIcon, SunIcon, MoonIcon } from "lucide-react";
-import { privileged } from "@/platform/host-privileges";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+
+import { LocaleSwitcher } from "./LanguageSwitcher";
+
+import { authClient, mapSessionUser } from "@/lib/auth-client";
 import { usePlatform } from "@/platform";
+import { privileged } from "@/platform/host-privileges";
 
 export function Header() {
   const router = useRouter();

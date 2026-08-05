@@ -1,5 +1,6 @@
-import type { PlatformUser } from "@sewa/host-platform";
 import { privileged } from "../host-privileges";
+
+import type { PlatformUser } from "@sewa/host-platform";
 
 /** True once the Shell is running from the home screen rather than a browser tab. */
 export function isInstalledPwa(): boolean {
