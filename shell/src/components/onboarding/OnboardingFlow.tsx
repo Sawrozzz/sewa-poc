@@ -50,7 +50,7 @@ export function OnboardingFlow({
   }
 
   if (step === "welcome") {
-    return <WelcomeScreen onContinue={() => setStep("language")} />;
+    return <WelcomeScreen onContinueAction={() => setStep('language')} />;
   }
 
   if (step === "language") {

@@ -126,7 +126,7 @@ export function createHttpService() {
   };
 
   const api: ShellApiService = {
-    request: async <T = unknown, B = unknown>(
+    request: async <T = unknown>(
       params: LocalApiRequestParams,
     ) => {
       try {

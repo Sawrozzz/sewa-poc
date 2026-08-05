@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export function InstallPrompt() {
   const [isIOS, setIsIOS] = useState(false);
@@ -11,9 +11,11 @@ export function InstallPrompt() {
 
   useEffect(() => {
     const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-    const isMobileDevice = /android|iphone|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+    const isMobileDevice = /android|iphone|ipod|blackberry|iemobile|opera mini/i.test(
+      userAgent.toLowerCase(),
+    );
     const isIOSDevice = /iphone|ipad|ipod/i.test(userAgent.toLowerCase());
-    
+
     setIsMobile(isMobileDevice);
     setIsIOS(isIOSDevice);
     setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
@@ -40,8 +42,8 @@ export function InstallPrompt() {
 
   const handleInstallClick = async () => {
     if (!installPrompt) return;
-    
-    const result = await installPrompt.prompt();
+
+    await installPrompt.prompt();
     setInstallPrompt(null);
     setShowCustomPrompt(false);
   };
@@ -54,13 +56,9 @@ export function InstallPrompt() {
         <div>
           <h3 className="font-semibold text-gov-900">Install App</h3>
           {isIOS ? (
-            <p className="text-sm text-gov-800">
-              Tap Share → "Add to Home Screen" to install
-            </p>
+            <p className="text-sm text-gov-800">Tap Share → &#34;Add to Home Screen&#34; to install</p>
           ) : (
-            <p className="text-sm text-gov-800">
-              Tap to install this app to your home screen
-            </p>
+            <p className="text-sm text-gov-800">Tap to install this app to your home screen</p>
           )}
         </div>
         <button

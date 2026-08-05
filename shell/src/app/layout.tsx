@@ -5,7 +5,7 @@ import { getLocale, getMessages } from "next-intl/server";
 
 import type { Metadata, Viewport } from "next";
 
-import GloabalProvider from "@/components/GlobalProvider";
+import GlobalProvider from "@/components/GlobalProvider";
 import { InstallPrompt } from "@/components/InstallPrompt"
 import { OfflineBanner } from "@/components/OfflineBanner"
 import { OfflineProvider } from "@/lib/OfflineContext"
@@ -54,11 +54,11 @@ export default async function RootLayout({
         <SerwistProvider swUrl="/serwist/sw.js">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <OfflineProvider>
-          <GloabalProvider>
+          <GlobalProvider>
             {children}
             <InstallPrompt />
             <OfflineBanner />
-          </GloabalProvider>
+          </GlobalProvider>
           </OfflineProvider>
         </NextIntlClientProvider>
         </SerwistProvider>

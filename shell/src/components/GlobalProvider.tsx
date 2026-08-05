@@ -1,9 +1,8 @@
-"use client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import React from "react";
-import ReactDOM from "react-dom/client";
+'use client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
 
-import PlatformShell from "./PlatformShell";
+import PlatformShell from './PlatformShell';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,16 +14,7 @@ const queryClient = new QueryClient({
   },
 });
 
-if (typeof window !== "undefined") {
-  (window as any).React = React;
-  (window as any).ReactDOM = ReactDOM;
-}
-
-export default function GloabalProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function GlobalProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <PlatformShell>{children}</PlatformShell>

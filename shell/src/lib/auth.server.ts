@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import { MOCK_CITIZEN, MOCK_OTP, normalisePhoneNumber, toE164 } from "./mock-user";
 
-const db: Record<string, any[]> = {
+const db: Record<string, []> = {
   user: [],
   session: [],
   account: [],

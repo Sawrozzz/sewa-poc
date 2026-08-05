@@ -12,7 +12,6 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import ReactDOM from "react-dom/client";
 
 import {
   createAppearanceController,
@@ -50,7 +49,9 @@ export function PlatformProvider({
   const authConfigRef = useRef(authConfig);
   const [isReady, setIsReady] = useState(false);
 
-  authConfigRef.current = authConfig;
+  useEffect(() => {
+    authConfigRef.current = authConfig;
+  }, [authConfig]);
 
   useEffect(() => {
     if (platformRef.current) return;
@@ -82,7 +83,7 @@ export function PlatformProvider({
       const loader = createRuntimeLoader({
         onLoadComplete: (result) => {
           console.log("Successfully load", result.success);
-          
+
         },
         onLoadError: (moduleId, error) => {
           eventBus.emit("module.lifecycle.failed", "shell", {
@@ -146,7 +147,7 @@ export function PlatformProvider({
       }
     };
 
-     
+
   }, []);
 
   if (!platformRef.current || !isReady) {
@@ -174,4 +175,3 @@ export function useEventBus(): EventBus {
   return usePlatform().eventBus;
 }
 
- 
