@@ -497,6 +497,49 @@ export class RpcServer {
       });
       return null;
     });
+
+    // Chat — streams model responses back to the mini app as `stream`
+    // messages. Requires `services.chat` on the ShellServiceMap.
+    r.register('ai', 'chat', async (payload, ctx) => {
+      const chatPayload = payload as {
+        messages?: { role: string; content: string }[];
+        options?: Record<string, unknown>;
+      };
+      if (!chatPayload?.messages || chatPayload.messages.length === 0) {
+        throw new RpcMethodError('INVALID_PARAMS', 'Missing messages');
+      }
+
+      const chatMessages = chatPayload.messages.map((m) => ({
+        ...m,
+        role: m.role as 'user' | 'system' | 'ai',
+      }));
+      this.streamChatChunks(
+        ctx,
+        this.services.chat.chat(chatMessages, chatPayload.options ?? {}),
+      ).catch((err) => {
+        ctx.send(
+          createMessage(
+            'response',
+            'ai',
+            'chat',
+            'shell',
+            ctx.moduleId,
+            undefined,
+            {
+              id: ctx.requestId,
+              traceId: ctx.traceId,
+              error: {
+                code: 'CHAT_ERROR',
+                message: err instanceof Error ? err.message : String(err),
+              },
+            },
+          ),
+          ctx.source,
+        );
+      });
+
+      return { streaming: true };
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -608,6 +651,61 @@ export class RpcServer {
         window,
       );
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Chat streaming
+  // ---------------------------------------------------------------------------
+
+  private async streamChatChunks(
+    ctx: RpcContext,
+    iter: AsyncIterable<string>,
+  ): Promise<void> {
+    let index = 1;
+
+    for await (const chunk of iter) {
+      const text =
+        typeof chunk === 'string'
+          ? chunk
+          : new TextDecoder().decode(chunk);
+
+      ctx.send(
+        createMessage(
+          'stream',
+          'ai',
+          'chat',
+          'shell',
+          ctx.moduleId,
+          text,
+          {
+            id: ctx.requestId,
+            traceId: ctx.traceId,
+            streamIndex: index,
+            streamLast: false,
+          },
+        ),
+        ctx.source,
+      );
+      index++;
+    }
+
+    ctx.send(
+      createMessage(
+        'stream',
+        'ai',
+        'chat',
+        'shell',
+        ctx.moduleId,
+        '',
+        {
+          id: ctx.requestId,
+          traceId: ctx.traceId,
+          streamIndex: index,
+          streamLast: true,
+        },
+      ),
+      ctx.source,
+    );
   }
 
   private matchesSubscription(eventType: string, pattern: string): boolean {

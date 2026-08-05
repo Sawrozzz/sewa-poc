@@ -151,6 +151,17 @@ export interface DeviceInfoResult {
 
 export type PlatformTypeLiteral = 'WEB' | 'FLUTTER';
 
+export interface ApiRequestParams<TBody = unknown> {
+  method: HttpMethod;
+  path: string;
+  body?: TBody;
+  headers?: Record<string, string>;
+}
+
+export interface ShellApiService {
+  request<T = unknown, B = unknown>(params: ApiRequestParams<B>): Promise<ApiResult<T>>;
+}
+
 export interface ShellStorageService {
   get(key: string): Promise<string | null>;
   set(key: string, value: string): Promise<void>;
@@ -184,4 +195,20 @@ export interface ShellNavigationService {
   navigate(target: NavigationTarget): Promise<void>;
   getCurrent(): NavigationState;
   onNavigate(handler: (state: NavigationState) => void): () => void;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'system' | 'ai';
+  content: string;
+}
+
+export interface ModelCompletionOptions {
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  [key: string]: unknown;
+}
+
+export interface ChatSdkModule {
+  chat(messages: ChatMessage[], options?: ModelCompletionOptions): AsyncIterable<string>;
 }

@@ -1,6 +1,9 @@
 import { MESSAGE_CHANNEL } from '../constants';
 
-import type { PlatformMessage } from './message.types';
+import type {
+  HostPlatformMessage,
+  PlatformMessage,
+} from './message.types';
 
 /** Lightweight structural check for inbound platform traffic. */
 export function isPlatformMessage(data: unknown): data is PlatformMessage {
@@ -16,6 +19,19 @@ export function isPlatformMessage(data: unknown): data is PlatformMessage {
       msg.type === 'response' ||
       msg.type === 'event' ||
       msg.type === 'handshake')
+  );
+}
+
+export function isStreamMessage(
+  data: unknown,
+): data is HostPlatformMessage & { type: 'stream' } {
+  if (!data || typeof data !== 'object') return false;
+  const msg = data as HostPlatformMessage;
+  return (
+    msg.channel === MESSAGE_CHANNEL &&
+    msg.type === 'stream' &&
+    typeof msg.namespace === 'string' &&
+    typeof msg.action === 'string'
   );
 }
 
