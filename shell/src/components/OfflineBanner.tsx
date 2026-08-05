@@ -1,23 +1,32 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useOffline } from '@/lib/OfflineContext';
 
 export function OfflineBanner() {
   const { isOffline } = useOffline();
-  const [showBanner, setShowBanner] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [holding, setHolding] = useState(false);
+  const prevOffline = useRef(false);
 
   useEffect(() => {
-    if (isOffline) {
-      setShowBanner(true);
-      setTimeout(() => setIsVisible(true), 100);
-    } else {
-      setIsVisible(false);
-      setTimeout(() => setShowBanner(false), 300);
-    }
+    const wasOffline = prevOffline.current;
+    prevOffline.current = isOffline;
+
+    const enteredOffline = isOffline && !wasOffline;
+    const exitedOffline = !isOffline && wasOffline;
+
+    const fadeTimer = setTimeout(() => setIsVisible(enteredOffline), enteredOffline ? 100 : 0);
+    const releaseTimer = setTimeout(() => setHolding(false), exitedOffline ? 300 : 0);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(releaseTimer);
+    };
   }, [isOffline]);
+
+  const showBanner = isOffline || holding;
 
   if (!showBanner) return null;
 
@@ -33,10 +42,9 @@ export function OfflineBanner() {
               {isOffline ? 'You are offline' : 'Connection unstable'}
             </p>
             <p className="text-xs text-gray-600">
-              {isOffline 
+              {isOffline
                 ? 'Some features may not be available. Changes will sync when you reconnect.'
-                : 'Trying to reconnect...'
-              }
+                : 'Trying to reconnect...'}
             </p>
           </div>
         </div>

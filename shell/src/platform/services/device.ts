@@ -12,13 +12,29 @@ import type {
   DeviceDownloadResult,
   DeviceFilesResult,
   DeviceGalleryResult,
+  DeviceInfoResult,
   DeviceLocationResult,
+  DeviceNetworkResult,
+  DeviceNotificationResult,
   DevicePermissionResponse,
   DownloadOptions,
   FileModule,
   FileOptions,
   PlatformUser,
 } from '@sewa/host-platform';
+
+interface FileSystemWritableFileStreamLike {
+  write: (data: Blob) => Promise<void>;
+  close: () => Promise<void>;
+}
+
+interface FileSystemFileHandleLike {
+  createWritable: () => Promise<FileSystemWritableFileStreamLike>;
+}
+
+interface WindowWithSaveFilePicker extends Window {
+  showSaveFilePicker?: (options?: { suggestedName?: string }) => Promise<FileSystemFileHandleLike>;
+}
 
 export function createDeviceService(getUser: () => PlatformUser | null) {
   const device = {
@@ -61,7 +77,7 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
           status: 'denied',
           data: null,
           error: err instanceof Error ? err.message : 'Location access denied',
-        } as unknown as any;
+        } as unknown as DevicePermissionResponse<DeviceLocationResult>;
       }
     },
     camera: async (options?: { facing?: 'front' | 'back'; reason?: string }) => {
@@ -112,11 +128,11 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
             byteSize: file.size,
           },
         } as DevicePermissionResponse<DeviceCameraResult>;
-      } catch (error: any) {
+      } catch (error) {
         return {
           status: 'denied',
           data: null,
-          error: error?.message || 'Camera capture cancelled',
+          error: error instanceof Error ? error.message : 'Camera capture cancelled',
         } as unknown as DevicePermissionResponse<DeviceCameraResult>;
       }
     },
@@ -140,10 +156,10 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
             images: files,
           },
         } as unknown as DevicePermissionResponse<DeviceGalleryResult>;
-      } catch (error: any) {
+      } catch (error) {
         return {
           status: 'denied',
-          error: error?.message || 'Gallery selection cancelled',
+          error: error instanceof Error ? error.message : 'Gallery selection cancelled',
         } as unknown as DevicePermissionResponse<DeviceGalleryResult>;
       }
     },
@@ -166,10 +182,10 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
             files: files,
           },
         } as unknown as DevicePermissionResponse<DeviceFilesResult>;
-      } catch (error: any) {
+      } catch (error) {
         return {
           status: 'denied',
-          error: error?.message || 'File selection cancelled',
+          error: error instanceof Error ? error.message : 'File selection cancelled',
         } as unknown as DevicePermissionResponse<DeviceFilesResult>;
       }
     },
@@ -189,14 +205,15 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
         // Pick the destination *before* fetching: the save picker needs the
         // user activation from the tap above (which expires a few seconds after
         // an await), and cancelling here should skip the transfer entirely.
-        let handle: FileSystemFileHandle | null = null;
-        if (typeof (window as any).showSaveFilePicker === 'function') {
+        let handle: FileSystemFileHandleLike | null = null;
+        const saveWindow = window as WindowWithSaveFilePicker;
+        if (typeof saveWindow.showSaveFilePicker === 'function') {
           try {
-            handle = await (window as any).showSaveFilePicker({
+            handle = await saveWindow.showSaveFilePicker({
               suggestedName: options.fileName,
             });
-          } catch (err: any) {
-            if (err?.name === 'AbortError') {
+          } catch (err) {
+            if (err instanceof Error && err.name === 'AbortError') {
               return {
                 status: 'denied',
                 error: 'Download cancelled',
@@ -213,7 +230,7 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
         const blobUrl = URL.createObjectURL(blob);
 
         if (handle) {
-          const writable = await (handle as any).createWritable();
+          const writable = await handle.createWritable();
           await writable.write(blob);
           await writable.close();
         } else {
@@ -244,15 +261,16 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
             saved: handle !== null,
           },
         } as unknown as DevicePermissionResponse<DeviceDownloadResult>;
-      } catch (error: any) {
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Download failed';
         const isCancelled =
-          error?.name === 'AbortError' ||
-          error?.message?.toLowerCase().includes('abort') ||
-          error?.message?.toLowerCase().includes('cancelled') ||
-          error?.message?.toLowerCase().includes('canceled');
+          (error instanceof Error && error.name === 'AbortError') ||
+          message.toLowerCase().includes('abort') ||
+          message.toLowerCase().includes('cancelled') ||
+          message.toLowerCase().includes('canceled');
         return {
           status: 'denied',
-          error: isCancelled ? 'Download cancelled' : error?.message || 'Download failed',
+          error: isCancelled ? 'Download cancelled' : message,
         } as unknown as DevicePermissionResponse<DeviceDownloadResult>;
       }
     },
@@ -282,11 +300,11 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
             number: picked.number,
           },
         } as unknown as DevicePermissionResponse<DeviceContactResult>;
-      } catch (error: any) {
+      } catch (error) {
         return {
           status: 'denied',
           data: null,
-          error: error?.message || 'Contact selection cancelled',
+          error: error instanceof Error ? error.message : 'Contact selection cancelled',
         } as unknown as DevicePermissionResponse<DeviceContactResult>;
       }
     },
@@ -321,16 +339,16 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
           );
         }
         return { status: 'granted', data: { success: outcome === 'verified' } };
-      } catch (error: any) {
+      } catch (error) {
         // NotAllowedError covers both "user cancelled" and "no matching
         // credential on this device" — neither is recoverable here, and the
         // contract carries no error channel, so both land on success: false.
-        console.log('[biometric] failed:', error?.name ?? error);
+        console.log('[biometric] failed:', error instanceof Error ? error.name : error);
         return { status: 'denied', data: { success: false } };
       }
     },
     notifications: async (_options?: { requestPermission?: boolean; reason?: string }) =>
-      ({ status: 'granted', data: { granted: false } }) as unknown as any,
+      ({ status: 'granted', data: { granted: false } }) as unknown as DeviceNotificationResult,
     network: async () =>
       ({
         status: 'granted',
@@ -338,7 +356,7 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
           online: navigator.onLine,
           type: navigator.onLine ? 'unknown' : 'none',
         },
-      }) as unknown as any,
+      }) as unknown as DeviceNetworkResult,
     storage: {
       get: async (key: string) => {
         try {
@@ -375,7 +393,7 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
           locale: navigator.language,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
-      } as unknown as any;
+      } as unknown as DeviceInfoResult;
     },
   };
 

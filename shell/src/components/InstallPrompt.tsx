@@ -2,27 +2,39 @@
 
 import { useEffect, useState } from 'react';
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: string; platform: string }>;
+}
+
+function getUserAgent() {
+  if (typeof navigator === 'undefined') return '';
+  return navigator.userAgent || navigator.vendor || '';
+}
+
+function isMobileDevice() {
+  return /android|iphone|ipod|blackberry|iemobile|opera mini/i.test(getUserAgent().toLowerCase());
+}
+
+function isIOSDevice() {
+  return /iphone|ipad|ipod/i.test(getUserAgent().toLowerCase());
+}
+
+function isStandaloneMode() {
+  return typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
+}
+
 export function InstallPrompt() {
-  const [isIOS, setIsIOS] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const isIOS = isIOSDevice();
+  const isStandalone = isStandaloneMode();
+  const isMobile = isMobileDevice();
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showCustomPrompt, setShowCustomPrompt] = useState(false);
 
   useEffect(() => {
-    const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-    const isMobileDevice = /android|iphone|ipod|blackberry|iemobile|opera mini/i.test(
-      userAgent.toLowerCase(),
-    );
-    const isIOSDevice = /iphone|ipad|ipod/i.test(userAgent.toLowerCase());
-
-    setIsMobile(isMobileDevice);
-    setIsIOS(isIOSDevice);
-    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
-
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
-      setInstallPrompt(event);
+      setInstallPrompt(event as BeforeInstallPromptEvent);
       setShowCustomPrompt(true);
     };
 
@@ -56,7 +68,9 @@ export function InstallPrompt() {
         <div>
           <h3 className="font-semibold text-gov-900">Install App</h3>
           {isIOS ? (
-            <p className="text-sm text-gov-800">Tap Share → &#34;Add to Home Screen&#34; to install</p>
+            <p className="text-sm text-gov-800">
+              Tap Share → &#34;Add to Home Screen&#34; to install
+            </p>
           ) : (
             <p className="text-sm text-gov-800">Tap to install this app to your home screen</p>
           )}

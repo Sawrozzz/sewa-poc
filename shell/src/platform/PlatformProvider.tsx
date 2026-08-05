@@ -1,9 +1,14 @@
-"use client";
+'use client';
 
-import { createEventBus, type EventBus,
+import {
+  createEventBus,
+  type EventBus,
   createHostPlatform,
-  type HostPlatformHandle, type ShellServiceMap, PostMessageTransport  } from "@sewa/host-platform";
-import { createRuntimeLoader, type RuntimeLoader } from "@sewa/runtime-loader";
+  type HostPlatformHandle,
+  type ShellServiceMap,
+  PostMessageTransport,
+} from '@sewa/host-platform';
+import { createRuntimeLoader, type RuntimeLoader } from '@sewa/runtime-loader';
 import React, {
   createContext,
   useContext,
@@ -11,14 +16,11 @@ import React, {
   useRef,
   useState,
   type ReactNode,
-} from "react";
+} from 'react';
 
-import {
-  createAppearanceController,
-  type AppearanceController,
-} from "./appearance-controller";
-import { installHostApiGuard } from "./host-guard";
-import { createShellServices, type PlatformServicesConfig } from "./services";
+import { createAppearanceController, type AppearanceController } from './appearance-controller';
+import { installHostApiGuard } from './host-guard';
+import { createShellServices, type PlatformServicesConfig } from './services';
 
 export interface PlatformContextValue {
   eventBus: EventBus;
@@ -37,17 +39,14 @@ export interface PlatformProviderProps {
 }
 
 /**
-* Platform Provider — bootstraps all shell platform subsystems.
-*
-* Owns: Event Bus, Shell Communicator, Runtime Loader
-*/
-export function PlatformProvider({
-  children,
-  authConfig,
-}: PlatformProviderProps) {
+ * Platform Provider — bootstraps all shell platform subsystems.
+ *
+ * Owns: Event Bus, Shell Communicator, Runtime Loader
+ */
+export function PlatformProvider({ children, authConfig }: PlatformProviderProps) {
   const platformRef = useRef<PlatformContextValue | null>(null);
   const authConfigRef = useRef(authConfig);
-  const [isReady, setIsReady] = useState(false);
+  const [platform, setPlatform] = useState<PlatformContextValue | null>(null);
 
   useEffect(() => {
     authConfigRef.current = authConfig;
@@ -65,9 +64,9 @@ export function PlatformProvider({
       installHostApiGuard();
 
       const eventBus = createEventBus({
-        enableTracing: process.env.NODE_ENV === "development",
+        enableTracing: process.env.NODE_ENV === 'development',
         onError: (err, event) => {
-          console.error("[EventBus] Handler error:", err.message, event.type);
+          console.error('[EventBus] Handler error:', err.message, event.type);
         },
       });
 
@@ -82,36 +81,35 @@ export function PlatformProvider({
 
       const loader = createRuntimeLoader({
         onLoadComplete: (result) => {
-          console.log("Successfully load", result.success);
-
+          console.log('Successfully load', result.success);
         },
         onLoadError: (moduleId, error) => {
-          eventBus.emit("module.lifecycle.failed", "shell", {
+          eventBus.emit('module.lifecycle.failed', 'shell', {
             moduleId,
-            version: "",
+            version: '',
             error,
           });
         },
       });
 
-        const communicator = createHostPlatform({
-          services,
-          eventBus,
-          transport: new PostMessageTransport(),
-          allowedOrigins: ["*"],
-          onModuleConnected: (moduleId) => {
-            eventBus.emit("module.lifecycle.loaded", moduleId, {
-              moduleId,
-              version: "",
-            });
-          },
-          onModuleDisconnected: (moduleId) => {
-            eventBus.emit("module.lifecycle.unloaded", moduleId, {
-              moduleId,
-              version: "",
-            });
-          },
-        });
+      const communicator = createHostPlatform({
+        services,
+        eventBus,
+        transport: new PostMessageTransport(),
+        allowedOrigins: ['*'],
+        onModuleConnected: (moduleId) => {
+          eventBus.emit('module.lifecycle.loaded', moduleId, {
+            moduleId,
+            version: '',
+          });
+        },
+        onModuleDisconnected: (moduleId) => {
+          eventBus.emit('module.lifecycle.unloaded', moduleId, {
+            moduleId,
+            version: '',
+          });
+        },
+      });
 
       const platform: PlatformContextValue = {
         eventBus,
@@ -127,8 +125,7 @@ export function PlatformProvider({
       await communicator.initialize();
 
       if (!cancelled) {
-        platform.isReady = true;
-        setIsReady(true);
+        setPlatform({ ...platform, isReady: true });
       }
 
       cleanupInterval = setInterval(() => eventBus.cleanup(), 300000);
@@ -146,24 +143,18 @@ export function PlatformProvider({
         platformRef.current = null;
       }
     };
-
-
   }, []);
 
-  if (!platformRef.current || !isReady) {
+  if (!platform || !platform.isReady) {
     return null;
   }
 
-  return (
-    <PlatformContext.Provider value={{ ...platformRef.current, isReady }}>
-      {children}
-    </PlatformContext.Provider>
-  );
+  return <PlatformContext.Provider value={platform}>{children}</PlatformContext.Provider>;
 }
 
 export function usePlatform(): PlatformContextValue {
   const ctx = useContext(PlatformContext);
-  if (!ctx) throw new Error("usePlatform must be used within PlatformProvider");
+  if (!ctx) throw new Error('usePlatform must be used within PlatformProvider');
   return ctx;
 }
 
@@ -174,4 +165,3 @@ export function useRuntimeLoader(): RuntimeLoader {
 export function useEventBus(): EventBus {
   return usePlatform().eventBus;
 }
-
