@@ -2,7 +2,7 @@ import { createDeviceService } from "./device";
 import { createHttpService } from "./http";
 
 import type { AppearanceController } from "../appearance-controller";
-import type {PlatformServicesConfig} from "@/types/services";
+import type {PlatformServicesConfig} from "@/types/platform";
 import type {
   NavigationTarget,
   NavigationState,
@@ -10,7 +10,7 @@ import type {
   ShellAppearanceService,
 } from "@sewa/host-platform";
 
-export type { PlatformServicesConfig } from "@/types/services";
+export type { PlatformServicesConfig } from "@/types/platform";
 
 export function createShellServices(
   getConfig: () => PlatformServicesConfig,

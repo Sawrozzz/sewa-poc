@@ -8,7 +8,7 @@ import {
   seedSdkConfig,
   SDK_GLOBAL_KEY,
   HOST_DESCRIPTOR_GLOBAL_KEY,
-} from "./index.ts";
+} from "./index";
 
 function makeFakeWindow() {
   const w: Record<string, unknown> = {

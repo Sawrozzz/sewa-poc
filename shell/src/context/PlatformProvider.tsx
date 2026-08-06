@@ -18,9 +18,11 @@ import React, {
   type ReactNode,
 } from 'react';
 
-import { createAppearanceController, type AppearanceController } from './appearance-controller';
-import { installHostApiGuard } from './host-guard';
-import { createShellServices, type PlatformServicesConfig } from './services';
+import { createShellServices, type PlatformServicesConfig } from '../platform/services';
+
+import { createAppearanceController, type AppearanceController } from '@/platform/appearance-controller';
+import { installHostApiGuard } from '@/platform/host-guard';
+
 
 export interface PlatformContextValue {
   eventBus: EventBus;

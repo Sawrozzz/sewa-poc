@@ -7,8 +7,8 @@ import { useState, useEffect, useSyncExternalStore } from 'react';
 
 import { LocaleSwitcher } from './LanguageSwitcher';
 
+import { usePlatform } from '@/context';
 import { authClient, mapSessionUser } from '@/lib/auth-client';
-import { usePlatform } from '@/platform';
 import { privileged } from '@/platform/host-privileges';
 
 function subscribeToStorage(onChange: () => void) {

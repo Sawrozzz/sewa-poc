@@ -1,4 +1,4 @@
-import type { LocalApiRequestParams, LocalApiResult } from "@/types/services";
+import type { LocalApiRequestParams, LocalApiResult } from "@/types/platform";
 import type {
   HttpResult,
   ShellApiService,

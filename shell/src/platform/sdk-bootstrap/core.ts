@@ -3,13 +3,13 @@ import {
   HOST_DESCRIPTOR_GLOBAL_KEY,
   DEFAULT_SDK_SOURCE,
   DEFAULT_HOST_CAPABILITIES,
-} from "./constants.ts";
+} from "./constants";
 
 import type {
   MiniAppSdkHostOptions,
   MiniAppSdkLoadResult,
   SdkBootstrapEnv,
-} from "./types.ts";
+} from "@/types/platform";
 import type { MiniAppSdkInterface } from "@lizuz/mini-app-types";
 
 /**

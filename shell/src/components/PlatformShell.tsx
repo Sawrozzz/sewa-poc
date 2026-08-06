@@ -4,8 +4,8 @@ import { type ReactNode, useEffect, useMemo, useRef } from 'react';
 
 import type { PlatformServicesConfig } from '@/platform/services';
 
+import { PlatformProvider } from '@/context';
 import { authClient, mapSessionUser } from '@/lib/auth-client';
-import { PlatformProvider } from '@/platform';
 
 export default function PlatformShell({ children }: { children: ReactNode }) {
   const router = useRouter();

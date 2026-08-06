@@ -1,12 +1,12 @@
 import {
   bootstrapMiniAppSdk,
   destroySdkInstance,
-} from "./core.ts";
+} from "./core";
 
 import type {
   MiniAppSdkHostOptions,
   MiniAppSdkLoadResult,
-} from "./types.ts";
+} from "@/types/platform";
 
 /**
  * Browser adapters for the Mini App SDK bootstrap. These are the only pieces
