@@ -69,7 +69,7 @@ export interface ModuleCompatibility {
   maxShellVersion?: string;
   minSdkVersion: string;
   supportedPlatforms: PlatformType[];
-  supportedFrameworks: ('react' | 'next' | 'vue' | 'angular')[];
+  supportedFrameworks: ('react' | 'next' | 'vue' | 'angular' | 'nuxt' | 'solid' | "svelte")[];
 }
 
 export type PlatformType = 'WEB' | 'ANDROID' | 'IOS';
