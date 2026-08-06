@@ -48,19 +48,22 @@ export default async function RootLayout({
     <html lang={locale}>
       <head>
         <title>Government Citizen Portal</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
       </head>
       <body>
         <SerwistProvider swUrl="/serwist/sw.js">
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          <OfflineProvider>
-          <GlobalProvider>
-            {children}
-            <InstallPrompt />
-            <OfflineBanner />
-          </GlobalProvider>
-          </OfflineProvider>
-        </NextIntlClientProvider>
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            <OfflineProvider>
+              <GlobalProvider>
+                {children}
+                <InstallPrompt />
+                <OfflineBanner />
+              </GlobalProvider>
+            </OfflineProvider>
+          </NextIntlClientProvider>
         </SerwistProvider>
       </body>
     </html>
