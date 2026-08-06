@@ -13,9 +13,11 @@
  */
 
 import { createEventBus, type EventBus, type EventBusOptions } from '../events';
+import { createRpcServer } from '../rpc';
+
+import type { RpcServer} from '../rpc';
 import type { Transport } from '../transport';
 import type { ShellServiceMap } from '../types';
-import { RpcServer, createRpcServer } from '../rpc';
 
 export interface HostPlatformOptions {
   services: ShellServiceMap;

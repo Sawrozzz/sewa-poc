@@ -1,6 +1,13 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 
 interface OfflineContextType {
   isOffline: boolean;
@@ -12,35 +19,38 @@ const OfflineContext = createContext<OfflineContextType>({
   wasOffline: false,
 });
 
+function subscribeToOnlineState(onChange: () => void) {
+  window.addEventListener('online', onChange);
+  window.addEventListener('offline', onChange);
+  return () => {
+    window.removeEventListener('online', onChange);
+    window.removeEventListener('offline', onChange);
+  };
+}
+
+function getOnlineState() {
+  return navigator.onLine;
+}
+
 export function OfflineProvider({ children }: { children: ReactNode }) {
-  const [isOffline, setIsOffline] = useState(false);
   const [wasOffline, setWasOffline] = useState(false);
 
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOffline(false);
-    };
+  const isOffline = !useSyncExternalStore(subscribeToOnlineState, getOnlineState, () => true);
 
+  useEffect(() => {
     const handleOffline = () => {
-      setIsOffline(true);
       setWasOffline(true);
     };
 
-    window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    setIsOffline(!navigator.onLine);
-
     return () => {
-      window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
   return (
-    <OfflineContext.Provider value={{ isOffline, wasOffline }}>
-      {children}
-    </OfflineContext.Provider>
+    <OfflineContext.Provider value={{ isOffline, wasOffline }}>{children}</OfflineContext.Provider>
   );
 }
 

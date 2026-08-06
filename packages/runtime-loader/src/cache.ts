@@ -6,8 +6,8 @@
  * Provides both in-memory and persistent storage layers.
  */
 
-import type { PluginLoadOptions } from "@sewa/host-platform";
 import type { ViteManifest, CachedFile, CacheOrder } from "./types";
+import type { PluginLoadOptions } from "@sewa/host-platform";
 
 /** IndexedDB database name */
 const DB_NAME = "sewa-plugin-cache";
@@ -99,8 +99,8 @@ export class PluginCacheDB {
     // FIFO: evict from the front (oldest entries)
     const evicted: string[] = [];
     while (this.moduleOrder.length > this.maxModules) {
-      const [evictedId] = this.moduleOrder.shift()!;
-      evicted.push(evictedId);
+      const evictedId = this.moduleOrder.shift();
+      if (evictedId !== undefined) evicted.push(evictedId);
     }
 
     if (evicted.length > 0) {
@@ -272,9 +272,11 @@ export class PluginCacheDB {
       await Promise.all(putPromises);
       console.log("[PluginCacheDB] All files stored in IndexedDB for:", moduleId);
 
-      // Update in-memory cache
+      // Update in-memory cache (scoped keys, matching IndexedDB)
       if (!this._manifestCache) this._manifestCache = {};
-      Object.assign(this._manifestCache, files);
+      for (const [fileName, content] of Object.entries(files)) {
+        this._manifestCache[`${moduleId}/${fileName}`] = content;
+      }
 
       // Enforce cache limit using FIFO eviction
       await this.enforceCacheLimit(moduleId);
@@ -384,6 +386,52 @@ export class PluginCacheDB {
   }
 
   /**
+   * Get the cached version marker for a module.
+   * Returns null when no marker has been stored.
+   * 
+   * @param moduleId - Module ID to look up
+   * @returns The stored version string or null
+   */
+  async getVersion(moduleId: string): Promise<string | null> {
+    const scopedKey = `${moduleId}/__version__`;
+    try {
+      const db = await this.open();
+      return new Promise((resolve) => {
+        const tx = db.transaction(STORE_NAME, "readonly");
+        const req = tx.objectStore(STORE_NAME).get(scopedKey);
+        req.onsuccess = () => {
+          const result = req.result as CachedFile | undefined;
+          resolve(result?.data ?? null);
+        };
+        req.onerror = () => resolve(null);
+      });
+    } catch (err) {
+      console.warn("[PluginCacheDB] getVersion failed for:", moduleId, err);
+      return null;
+    }
+  }
+
+  /**
+   * Store the version marker for a module alongside its cached files.
+   * 
+   * @param moduleId - Module ID to tag
+   * @param version - Version string to persist
+   */
+  async setVersion(moduleId: string, version: string): Promise<void> {
+    const db = await this.open();
+    return new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const req = tx.objectStore(STORE_NAME).put({
+        fileKey: `${moduleId}/__version__`,
+        data: version,
+        cachedAt: Date.now(),
+      } as CachedFile);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  /**
    * Delete all cached files for a module.
    * Removes both in-memory and IndexedDB entries.
    * 
@@ -404,13 +452,11 @@ export class PluginCacheDB {
         const tx = db.transaction(STORE_NAME, "readwrite");
         const store = tx.objectStore(STORE_NAME);
         const cursorReq = store.openCursor();
-        let count = 0;
         cursorReq.onsuccess = () => {
           const cursor = cursorReq.result;
           if (cursor) {
             if ((cursor.key as string).startsWith(`${moduleId}/`)) {
               cursor.delete();
-              count++;
             }
             cursor.continue();
           }

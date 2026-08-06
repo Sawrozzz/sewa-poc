@@ -1,8 +1,10 @@
 "use client";
 
-import { ModuleGrid } from "./ModuleGrid";
-import { Header } from "./Header";
 import { useTranslations } from "next-intl";
+import { Search } from "lucide-react";
+
+import { Header } from "./Header";
+import { ModuleGrid } from "./ModuleGrid";
 
 export function AppShell() {
   const t = useTranslations("HomePage");
@@ -11,21 +13,81 @@ export function AppShell() {
     <div className="min-h-screen bg-linear-to-br from-gov-50 via-white to-gov-50">
       <Header />
 
+      <div className="sticky top-16 z-40 ">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+
+            <input
+              type="text"
+              placeholder="Search government services..."
+              className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-4 text-sm shadow-sm outline-none transition-all duration-200 placeholder:text-gray-400 focus:border-gov-500 focus:ring-4 focus:ring-gov-100"
+            />
+          </div>
+        </div>
+      </div>
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-10 bg-linear-to-br from-gov-800 via-gov-900 to-gov-950 rounded-2xl p-8 text-white shadow-xl shadow-gov-300/50 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -mr-32 -mt-32" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full -ml-20 -mb-20" />
           <div className="absolute top-1/2 right-8 -translate-y-1/2 opacity-10 hidden md:block">
             <svg width="200" height="200" viewBox="0 0 200 200" fill="none">
-              <rect x="20" y="30" width="160" height="140" rx="12" stroke="white" strokeWidth="2" />
-              <rect x="35" y="45" width="60" height="40" rx="6" stroke="white" strokeWidth="1.5" />
-              <rect x="105" y="45" width="60" height="40" rx="6" stroke="white" strokeWidth="1.5" />
-              <rect x="35" y="100" width="60" height="40" rx="6" stroke="white" strokeWidth="1.5" />
-              <rect x="105" y="100" width="60" height="40" rx="6" stroke="white" strokeWidth="1.5" />
+              <rect
+                x="20"
+                y="30"
+                width="160"
+                height="140"
+                rx="12"
+                stroke="white"
+                strokeWidth="2"
+              />
+              <rect
+                x="35"
+                y="45"
+                width="60"
+                height="40"
+                rx="6"
+                stroke="white"
+                strokeWidth="1.5"
+              />
+              <rect
+                x="105"
+                y="45"
+                width="60"
+                height="40"
+                rx="6"
+                stroke="white"
+                strokeWidth="1.5"
+              />
+              <rect
+                x="35"
+                y="100"
+                width="60"
+                height="40"
+                rx="6"
+                stroke="white"
+                strokeWidth="1.5"
+              />
+              <rect
+                x="105"
+                y="100"
+                width="60"
+                height="40"
+                rx="6"
+                stroke="white"
+                strokeWidth="1.5"
+              />
               <circle cx="50" cy="65" r="8" stroke="white" strokeWidth="1.5" />
               <circle cx="120" cy="65" r="8" stroke="white" strokeWidth="1.5" />
               <circle cx="50" cy="120" r="8" stroke="white" strokeWidth="1.5" />
-              <circle cx="120" cy="120" r="8" stroke="white" strokeWidth="1.5" />
+              <circle
+                cx="120"
+                cy="120"
+                r="8"
+                stroke="white"
+                strokeWidth="1.5"
+              />
             </svg>
           </div>
           <div className="relative flex items-center justify-between">
@@ -66,7 +128,9 @@ export function AppShell() {
                 <div className="w-7 h-7 bg-gov-500 rounded-md flex items-center justify-center">
                   <span className="text-white text-xs">🏛️</span>
                 </div>
-                <span className="text-sm font-semibold text-gray-900">Citizen Portal</span>
+                <span className="text-sm font-semibold text-gray-900">
+                  Citizen Portal
+                </span>
               </div>
               <p className="text-xs text-gray-500 leading-relaxed">
                 Government Citizen Super App v1.0

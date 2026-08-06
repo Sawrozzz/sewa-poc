@@ -1,12 +1,13 @@
-"use client"
-import { useMemo, useRef, useEffect, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
-import { authClient, mapSessionUser } from "@/lib/auth-client";
-import { PlatformProvider } from "@/platform";
-import { CommunicationDebugger } from "@/components/CommunicationDebugger";
-import type { PlatformServicesConfig } from "@/platform/services";
+'use client';
+import { useRouter } from 'next/navigation';
+import { type ReactNode, useEffect, useMemo, useRef } from 'react';
 
-export default function  PlatformShell({ children }: { children: ReactNode }) {
+import type { PlatformServicesConfig } from '@/platform/services';
+
+import { authClient, mapSessionUser } from '@/lib/auth-client';
+import { PlatformProvider } from '@/platform';
+
+export default function PlatformShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const user = mapSessionUser(session?.user);
@@ -29,10 +30,5 @@ export default function  PlatformShell({ children }: { children: ReactNode }) {
     [router],
   );
 
-  return (
-    <PlatformProvider authConfig={authConfig}>
-      {children}
-      <CommunicationDebugger />
-    </PlatformProvider>
-  );
+  return <PlatformProvider authConfig={authConfig}>{children}</PlatformProvider>;
 }

@@ -1,9 +1,5 @@
-/**
- * Message validator — mirror of
- * `mini-app-sdk/src/protocol/message-validator.ts`.
- */
-
 import { MESSAGE_CHANNEL } from '../constants';
+
 import type {
   HostPlatformMessage,
   PlatformMessage,

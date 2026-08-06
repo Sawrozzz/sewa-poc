@@ -1,26 +1,26 @@
 /**
  * Runtime Loader - Unified export for all public APIs.
- * 
+ *
  * Provides framework-agnostic loading of mini-app bundles with IndexedDB caching
  * and optional Shadow DOM isolation. Mini-apps built with React, Vue, Angular,
  * or any other framework can be loaded through the same interface.
- * 
+ *
  * @example
  * ```typescript
  * import { createRuntimeLoader } from '@sewa/runtime-loader';
- * 
+ *
  * const loader = createRuntimeLoader({
  *   maxModules: 5,
  *   onLoadComplete: (result) => console.log('Loaded:', result.moduleId),
  * });
- * 
+ *
  * // Load with regular DOM mounting
  * const result = await loader.load(
  *   'my-mini-app',
  *   'https://cdn.example.com/mini-app/',
  *   '1.0.0'
  * );
- * 
+ *
  * // Or load with Shadow DOM isolation
  * const result = await loader.load(
  *   'my-mini-app',
@@ -29,17 +29,12 @@
  *   {},
  *   'shadow'
  * );
- * 
+ *
  * if (result.success) {
  *   result.bundle.mount(container, { services, config });
  * }
  * ```
  */
-
-// =============================================================================
-// Type Definitions
-// =============================================================================
-// All interfaces and types used across the loader, cache, and utility modules.
 
 export type {
   BundleSpec,
@@ -55,21 +50,11 @@ export type {
   MountMode,
 } from './types';
 
-// =============================================================================
-// Core Classes
-// =============================================================================
-// Main classes that handle loading and caching of mini-app bundles.
-
 /** Core runtime loader that orchestrates the loading lifecycle */
 export { RuntimeLoader, createRuntimeLoader } from './loader';
 
 /** IndexedDB-backed cache for persistent storage of mini-app bundles */
 export { PluginCacheDB } from './cache';
-
-// =============================================================================
-// Utility Functions
-// =============================================================================
-// Helper functions for mounting, unmounting, and common operations.
 
 /** Universal mount function that works with any framework */
 export { mountModule } from './utils';

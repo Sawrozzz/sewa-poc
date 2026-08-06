@@ -1,6 +1,6 @@
 import type { MiniAppModule } from '@/types/modules';
 
-let modulesStore: MiniAppModule[] = [
+const modulesStore: MiniAppModule[] = [
   {
     id: 'driving-license',
     name: 'Digital Driving License',

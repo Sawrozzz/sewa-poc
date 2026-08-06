@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+
+import type { NextRequest} from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { miniAppId, ...body } = await request.json();
+    const { ...body } = await request.json();
 
     const response = await fetch(
       "http://10.10.30.122:3001/v1/service-requests",

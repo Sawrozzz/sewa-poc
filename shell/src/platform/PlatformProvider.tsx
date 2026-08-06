@@ -1,5 +1,14 @@
-"use client";
+'use client';
 
+import {
+  createEventBus,
+  type EventBus,
+  createHostPlatform,
+  type HostPlatformHandle,
+  type ShellServiceMap,
+  PostMessageTransport,
+} from '@sewa/host-platform';
+import { createRuntimeLoader, type RuntimeLoader } from '@sewa/runtime-loader';
 import React, {
   createContext,
   useContext,
@@ -7,21 +16,11 @@ import React, {
   useRef,
   useState,
   type ReactNode,
-} from "react";
-import ReactDOM from "react-dom/client";
-import { createEventBus, type EventBus } from "@sewa/host-platform";
+} from 'react';
 
-import {
-  createHostPlatform,
-  type HostPlatformHandle,
-} from "@sewa/host-platform";
-import { createRuntimeLoader, type RuntimeLoader } from "@sewa/runtime-loader";
-import { type ShellServiceMap, PostMessageTransport } from "@sewa/host-platform";
-import { createShellServices, type PlatformServicesConfig } from "./services";
-import {
-  createAppearanceController,
-  type AppearanceController,
-} from "./appearance-controller";
+import { createAppearanceController, type AppearanceController } from './appearance-controller';
+import { installHostApiGuard } from './host-guard';
+import { createShellServices, type PlatformServicesConfig } from './services';
 
 export interface PlatformContextValue {
   eventBus: EventBus;
@@ -40,19 +39,18 @@ export interface PlatformProviderProps {
 }
 
 /**
-* Platform Provider — bootstraps all shell platform subsystems.
-*
-* Owns: Event Bus, Shell Communicator, Runtime Loader
-*/
-export function PlatformProvider({
-  children,
-  authConfig,
-}: PlatformProviderProps) {
+ * Platform Provider — bootstraps all shell platform subsystems.
+ *
+ * Owns: Event Bus, Shell Communicator, Runtime Loader
+ */
+export function PlatformProvider({ children, authConfig }: PlatformProviderProps) {
   const platformRef = useRef<PlatformContextValue | null>(null);
   const authConfigRef = useRef(authConfig);
-  const [isReady, setIsReady] = useState(false);
+  const [platform, setPlatform] = useState<PlatformContextValue | null>(null);
 
-  authConfigRef.current = authConfig;
+  useEffect(() => {
+    authConfigRef.current = authConfig;
+  }, [authConfig]);
 
   useEffect(() => {
     if (platformRef.current) return;
@@ -61,131 +59,14 @@ export function PlatformProvider({
 
     let cleanupInterval: ReturnType<typeof setInterval>;
 
-    function installHostApiGuard() {
-      const lock = (obj: unknown, prop: string, value: unknown) => {
-        if (!obj || typeof obj !== 'object' && typeof obj !== 'function' || !(prop in obj)) return;
-        try {
-          Object.defineProperty(obj, prop, { value, writable: false, configurable: false });
-        } catch { /* ignore unfrozen / undefined */ }
-      };
-
-      const deny = (msg: string) => () =>
-        Promise.reject(
-          new DOMException(
-            `[HostGuard] ${msg} — direct browser API access is not supported in mini apps. Use the Mini App SDK instead.`,
-            'NotAllowedError',
-          ),
-        );
-
-      const geoErr = () => ({
-        code: 1,
-        message: '[HostGuard] Use sdk.device.location() instead.',
-        PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3,
-      });
-
-      // ── Geolocation ────────────────────────────────────────────────
-      if (navigator.geolocation) {
-        lock(navigator, 'geolocation', {
-          getCurrentPosition: (_success: unknown, error?: unknown) => {
-            if (typeof error === 'function') error(geoErr());
-          },
-          watchPosition: (_success: unknown, error?: unknown) => {
-            if (typeof error === 'function') error(geoErr());
-            return -1;
-          },
-          clearWatch: () => {},
-        });
-      }
-
-      // ── Media (camera / screen) ────────────────────────────────────
-      if (navigator.mediaDevices) {
-        lock(navigator.mediaDevices, 'getUserMedia', deny('Use sdk.device.camera()'));
-        lock(navigator.mediaDevices, 'getDisplayMedia', deny('Screen capture is disabled'));
-      }
-
-      // ── Clipboard read ─────────────────────────────────────────────
-      if (navigator.clipboard) {
-        lock(navigator.clipboard, 'read', deny('Clipboard read is disabled. Use sdk.clipboard()'));
-        lock(navigator.clipboard, 'readText', deny('Clipboard read is disabled. Use sdk.clipboard()'));
-      }
-
-      // ── Notifications ──────────────────────────────────────────────
-      if (window.Notification) {
-        lock(Notification, 'requestPermission', () => Promise.resolve('denied'));
-        try { Object.defineProperty(Notification, 'permission', { get: () => 'denied', configurable: false }); } catch {}
-      }
-
-      // ── WebAuthn credentials ───────────────────────────────────────
-      // if (navigator.credentials) {
-      //   lock(navigator.credentials, 'create', deny('Use sdk.device.biometric()'));
-      //   lock(navigator.credentials, 'get', deny('Use sdk.device.biometric()'));
-      // }
-
-      // ── Service workers (host PWA must keep working) ───────────────
-      if (navigator.serviceWorker && navigator.serviceWorker.register) {
-        const realRegister = navigator.serviceWorker.register.bind(navigator.serviceWorker);
-        lock(navigator.serviceWorker, 'register', (scriptURL: string | URL) => {
-          const url = String(scriptURL);
-          if (url.includes('/serwist/sw.js')) {
-            return realRegister(scriptURL);
-          }
-          return Promise.reject(
-            new DOMException('[HostGuard] Mini apps may not register service workers.', 'NotAllowedError'),
-          );
-        });
-      }
-
-      // ── WebRTC ─────────────────────────────────────────────────────
-      lock(window, 'RTCPeerConnection', undefined);
-      lock(window, 'webkitRTCPeerConnection', undefined);
-
-      // ── Hardware APIs ──────────────────────────────────────────────
-      lock(navigator, 'bluetooth', undefined);
-      lock(navigator, 'usb', undefined);
-      lock(navigator, 'serial', undefined);
-      lock(navigator, 'hid', undefined);
-      lock(navigator, 'vibrate', () => false);
-
-      // ── File pickers (host uses <input type=file> instead) ─────────
-      lock(window, 'showOpenFilePicker', undefined);
-      lock(window, 'showSaveFilePicker', undefined);
-      lock(window, 'showDirectoryPicker', undefined);
-
-      // ── localStorage / sessionStorage (host reads via privileged.*) ──
-      Object.defineProperty(window, 'localStorage', {
-        get() {
-          throw new DOMException(
-            '[HostGuard] Direct localStorage access is blocked in mini apps. Use sdk.storage.get()/set() instead.',
-            'SecurityError',
-          );
-        },
-        set() {},
-        configurable: false,
-      });
-      Object.defineProperty(window, 'sessionStorage', {
-        get() {
-          throw new DOMException(
-            '[HostGuard] Direct sessionStorage access is blocked in mini apps.',
-            'SecurityError',
-          );
-        },
-        set() {},
-        configurable: false,
-      });
-    }
-
     async function init() {
       // Block sensitive browser APIs before any mini-app code runs
       installHostApiGuard();
 
-      // Expose shell's React to mini-app bundles (they reference window.React)
-      (window as unknown as Record<string, unknown>).React = React;
-      (window as unknown as Record<string, unknown>).ReactDOM = ReactDOM;
-
       const eventBus = createEventBus({
-        enableTracing: process.env.NODE_ENV === "development",
+        enableTracing: process.env.NODE_ENV === 'development',
         onError: (err, event) => {
-          console.error("[EventBus] Handler error:", err.message, event.type);
+          console.error('[EventBus] Handler error:', err.message, event.type);
         },
       });
 
@@ -199,37 +80,37 @@ export function PlatformProvider({
       appearanceController.apply();
 
       const loader = createRuntimeLoader({
+        maxModules: resolveMaxCachedMiniApps(),
         onLoadComplete: (result) => {
-          console.log("Successfully load", result.success);
-          
+          console.log('Successfully load', result.success);
         },
         onLoadError: (moduleId, error) => {
-          eventBus.emit("module.lifecycle.failed", "shell", {
+          eventBus.emit('module.lifecycle.failed', 'shell', {
             moduleId,
-            version: "",
+            version: '',
             error,
           });
         },
       });
 
-        const communicator = createHostPlatform({
-          services,
-          eventBus,
-          transport: new PostMessageTransport(),
-          allowedOrigins: ["*"],
-          onModuleConnected: (moduleId) => {
-            eventBus.emit("module.lifecycle.loaded", moduleId, {
-              moduleId,
-              version: "",
-            });
-          },
-          onModuleDisconnected: (moduleId) => {
-            eventBus.emit("module.lifecycle.unloaded", moduleId, {
-              moduleId,
-              version: "",
-            });
-          },
-        });
+      const communicator = createHostPlatform({
+        services,
+        eventBus,
+        transport: new PostMessageTransport(),
+        allowedOrigins: ['*'],
+        onModuleConnected: (moduleId) => {
+          eventBus.emit('module.lifecycle.loaded', moduleId, {
+            moduleId,
+            version: '',
+          });
+        },
+        onModuleDisconnected: (moduleId) => {
+          eventBus.emit('module.lifecycle.unloaded', moduleId, {
+            moduleId,
+            version: '',
+          });
+        },
+      });
 
       const platform: PlatformContextValue = {
         eventBus,
@@ -245,8 +126,7 @@ export function PlatformProvider({
       await communicator.initialize();
 
       if (!cancelled) {
-        platform.isReady = true;
-        setIsReady(true);
+        setPlatform({ ...platform, isReady: true });
       }
 
       cleanupInterval = setInterval(() => eventBus.cleanup(), 300000);
@@ -264,24 +144,18 @@ export function PlatformProvider({
         platformRef.current = null;
       }
     };
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!platformRef.current || !isReady) {
+  if (!platform || !platform.isReady) {
     return null;
   }
 
-  return (
-    <PlatformContext.Provider value={{ ...platformRef.current, isReady }}>
-      {children}
-    </PlatformContext.Provider>
-  );
+  return <PlatformContext.Provider value={platform}>{children}</PlatformContext.Provider>;
 }
 
 export function usePlatform(): PlatformContextValue {
   const ctx = useContext(PlatformContext);
-  if (!ctx) throw new Error("usePlatform must be used within PlatformProvider");
+  if (!ctx) throw new Error('usePlatform must be used within PlatformProvider');
   return ctx;
 }
 
@@ -293,4 +167,14 @@ export function useEventBus(): EventBus {
   return usePlatform().eventBus;
 }
 
- 
+/**
+ * Number of mini-app bundles to keep in the PWA asset cache (FIFO eviction).
+ * Configurable via `NEXT_PUBLIC_MAX_CACHED_MINI_APPS`; defaults to 2.
+ * Oldest cached app assets are removed from IndexedDB once the limit is exceeded.
+ */
+function resolveMaxCachedMiniApps(): number {
+  const raw = process.env.NEXT_PUBLIC_MAX_CACHED_MINI_APPS;
+  if (!raw) return 2;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 2;
+}

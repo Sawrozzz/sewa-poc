@@ -17,22 +17,6 @@ export interface PlatformEvent<T = unknown> {
   payload: T;
 }
 
-export interface EventSchema {
-  type: string;
-  version: string;
-  owner: string;
-  namespace: string;
-  description: string;
-  deprecated?: boolean;
-  deprecatedSince?: string;
-  migrateTo?: string;
-  validate: (payload: unknown) => payload is unknown;
-}
-
-export interface EventRegistryEntry extends EventSchema {
-  registeredAt: number;
-}
-
 /** Well-known platform event types */
 export const PLATFORM_EVENTS = {
   NAVIGATION_REQUEST: 'navigation.route.request',

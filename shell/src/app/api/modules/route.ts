@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+
 import {
   addModule,
   getAllModules,
@@ -8,8 +9,8 @@ import {
   updateModuleById,
 } from '@/lib/modules-store';
 import {
-  type MiniAppModule,
   type ApiResponse,
+  type MiniAppModule,
   type ModuleRegistrationRequest,
 } from '@/types/modules';
 
@@ -32,9 +33,9 @@ export async function GET(request: Request) {
   const id = searchParams.get('id');
 
   if (id) {
-    const module = getModuleById(id);
-    const response: ApiResponse<MiniAppModule> = module
-      ? { success: true, data: module }
+    const existing = getModuleById(id);
+    const response: ApiResponse<MiniAppModule> = existing
+      ? { success: true, data: existing }
       : { success: false, error: 'Module not found' };
     return NextResponse.json(response, { headers: corsHeaders() });
   }

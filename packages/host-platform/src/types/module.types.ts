@@ -5,13 +5,11 @@
  * in the same JS context as the shell. No Module Federation, no iframes.
  */
 
-import type { DeviceExtraOptions } from '@lizuz/mini-app-types';
 import type { PlatformEvent } from '../events';
 import type {
   PlatformUser,
   NavigationTarget,
   NavigationState,
-  ChatSdkModule,
   DevicePermissionResponse,
   DeviceLocationResult,
   DeviceCameraResult,
@@ -26,6 +24,7 @@ import type {
   HttpResult,
   DeviceContactResult,
 } from './sdk.types';
+import type { DeviceExtraOptions } from '@lizuz/mini-app-types';
 
 /** The only loading strategy; shell downloads and evaluates the bundle on demand */
 export type LoadStrategy = 'plugin';
@@ -121,7 +120,6 @@ export interface PluginServices {
     getCurrent(): NavigationState;
     onNavigate(handler: (state: NavigationState) => void): () => void;
   };
-  chat: ChatSdkModule;
   /** Device capabilities — only accessible through the shell bridge */
   device: {
     location(options?: { highAccuracy?: boolean; timeout?: number; reason?: string }): Promise<DevicePermissionResponse<DeviceLocationResult>>;
@@ -133,11 +131,6 @@ export interface PluginServices {
     biometric(options?: { reason?: string }): Promise<DevicePermissionResponse<DeviceBiometricResult>>;
     notifications(options?: { requestPermission?: boolean }): Promise<DeviceNotificationResult>;
     network(): Promise<DeviceNetworkResult>;
-    storage: {
-      get(key: string): Promise<string | null>;
-      set(key: string, value: string): Promise<void>;
-      remove(key: string): Promise<void>;
-    };
     info(): Promise<DeviceInfoResult>;
   };
   http: {

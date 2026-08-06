@@ -1,12 +1,14 @@
 import "./globals.css";
-import GloabalProvider from "@/components/GlobalProvider";
-import type { Metadata, Viewport } from "next";
+import {SerwistProvider} from "@serwist/turbopack/react"
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
-import {SerwistProvider} from "@serwist/turbopack/react"
+
+import type { Metadata, Viewport } from "next";
+
+import GlobalProvider from "@/components/GlobalProvider";
 import { InstallPrompt } from "@/components/InstallPrompt"
-import { OfflineProvider } from "@/lib/OfflineContext"
 import { OfflineBanner } from "@/components/OfflineBanner"
+import { OfflineProvider } from "@/lib/OfflineContext"
 
 const APP_NAME = "Sewa App";
 const APP_DEFAULT_TITLE = "Sewa App";
@@ -52,11 +54,11 @@ export default async function RootLayout({
         <SerwistProvider swUrl="/serwist/sw.js">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <OfflineProvider>
-          <GloabalProvider>
+          <GlobalProvider>
             {children}
             <InstallPrompt />
             <OfflineBanner />
-          </GloabalProvider>
+          </GlobalProvider>
           </OfflineProvider>
         </NextIntlClientProvider>
         </SerwistProvider>

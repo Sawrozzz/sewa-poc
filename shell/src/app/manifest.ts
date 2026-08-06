@@ -2,8 +2,8 @@ import type {MetadataRoute} from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: 'Sewa App',
-        short_name: 'Sewa App',
+        name: 'Sewa',
+        short_name: 'Sewa',
         description: 'Your all-in-one super app for Sri Lanka',
         start_url: '/',
         display: 'standalone',

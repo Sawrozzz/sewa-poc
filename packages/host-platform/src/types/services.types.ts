@@ -6,6 +6,9 @@
  * supplied by the shell. Deliberately separate from the SDK-facing module
  * shapes (`types/sdk.types.ts`) because the shell services are host-internal
  * and may expose extra surface (e.g. `refresh`, `onNavigate`).
+ *
+ * `http`/`api` are also implemented here as thin local wrappers; the RpcServer
+ * additionally serves those namespaces itself via axios.
  */
 
 import type {
@@ -25,15 +28,13 @@ import type {
   HttpResult,
   LocaleState,
   ThemeState,
-} from './sdk.types';
-import type {
   ShellApiService,
   ShellStorageService,
   ShellAuthService,
   ShellPermissionsService,
   ShellFlagsService,
   ShellConfigService,
-  ShellNavigationService,
+  ShellNavigationService
 } from './sdk.types';
 
 /**
@@ -83,11 +84,6 @@ export interface ShellDeviceService {
     reason?: string;
   }): Promise<DeviceNotificationResult>;
   network(): Promise<DeviceNetworkResult>;
-  storage: {
-    get(key: string): Promise<string | null>;
-    set(key: string, value: string): Promise<void>;
-    remove(key: string): Promise<void>;
-  };
   info(): Promise<DeviceInfoResult>;
 }
 

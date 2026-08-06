@@ -16,6 +16,9 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "tsx --test src/**/*.test.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -29,9 +32,11 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "es-module-lexer": "^2.3.1",
+    "fake-indexeddb": "^6.2.5",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tsup": "^8.5.1",
+    "tsx": "^4.23.5",
     "typescript": "^6.0.3"
   }
 }

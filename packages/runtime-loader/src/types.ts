@@ -3,8 +3,8 @@
  * Defines all interfaces and types used across the loader, cache, and utility modules.
  */
 
-import type { RemoteLoadResult, PluginServices } from "@sewa/host-platform";
 import type { PluginCacheDB } from "./cache";
+import type { RemoteLoadResult, PluginServices } from "@sewa/host-platform";
 
 /**
  * Specification for a mini-app bundle to be loaded.
@@ -133,7 +133,7 @@ export interface ManifestBundle {
 }
 
 export interface ManifestEntry {
-  files: any;
+  files: string[];
   styles: never[];
   entry: string;
   schemaVersion: string;

@@ -1,10 +1,13 @@
 'use client';
 
 import { useMemo } from 'react';
+
+import { MiniAppCard } from './MiniAppCard';
+
+import type { ModuleManifest } from '@sewa/host-platform';
+
 import { authClient, mapSessionUser } from '@/lib/auth-client';
 import { useMiniApps, useFallbackMiniApps } from '@/lib/use-mini-apps';
-import { MiniAppCard } from './MiniAppCard';
-import type { ModuleManifest } from '@sewa/host-platform';
 
 function filterByPermission(mods: ModuleManifest[], permissions: string[]) {
   return mods
@@ -59,7 +62,7 @@ function SkeletonCard() {
 export function ModuleGrid() {
   const { data: session } = authClient.useSession();
   const user = mapSessionUser(session?.user);
-  const userPermissions = user?.permissions ?? [];
+  const userPermissions = useMemo(() => user?.permissions ?? [], [user]);
 
   const fallbackModules = useFallbackMiniApps();
   const { data: apiModules, isLoading, isError, error, refetch } = useMiniApps();
@@ -123,7 +126,8 @@ export function ModuleGrid() {
             <div className="text-5xl mb-4">📡</div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Could Not Load Services</h3>
             <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
-              {error?.message || 'Unable to fetch services from the platform. Please check your connection.'}
+              {error?.message ||
+                'Unable to fetch services from the platform. Please check your connection.'}
             </p>
             <button
               onClick={() => refetch()}
@@ -138,7 +142,8 @@ export function ModuleGrid() {
             <div className="text-5xl mb-4">📭</div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No Additional Services</h3>
             <p className="text-sm text-gray-500 max-w-md mx-auto">
-              No additional services are available from the platform at the moment. Check back later.
+              No additional services are available from the platform at the moment. Check back
+              later.
             </p>
           </div>
         ) : (

@@ -1,42 +1,42 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { WelcomeScreen } from "./WelcomeScreen";
-import { LanguageScreen } from "./LanguageScreen";
-import { PhoneLoginScreen } from "./PhoneLoginScreen";
-import { OtpScreen } from "./OtpScreen";
-import { privileged } from "@/platform/host-privileges";
+import { useEffect, useState } from 'react';
 
-type Step = "welcome" | "language" | "login" | "otp";
+import { LanguageScreen } from './LanguageScreen';
+import { OtpScreen } from './OtpScreen';
+import { PhoneLoginScreen } from './PhoneLoginScreen';
+import { WelcomeScreen } from './WelcomeScreen';
+
+import { privileged } from '@/platform/host-privileges';
+
+type Step = 'welcome' | 'language' | 'login' | 'otp';
 
 /** Set once the intro is done, so returning users land straight on login. */
-const ONBOARDED_KEY = "sewa.onboarding.completed";
+const ONBOARDED_KEY = 'sewa.onboarding.completed';
 
-export function OnboardingFlow({
-  onAuthenticatedAction,
-}: {
-  onAuthenticatedAction: () => void;
-}) {
+export function OnboardingFlow({ onAuthenticatedAction }: { onAuthenticatedAction: () => void }) {
   // null until the client has read localStorage — avoids flashing the welcome
   // screen to users who already went through the intro.
   const [step, setStep] = useState<Step | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [otp, setOtp] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
 
   useEffect(() => {
     const onboarded =
-      typeof window !== "undefined" &&
-      privileged.localStorage?.getItem(ONBOARDED_KEY) === "true";
-    setStep(onboarded ? "login" : "welcome");
+      typeof window !== 'undefined' && privileged.localStorage?.getItem(ONBOARDED_KEY) === 'true';
+    const frame = requestAnimationFrame(() => {
+      setStep(onboarded ? 'login' : 'welcome');
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   const completeIntro = () => {
     try {
-      privileged.localStorage?.setItem(ONBOARDED_KEY, "true");
+      privileged.localStorage?.setItem(ONBOARDED_KEY, 'true');
     } catch {
       // Private mode / storage disabled — the intro simply shows again.
     }
-    setStep("login");
+    setStep('login');
   };
 
   if (step === null) {
@@ -47,20 +47,20 @@ export function OnboardingFlow({
     );
   }
 
-  if (step === "welcome") {
-    return <WelcomeScreen onContinue={() => setStep("language")} />;
+  if (step === 'welcome') {
+    return <WelcomeScreen onContinueAction={() => setStep('language')} />;
   }
 
-  if (step === "language") {
-    return <LanguageScreen onContinue={completeIntro} />;
+  if (step === 'language') {
+    return <LanguageScreen onContinueAction={completeIntro} />;
   }
 
-  if (step === "otp") {
+  if (step === 'otp') {
     return (
       <OtpScreen
         phoneNumber={phoneNumber}
         prefilledOtp={otp}
-        onBackAction={() => setStep("login")}
+        onBackAction={() => setStep('login')}
         onVerifiedAction={onAuthenticatedAction}
       />
     );
@@ -72,7 +72,7 @@ export function OnboardingFlow({
       onOtpSentAction={({ phoneNumber: phone, otp: sentOtp }) => {
         setPhoneNumber(phone);
         setOtp(sentOtp);
-        setStep("otp");
+        setStep('otp');
       }}
     />
   );
