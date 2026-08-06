@@ -81,6 +81,12 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
 
       const loader = createRuntimeLoader({
         maxModules: resolveMaxCachedMiniApps(),
+        onLoadStart: (moduleId) => {
+          eventBus.emit('module.lifecycle.loading', 'shell', {
+            moduleId,
+            version: '',
+          });
+        },
         onLoadComplete: (result) => {
           console.log('Successfully load', result.success);
         },

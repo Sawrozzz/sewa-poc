@@ -71,6 +71,8 @@ export interface MiniAppBundle {
   mount: (container: HTMLElement, props?: MiniAppRuntime) => void;
   /** Unmount the mini-app and clean up resources */
   unmount: (container: HTMLElement) => void;
+  /** Mini-app CSS contents, scoped into the shadow root on shadow mounts */
+  styles?: string[];
 }
 
 /**
@@ -88,8 +90,6 @@ export interface LoadedModule {
   version?: string;
   /** Timestamp when the module was loaded */
   loadedAt: number;
-  /** How to mount the module into the DOM */
-  mountMode: MountMode;
 }
 
 /**
@@ -173,11 +173,3 @@ export interface CacheOrder {
   /** Timestamp when the order was last updated */
   cachedAt: number;
 }
-
-/**
- * How to mount a mini-app into the shell's DOM.
- * - 'dom': Mount directly into a regular DOM element
- * - 'shadow': Mount inside a Shadow DOM for style isolation
- * - 'portal': Mount using React Portal (future use)
- */
-export type MountMode = 'dom' | 'shadow' | 'portal';

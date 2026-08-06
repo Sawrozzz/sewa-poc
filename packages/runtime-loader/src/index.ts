@@ -2,7 +2,7 @@
  * Runtime Loader - Unified export for all public APIs.
  *
  * Provides framework-agnostic loading of mini-app bundles with IndexedDB caching
- * and optional Shadow DOM isolation. Mini-apps built with React, Vue, Angular,
+ * and Shadow DOM isolation (default). Mini-apps built with React, Vue, Angular,
  * or any other framework can be loaded through the same interface.
  *
  * @example
@@ -14,20 +14,12 @@
  *   onLoadComplete: (result) => console.log('Loaded:', result.moduleId),
  * });
  *
- * // Load with regular DOM mounting
+ * // Mini-apps mount inside a Shadow DOM by default, scoping their styles
+ * // away from the host page — no mount mode option required.
  * const result = await loader.load(
  *   'my-mini-app',
  *   'https://cdn.example.com/mini-app/',
  *   '1.0.0'
- * );
- *
- * // Or load with Shadow DOM isolation
- * const result = await loader.load(
- *   'my-mini-app',
- *   'https://cdn.example.com/mini-app/',
- *   '1.0.0',
- *   {},
- *   'shadow'
  * );
  *
  * if (result.success) {
@@ -47,7 +39,6 @@ export type {
   ViteManifest,
   CachedFile,
   CacheOrder,
-  MountMode,
 } from './types';
 
 /** Core runtime loader that orchestrates the loading lifecycle */
@@ -59,7 +50,7 @@ export { PluginCacheDB } from './cache';
 /** Universal mount function that works with any framework */
 export { mountModule } from './utils';
 
-/** Mount with optional Shadow DOM isolation */
+/** Mount inside a Shadow DOM root with scoped styles */
 export { mountWithIsolation } from './utils';
 
 /** Universal unmount function that safely cleans up mini-apps */
