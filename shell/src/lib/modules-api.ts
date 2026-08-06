@@ -281,8 +281,8 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
     ],
     isEnabled: true,
     order: 1,
-    // bundleUrl: "https://nuxt-mini-app-orcin.vercel.app/",
-    bundleUrl: "http://localhost:3007/",
+    bundleUrl: "https://solid-mini-app.vercel.app/",
+    // bundleUrl: "http://localhost:3007/",
     entryType: "framework-agnostic",
     loadStrategy: "plugin",
     compatibility: {
@@ -323,8 +323,8 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
     ],
     isEnabled: true,
     order: 1,
-    // bundleUrl: "https://nuxt-mini-app-orcin.vercel.app/",
-    bundleUrl: "http://localhost:3008/",
+    bundleUrl: "https://svelte-mini-app.vercel.app/",
+    // bundleUrl: "http://localhost:3008/",
     entryType: "framework-agnostic",
     loadStrategy: "plugin",
     compatibility: {
