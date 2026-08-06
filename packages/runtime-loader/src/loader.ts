@@ -9,26 +9,22 @@
  * 5. Mount using framework-agnostic mountModule()
  *
  * Supports retry logic, CSS injection, concurrent load handling,
- * and optional Shadow DOM isolation.
+ * and Shadow DOM isolation (default) for style scoping.
  */
 
-import { PluginCacheDB } from "./cache";
-import { delay, mountWithIsolation } from "./utils";
+import {PluginCacheDB} from "./cache";
+import {delay, mountWithIsolation} from "./utils";
 
 import type {
-  MiniAppBundle,
-  LoadedModule,
-  RuntimeLoaderOptions,
-  ViteManifest,
-  MountMode,
-  MiniAppModuleExports,
-  MiniAppRuntime,
-  ManifestEntry,
+    LoadedModule,
+    ManifestEntry,
+    MiniAppBundle,
+    MiniAppModuleExports,
+    MiniAppRuntime,
+    RuntimeLoaderOptions,
+    ViteManifest,
 } from "./types";
-import type {
-  RemoteLoadResult,
-  PluginLoadOptions,
-} from "@sewa/host-platform";
+import type {PluginLoadOptions, RemoteLoadResult,} from "@sewa/host-platform";
 
 export class RuntimeLoader {
   /** Map of loaded modules by ID */
@@ -47,12 +43,8 @@ export class RuntimeLoader {
 
   /** IndexedDB cache for persistent storage */
   private db: PluginCacheDB;
-
-  /** Map of blob URLs for cleanup */
+  /** Map of module IDs to their blob URLs (revoked on unload) */
   private blobURLs = new Map<string, string>();
-
-  /** Set of module IDs with injected CSS (prevents duplicates) */
-  private injectedCSS = new Set<string>();
 
   /** Whether signature validation is required */
   private signatureRequired: boolean;
@@ -93,8 +85,10 @@ export class RuntimeLoader {
    * @param bundleUrl - URL where bundle files are located
    * @param version - Optional version for cache invalidation
    * @param options - Plugin load options (retry config, etc.)
-   * @param mountMode - How to mount: 'dom' (default) or 'shadow' (isolated)
    * @returns Result of the load operation
+   *
+   * Mini-apps are always mounted inside a Shadow DOM root, scoping their
+   * styles away from the host page — no mount mode option required.
    *
    * @example
    * ```typescript
@@ -102,8 +96,7 @@ export class RuntimeLoader {
    *   'my-mini-app',
    *   'https://cdn.example.com/mini-app/',
    *   '1.0.0',
-   *   { retryAttempts: 3 },
-   *   'shadow'  // Enable Shadow DOM isolation
+   *   { retryAttempts: 3 }
    * );
    *
    * if (result.success) {
@@ -116,7 +109,6 @@ export class RuntimeLoader {
     bundleUrl: string,
     version?: string,
     options: PluginLoadOptions = {},
-    mountMode: MountMode = "dom",
   ): Promise<RemoteLoadResult> {
     // Return cached module if already loaded (and version still matches)
     const cached = this.loadedModules.get(moduleId);
@@ -145,7 +137,6 @@ export class RuntimeLoader {
       bundleUrl,
       version,
       options,
-      mountMode,
     );
     this.loadingPromises.set(loadKey, promise);
     try {
@@ -158,26 +149,19 @@ export class RuntimeLoader {
   /**
    * Unload a module and clean up resources.
    *
-   * Revokes blob URLs, removes injected CSS, and clears from loaded modules.
+   * Revokes the module's blob URL (freeing the evaluated bundle) and clears it
+   * from the loaded modules. Styles scoped inside the mini-app's shadow root
+   * are removed when the host unmounts the bundle.
    *
    * @param moduleId - ID of the module to unload
    */
   async unload(moduleId: string): Promise<void> {
-    // Revoke blob URL
+    // Revoke the blob URL so the evaluated module's memory can be reclaimed
     const blobUrl = this.blobURLs.get(moduleId);
     if (blobUrl) {
       URL.revokeObjectURL(blobUrl);
       this.blobURLs.delete(moduleId);
     }
-
-    // Remove injected CSS
-    if (typeof document !== "undefined") {
-      const cssEl = document.querySelector(
-        `style[data-plugin-css="${moduleId}"]`,
-      );
-      if (cssEl) cssEl.remove();
-    }
-    this.injectedCSS.delete(moduleId);
 
     // Remove from loaded modules
     this.loadedModules.delete(moduleId);
@@ -202,20 +186,25 @@ export class RuntimeLoader {
   }
 
   /**
-   * Inject CSS into the document head.
-   * Prevents duplicate injection for the same module.
+   * Collect the mini-app's CSS file contents so they can be injected into the
+   * mini-app's shadow root on mount, scoping the styles away from the host.
    *
-   * @param css - CSS content to inject
-   * @param moduleId - Module ID for tracking
+   * @param files - Downloaded files, keyed by file name
+   * @param cssFileNames - Names of the CSS files to apply
+   * @returns CSS contents to inject into the shadow root
    */
-  private injectCSS(css: string, moduleId: string): void {
-    if (typeof document === "undefined" || this.injectedCSS.has(moduleId))
-      return;
-    this.injectedCSS.add(moduleId);
-    const style = document.createElement("style");
-    style.setAttribute("data-plugin-css", moduleId);
-    style.textContent = css;
-    document.head.appendChild(style);
+  private collectStyles(
+    files: Record<string, string>,
+    cssFileNames: string[],
+  ): string[] {
+    const styles: string[] = [];
+    for (const cssFile of cssFileNames) {
+      const cssContent = files[cssFile];
+      if (cssContent) {
+        styles.push(cssContent);
+      }
+    }
+    return styles;
   }
 
   /**
@@ -272,7 +261,6 @@ export class RuntimeLoader {
    * @param bundleUrl - URL of the bundle directory
    * @param version - Optional version string
    * @param options - Plugin load options
-   * @param mountMode - How to mount the module
    * @returns Result of the load operation
    */
   private async loadInternal(
@@ -280,7 +268,6 @@ export class RuntimeLoader {
     bundleUrl: string,
     version: string | undefined,
     options: PluginLoadOptions,
-    mountMode: MountMode,
   ): Promise<RemoteLoadResult> {
     const startTime = Date.now();
     this.onLoadStart?.(moduleId);
@@ -296,7 +283,6 @@ export class RuntimeLoader {
           version,
           startTime,
           options,
-          mountMode,
         );
         if (result.success) {
           this.onLoadComplete?.(result);
@@ -334,7 +320,6 @@ export class RuntimeLoader {
    * @param version - Optional version string
    * @param startTime - Timestamp when load started (for timing)
    * @param _options - Plugin load options (unused)
-   * @param mountMode - How to mount the module
    * @returns Result of the load operation
    */
   private async loadPlugin(
@@ -343,7 +328,6 @@ export class RuntimeLoader {
     version: string | undefined,
     startTime: number,
     _options: PluginLoadOptions,
-    mountMode: MountMode,
   ): Promise<RemoteLoadResult> {
     if (!bundleUrl) throw new Error(`Module ${moduleId} missing bundleUrl`);
     const bundleDirUrl = bundleUrl;
@@ -395,12 +379,11 @@ export class RuntimeLoader {
       }
       files[entryFileName] = indexJs;
 
-      // Load and inject cached CSS files
+      // Load cached CSS files (injection is handled once all files are assembled)
       for (const cssFile of cssFileNames) {
         const cssContent = await this.db.getFile(moduleId, cssFile);
         if (cssContent) {
           files[cssFile] = cssContent;
-          this.injectCSS(cssContent, moduleId);
         }
       }
     } else {
@@ -477,16 +460,12 @@ export class RuntimeLoader {
       );
     }
 
-    // 4. Inject CSS files (if downloading path didn't inject them yet)
-    for (const cssFile of cssFileNames) {
-      const cssContent = files[cssFile];
-      if (cssContent) {
-        this.injectCSS(cssContent, moduleId);
-      }
-    }
+    // 4. Collect the CSS contents to scope inside the mini-app's shadow root
+    const styles = this.collectStyles(files, cssFileNames);
 
     // 5. Evaluate the JavaScript module
     const moduleExports = await this.evaluateModule(
+      moduleId,
       await this.getFullUrl(bundleDirUrl, entryFileName),
       indexJs,
     );
@@ -499,14 +478,22 @@ export class RuntimeLoader {
     const typedExports = moduleExports as MiniAppModuleExports;
     const miniAppBundle: MiniAppBundle = {
       mount: (container: HTMLElement, props?: MiniAppRuntime) => {
-        // Use mountWithIsolation to support Shadow DOM
-        mountWithIsolation(typedExports, container, mountMode, props);
+        // Always mount inside a Shadow DOM root for style isolation
+        mountWithIsolation(typedExports, container, props, styles);
       },
       unmount: (container: HTMLElement) => {
-        if (typeof typedExports.unmount === "function") {
-          typedExports.unmount(container);
+        // The mini-app was mounted on an inner container inside the shadow
+        // root, so unmount from there and clear the root afterwards.
+        const shadow = container.shadowRoot;
+        if (shadow) {
+          const inner = shadow.querySelector('[data-mini-app-container]');
+          if (inner && typeof typedExports.unmount === 'function') {
+            typedExports.unmount(inner as HTMLElement);
+          }
+          shadow.innerHTML = '';
         }
       },
+      styles,
     };
 
     // Cache the loaded module
@@ -516,7 +503,6 @@ export class RuntimeLoader {
       bundle: miniAppBundle,
       version,
       loadedAt: Date.now(),
-      mountMode,
     });
 
     return {
@@ -535,11 +521,17 @@ export class RuntimeLoader {
    * Creates a Blob with process shim and the code, then uses dynamic import.
    * This allows evaluation of ESM modules in a sandboxed context.
    *
-   * @param fileUrl - Original file URL (for blob URL mapping)
+   * The blob URL is kept alive while the module is loaded and revoked in
+   * unload(), so the loader can reclaim the bundle when the mini-app is no
+   * longer needed.
+   *
+   * @param moduleId - Module ID owning the blob URL (for cleanup on unload)
+   * @param fileUrl - Original file URL (for tracking/logging)
    * @param code - JavaScript code to evaluate
    * @returns Module exports as MiniAppModuleExports
    */
   private async evaluateModule(
+    moduleId: string,
     fileUrl: string,
     code: string,
   ): Promise<MiniAppModuleExports> {
@@ -549,15 +541,29 @@ export class RuntimeLoader {
       type: "application/javascript",
     });
     const blobUrl = URL.createObjectURL(blob);
-    this.blobURLs.set(fileUrl, blobUrl);
+    console.log(
+      "[RuntimeLoader] evaluateModule — moduleId:",
+      moduleId,
+      "file:",
+      fileUrl,
+    );
+
+    // Release any previous blob URL for this module before registering the
+    // new one. The URL stays alive while the module is loaded and is revoked
+    // on unload().
+    const previous = this.blobURLs.get(moduleId);
+    if (previous) URL.revokeObjectURL(previous);
+    this.blobURLs.set(moduleId, blobUrl);
 
     try {
-      const mod = (await import(
+      return (await import(
         /* @vite-ignore */ /* webpackIgnore: true */ blobUrl
       )) as MiniAppModuleExports;
-      return mod;
-    } finally {
+    } catch (err) {
+      // Evaluation failed — release the blob URL immediately
+      this.blobURLs.delete(moduleId);
       URL.revokeObjectURL(blobUrl);
+      throw err;
     }
   }
 }
