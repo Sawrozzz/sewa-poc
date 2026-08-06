@@ -1,10 +1,8 @@
 /**
  * RpcServer — the privileged gateway between Mini Apps and Shell internals.
  *
- * Replaces the old `ShellCommunicator` giant `switch` with a `MethodRegistry`.
- * Owns the transport subscription, handshake/version negotiation, connected
- * module lifecycle, capability gating, event subscription broadcast, and
- * `sdk.invoke` forwarding.
+ * Owns the transport subscription, handshake, connected module lifecycle,
+ * capability gating, event subscription broadcast, and RPC method routing.
  *
  * Mini Apps NEVER bypass this layer. All SDK calls are validated, traced,
  * and routed here.
@@ -14,15 +12,14 @@ import axios from 'axios';
 
 import {
   PROTOCOL_VERSION,
-  MESSAGE_CHANNEL,
   SDK_CAPABILITIES,
   ACTIONS,
   NAMESPACES,
 } from '../constants';
 import { RpcMethodError } from '../errors';
 import { PLATFORM_EVENTS } from '../events';
-import { splitEventType, createMessage } from '../protocol';
-import { WindowEventTransport } from '../transport';
+import { splitEventType, createMessage, isPlatformMessage } from '../protocol';
+import { PostMessageTransport } from '../transport';
 
 import { MethodRegistry, type RpcContext } from './method-registry';
 
@@ -31,9 +28,6 @@ import type { HostPlatformMessage } from '../protocol';
 import type { Transport } from '../transport';
 import type { ShellServiceMap } from '../types';
 import type { NavigationTarget } from '../types/sdk.types';
-
-
-
 
 export interface RpcServerOptions {
   services: ShellServiceMap;
@@ -48,56 +42,33 @@ export interface ConnectedModule {
   moduleId: string;
   sdkVersion: string;
   protocolVersion: string;
-  negotiatedVersion: string;
   capabilities: string[];
   connectedAt: number;
   origin: string;
   eventSubscriptions: Set<string>;
 }
 
-interface ServiceEntry {
-  moduleId: string;
-  method: string;
-}
+/** Capabilities the host serves beyond the SDK's built-in set. */
+const HOST_EXTRA_CAPABILITIES = ['event'];
 
-interface PendingRequest {
-  resolve: (msg: HostPlatformMessage) => void;
-  timer: ReturnType<typeof setTimeout>;
-}
-
-/** Capabilities the host actually serves, beyond the SDK's built-in set. */
-// TEMP — Flutter parity test. Dropping 'appearance' makes `isMethodAllowed()`
-// reject `appearance.*` requests, so this host looks exactly like the mobile
-// shell to a mini app: locale/theme can only arrive via the `platform.getType`
-// hint. The `appearance.*` EVENTS are unaffected — broadcastToModules() gates
-// on eventSubscriptions, not capabilities — which is correct, since runtime
-// changes must keep working on both shells.
-// To restore: put 'appearance' back in the array.
-const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
+export class RpcServer {
   private services: ShellServiceMap;
   private eventBus: EventBus;
   /** The transport bound to this server — also exposed for host observability. */
   readonly transport: Transport;
   private allowedOrigins: string[];
   private modules = new Map<string, ConnectedModule>();
-  private pendingRequests = new Map<string, PendingRequest>();
   private transportUnsub: (() => void) | null = null;
   private eventUnsubscribers: Array<() => void> = [];
   private onModuleConnected?: (moduleId: string) => void;
   private onModuleDisconnected?: (moduleId: string) => void;
-  private serviceRegistry = new Map<string, ServiceEntry>();
-  private registry = new MethodRegistry({
-    onUnknownMethod: (namespace, action) => {
-      void namespace;
-      void action;
-    },
-  });
+  private registry = new MethodRegistry();
   private _initialized = false;
 
   constructor(options: RpcServerOptions) {
     this.services = options.services;
     this.eventBus = options.eventBus;
-    this.transport = options.transport ?? new WindowEventTransport();
+    this.transport = options.transport ?? new PostMessageTransport();
     this.allowedOrigins = options.allowedOrigins ?? ['*'];
     this.onModuleConnected = options.onModuleConnected;
     this.onModuleDisconnected = options.onModuleDisconnected;
@@ -127,18 +98,11 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
     for (const unsub of this.eventUnsubscribers) unsub();
     this.eventUnsubscribers = [];
     this.modules.clear();
-    this.pendingRequests.clear();
-    this.serviceRegistry.clear();
     this._initialized = false;
   }
 
   disconnectModule(moduleId: string): void {
     this.modules.delete(moduleId);
-    for (const [method, entry] of this.serviceRegistry) {
-      if (entry.moduleId === moduleId) {
-        this.serviceRegistry.delete(method);
-      }
-    }
     this.onModuleDisconnected?.(moduleId);
   }
 
@@ -159,10 +123,10 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
     msg: HostPlatformMessage,
     source?: Window | null,
   ): Promise<void> {
-    if (!msg || msg.channel !== MESSAGE_CHANNEL) {
+    if (!isPlatformMessage(msg)) {
       return;
     }
-    if (msg.type !== 'request' && msg.type !== 'handshake' && msg.type !== 'response') {
+    if (msg.type !== 'request' && msg.type !== 'handshake') {
       return;
     }
 
@@ -172,28 +136,10 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
     }
 
     try {
-      if (msg.type === 'handshake') {
-        const response = await this.processHandshake(msg, origin);
-        this.transport.send(response, source);
-        return;
-      }
-
-      if (msg.type === 'request') {
-        const response = await this.routeRequest(msg, source);
-        this.transport.send(response, source);
-        return;
-      }
-
-      // Response from a forwarded request (sdk.invoke) — resolve the pending.
-      if (msg.type === 'response') {
-        const pending = this.pendingRequests.get(msg.requestId);
-        if (pending) {
-          clearTimeout(pending.timer);
-          this.pendingRequests.delete(msg.requestId);
-          pending.resolve(msg);
-        }
-        return;
-      }
+      const response = msg.type === 'handshake'
+        ? await this.processHandshake(msg, origin)
+        : await this.routeRequest(msg, source);
+      this.transport.send(response, source);
     } catch (err) {
       const error = {
         code: 'COMMUNICATOR_ERROR',
@@ -230,16 +176,12 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
     };
 
     const miniAppId = payload.miniAppId ?? msg.source;
-    const negotiatedVersion = this.negotiateVersion(payload.protocolVersion ?? payload.sdkVersion ?? PROTOCOL_VERSION);
-    // `appearance` appears in both SDK_CAPABILITIES and HOST_EXTRA_CAPABILITIES;
-    // dedupe so the negotiated list stays clean.
     const capabilities = Array.from(new Set([...SDK_CAPABILITIES, ...HOST_EXTRA_CAPABILITIES]));
 
     const module: ConnectedModule = {
       moduleId: miniAppId,
       sdkVersion: payload.sdkVersion ?? '0.0.0',
       protocolVersion: payload.protocolVersion ?? PROTOCOL_VERSION,
-      negotiatedVersion,
       capabilities,
       connectedAt: Date.now(),
       origin,
@@ -250,8 +192,7 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
     this.onModuleConnected?.(miniAppId);
 
     // HandshakeAckPayload — the exact shape the SDK's RpcClient reads:
-    // { status, protocolVersion, capabilities }. No `grantedCapabilities`
-    // (that field was never read by the SDK and silently broke negotiation).
+    // { status, protocolVersion, capabilities }.
     return createMessage(
       'response',
       NAMESPACES.HANDSHAKE,
@@ -397,14 +338,6 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
     // two further `appearance.*` round trips. It's the only channel the
     // Flutter shell has (it serves no `appearance` namespace), and this host
     // uses the same one so both shells drive one SDK code path.
-    //
-    // Send the full LocaleState/ThemeState objects rather than bare strings:
-    // given a string, the SDK would re-derive `direction` from the language
-    // subtag. This host already computes it, and its answer is authoritative.
-    //
-    // Best-effort — a failed appearance lookup must not fail `getType`, which
-    // gates the mini app's entire startup. Older SDKs ignore the extra field
-    // and fall back to the `appearance` namespace, which stays registered.
     r.register(NAMESPACES.PLATFORM, ACTIONS.PLATFORM.GET_TYPE, async () => {
       const info = await this.services.device.info();
       const raw = (info as unknown as { platform?: string }).platform ?? 'web';
@@ -420,15 +353,6 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
         return { type };
       }
     });
-    r.register(NAMESPACES.PLATFORM, 'isWeb', async () => {
-      const info = await this.services.device.info();
-      return String((info as unknown as { platform?: string }).platform ?? 'web')
-        .toUpperCase()
-        .startsWith('WEB');
-    });
-    r.register(NAMESPACES.PLATFORM, 'isAndroid', () => false);
-    r.register(NAMESPACES.PLATFORM, 'isIOS', () => false);
-    r.register(NAMESPACES.PLATFORM, 'isMobile', () => false);
 
     r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.LOCATION, async (payload) => {
       try {
@@ -464,21 +388,6 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
     r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.NETWORK, () =>
       this.services.device.network(),
     );
-    r.register(NAMESPACES.DEVICE, 'storage', (payload) => {
-      const action = (payload as { action?: string })?.action ?? '';
-      const key = (payload as { key?: string })?.key ?? '';
-      const value = (payload as { value?: string })?.value ?? '';
-      switch (action) {
-        case 'get':
-          return this.services.device.storage.get(key);
-        case 'set':
-          return this.services.device.storage.set(key, value).then(() => value);
-        case 'remove':
-          return this.services.device.storage.remove(key).then(() => null);
-        default:
-          return null;
-      }
-    });
     r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.INFO, () =>
       this.services.device.info(),
     );
@@ -566,14 +475,12 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
     );
 
     // Events — subscription bookkeeping lives on the ConnectedModule and is
-    // consulted by broadcastToModules().
-    r.register(NAMESPACES.EVENT, ACTIONS.EVENT.SUBSCRIBE, (payload, ctx) => {      const eventType = (payload as { eventType?: string })?.eventType;
-      if (eventType) this.modules.get(ctx.moduleId)?.eventSubscriptions.add(eventType);
-      return null;
-    });
-    r.register(NAMESPACES.EVENT, ACTIONS.EVENT.UNSUBSCRIBE, (payload, ctx) => {
+    // consulted by broadcastToModules(). The SDK subscribes to host events
+    // with `event.subscribe` and never sends `event.unsubscribe` (its own
+    // handler teardown is local), so only subscribe/emit are served.
+    r.register(NAMESPACES.EVENT, ACTIONS.EVENT.SUBSCRIBE, (payload, ctx) => {
       const eventType = (payload as { eventType?: string })?.eventType;
-      if (eventType) this.modules.get(ctx.moduleId)?.eventSubscriptions.delete(eventType);
+      if (eventType) this.modules.get(ctx.moduleId)?.eventSubscriptions.add(eventType);
       return null;
     });
     // SDK sends { event, data } — NOT { eventType, payload }.
@@ -591,6 +498,8 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
       return null;
     });
 
+    // Chat — streams model responses back to the mini app as `stream`
+    // messages. Requires `services.chat` on the ShellServiceMap.
     r.register('ai', 'chat', async (payload, ctx) => {
       const chatPayload = payload as {
         messages?: { role: string; content: string }[];
@@ -631,43 +540,6 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
 
       return { streaming: true };
     });
-
-    r.register('sdk', 'invoke', async (payload, ctx) => {
-      const invokeMethod = (payload as { method?: string })?.method;
-      const invokePayload = (payload as { payload?: unknown })?.payload;
-      const serviceModule = this.findServiceModule(invokeMethod ?? '');
-      if (!serviceModule) {
-        throw new RpcMethodError(
-          'SERVICE_NOT_FOUND',
-          `No service registered for: ${invokeMethod}`,
-        );
-      }
-      return this.forwardToModule(
-        invokeMethod ?? '',
-        invokePayload,
-        ctx,
-        serviceModule,
-      );
-    });
-
-    r.register('sdk', 'register', (payload, ctx) => {
-      const registerMethod = (payload as { method?: string })?.method;
-      if (!registerMethod) {
-        throw new RpcMethodError('INVALID_PARAMS', 'Invalid registration');
-      }
-      const existing = this.serviceRegistry.get(registerMethod);
-      if (existing && existing.moduleId !== ctx.moduleId) {
-        throw new RpcMethodError(
-          'SERVICE_CONFLICT',
-          `Service ${registerMethod} already registered by ${existing.moduleId}`,
-        );
-      }
-      this.serviceRegistry.set(registerMethod, {
-        moduleId: ctx.moduleId,
-        method: registerMethod,
-      });
-      return null;
-    });
   }
 
   // ---------------------------------------------------------------------------
@@ -676,9 +548,8 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
 
   /**
    * Merges the active locale into an outbound request's headers so the backend
-   * can localize dynamic content at request time (see HOST-APPEARANCE-ARCHITECTURE
-   * Q5). Best-effort: a failed/absent appearance lookup falls back to the
-   * caller's headers untouched.
+   * can localize dynamic content at request time. Best-effort: a failed/absent
+   * appearance lookup falls back to the caller's headers untouched.
    */
   private async withAppearanceHeaders(headers?: Record<string, string>): Promise<Record<string, string>> {
     try {
@@ -782,72 +653,6 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
     }
   }
 
-  private matchesSubscription(eventType: string, pattern: string): boolean {
-    if (pattern === '*') return true;
-    if (pattern.endsWith('*')) {
-      return eventType.startsWith(pattern.slice(0, -1));
-    }
-    return eventType === pattern;
-  }
-
-  // ---------------------------------------------------------------------------
-  // sdk.invoke forwarding
-  // ---------------------------------------------------------------------------
-
-  private findServiceModule(method: string): ServiceEntry | undefined {
-    return this.serviceRegistry.get(method);
-  }
-
-  private async forwardToModule(
-    method: string,
-    payload: unknown,
-    ctx: RpcContext,
-    target: ServiceEntry,
-  ): Promise<unknown> {
-    const [ns, ...rest] = method.split('.');
-    const action = rest.join('.');
-    const request = createMessage(
-      'request',
-      ns,
-      action,
-      ctx.moduleId,
-      target.moduleId,
-      payload,
-      { traceId: ctx.traceId },
-    );
-
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.pendingRequests.delete(request.requestId);
-        reject(
-          new RpcMethodError(
-            'FORWARD_TIMEOUT',
-            `Service ${method} timed out`,
-          ),
-        );
-      }, 30000);
-
-      this.pendingRequests.set(request.requestId, {
-        resolve: (msg: HostPlatformMessage) => {
-          clearTimeout(timer);
-          if (msg.error) {
-            reject(
-              new RpcMethodError(
-                msg.error.code,
-                msg.error.message,
-                msg.error.retryable ?? false,
-              ),
-            );
-            return;
-          }
-          resolve(msg.payload);
-        },
-        timer,
-      });
-      this.transport.send(request);
-    });
-  }
-
   // ---------------------------------------------------------------------------
   // Chat streaming
   // ---------------------------------------------------------------------------
@@ -901,6 +706,14 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
       ),
       ctx.source,
     );
+  }
+
+  private matchesSubscription(eventType: string, pattern: string): boolean {
+    if (pattern === '*') return true;
+    if (pattern.endsWith('*')) {
+      return eventType.startsWith(pattern.slice(0, -1));
+    }
+    return eventType === pattern;
   }
 
   // ---------------------------------------------------------------------------
@@ -962,13 +775,6 @@ const HOST_EXTRA_CAPABILITIES = ['event', 'ai', 'sdk'];export class RpcServer {
     target: NavigationTarget,
   ): boolean {
     return Boolean(moduleId && target.app && target.route);
-  }
-
-  private negotiateVersion(sdkProtocolVersion: string): string {
-    const [major] = sdkProtocolVersion.split('.');
-    const [shellMajor] = PROTOCOL_VERSION.split('.');
-    if (major === shellMajor) return PROTOCOL_VERSION;
-    return `${shellMajor}.0.0`;
   }
 }
 

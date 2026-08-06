@@ -118,9 +118,9 @@ export class RuntimeLoader {
     options: PluginLoadOptions = {},
     mountMode: MountMode = "dom",
   ): Promise<RemoteLoadResult> {
-    // Return cached module if already loaded
+    // Return cached module if already loaded (and version still matches)
     const cached = this.loadedModules.get(moduleId);
-    if (cached && cached.bundle) {
+    if (cached && cached.bundle && (!version || cached.version === version)) {
       return {
         moduleId,
         success: true,
@@ -131,8 +131,10 @@ export class RuntimeLoader {
       };
     }
 
-    // Return existing load promise if currently loading (prevents duplicates)
-    const existing = this.loadingPromises.get(moduleId);
+    // Return existing load promise if currently loading (prevents duplicates).
+    // Keyed by version so a newer release never reuses an in-flight old load.
+    const loadKey = `${moduleId}@${version ?? ""}`;
+    const existing = this.loadingPromises.get(loadKey);
     if (existing) {
       return existing;
     }
@@ -145,11 +147,11 @@ export class RuntimeLoader {
       options,
       mountMode,
     );
-    this.loadingPromises.set(moduleId, promise);
+    this.loadingPromises.set(loadKey, promise);
     try {
       return await promise;
     } finally {
-      this.loadingPromises.delete(moduleId);
+      this.loadingPromises.delete(loadKey);
     }
   }
 
@@ -347,7 +349,27 @@ export class RuntimeLoader {
     const bundleDirUrl = bundleUrl;
 
     // Check if module is cached
-    const dirCached = await this.db.hasDirectory(moduleId);
+    let dirCached = await this.db.hasDirectory(moduleId);
+
+    // Version-aware invalidation: if the cached copy is an older version,
+    // purge it so the new release is downloaded below.
+    if (dirCached && version) {
+      const cachedVersion = await this.db.getVersion(moduleId);
+      if (cachedVersion !== version) {
+        console.log(
+          "[RuntimeLoader] Cache stale for",
+          moduleId,
+          "cached:",
+          cachedVersion,
+          "requested:",
+          version,
+          "— purging",
+        );
+        await this.db.deleteModule(moduleId);
+        dirCached = false;
+      }
+    }
+
     let files: Record<string, string> = {};
     let entryFileName = "index.js";
     let cssFileNames: string[] = [];
@@ -439,6 +461,11 @@ export class RuntimeLoader {
           Array.from(fileNames),
           null,
         );
+      }
+
+      // Persist the version marker alongside the freshly downloaded files
+      if (version) {
+        await this.db.setVersion(moduleId, version);
       }
     }
 

@@ -80,6 +80,7 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
       appearanceController.apply();
 
       const loader = createRuntimeLoader({
+        maxModules: resolveMaxCachedMiniApps(),
         onLoadComplete: (result) => {
           console.log('Successfully load', result.success);
         },
@@ -164,4 +165,16 @@ export function useRuntimeLoader(): RuntimeLoader {
 
 export function useEventBus(): EventBus {
   return usePlatform().eventBus;
+}
+
+/**
+ * Number of mini-app bundles to keep in the PWA asset cache (FIFO eviction).
+ * Configurable via `NEXT_PUBLIC_MAX_CACHED_MINI_APPS`; defaults to 2.
+ * Oldest cached app assets are removed from IndexedDB once the limit is exceeded.
+ */
+function resolveMaxCachedMiniApps(): number {
+  const raw = process.env.NEXT_PUBLIC_MAX_CACHED_MINI_APPS;
+  if (!raw) return 2;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 2;
 }

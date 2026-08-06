@@ -127,6 +127,9 @@ export function createShellServices(
     },
   };
 
+  const { http, api, storage } = createHttpService();
+  const device = createDeviceService(() => getConfig().getUser());
+
   const chat = {
     chat: async function* (
       messages: ChatMessage[],
@@ -196,9 +199,6 @@ export function createShellServices(
       }
     },
   };
-
-  const { http, api, storage } = createHttpService();
-  const device = createDeviceService(() => getConfig().getUser());
 
   return {
     auth,

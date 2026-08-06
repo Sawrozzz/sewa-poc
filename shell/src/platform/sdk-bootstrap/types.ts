@@ -15,8 +15,8 @@ export interface MiniAppSdkHostOptions {
   sdkVersion?: string;
   /** Host capability strings advertised to mini apps. */
   capabilities?: readonly string[];
-  /** Bundle sources tried in order (overrides `DEFAULT_SDK_SOURCES`). */
-  sources?: readonly string[];
+  /** Bundle source to load (overrides `DEFAULT_SDK_SOURCE`). */
+  source?: string;
 }
 
 export interface MiniAppSdkLoadResult {
