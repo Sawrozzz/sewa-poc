@@ -7,9 +7,7 @@ import { useState, useTransition } from "react";
 
 import { setLocale } from "@/i18n/actions";
 import {
-  localeEnglishLabels,
   localeLabels,
-  localeWelcome,
   locales,
   type Locale,
 } from "@/i18n/config";
@@ -20,6 +18,15 @@ export function LanguageScreen({ onContinueAction }: { onContinueAction: () => v
   const router = useRouter();
   const [selected, setSelected] = useState<Locale>(activeLocale);
   const [isPending, startTransition] = useTransition();
+
+  const handleLanguageSelect = (locale: Locale) => {
+    setSelected(locale);
+
+    startTransition(async () => {
+      await setLocale(locale);
+      router.refresh();
+    });
+  };
 
   const handleContinue = () => {
     startTransition(async () => {
@@ -46,7 +53,7 @@ export function LanguageScreen({ onContinueAction }: { onContinueAction: () => v
               <button
                 key={code}
                 type="button"
-                onClick={() => setSelected(code)}
+                onClick={() => handleLanguageSelect(code)}
                 aria-pressed={isSelected}
                 className={`w-full flex items-center justify-between gap-4 rounded-2xl border p-5 text-left transition ${
                   isSelected
@@ -62,20 +69,7 @@ export function LanguageScreen({ onContinueAction }: { onContinueAction: () => v
                   >
                     {localeLabels[code]}
                   </p>
-                  <p
-                    className={`text-sm ${
-                      isSelected ? "text-gov-800" : "text-gov-300"
-                    }`}
-                  >
-                    {localeWelcome[code]}
-                  </p>
-                  <p
-                    className={`mt-1 text-xs ${
-                      isSelected ? "text-gray-400" : "text-gov-400"
-                    }`}
-                  >
-                    {localeEnglishLabels[code]}
-                  </p>
+      
                 </div>
 
                 <span
