@@ -239,8 +239,8 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
     ],
     isEnabled: true,
     order: 1,
-    // bundleUrl: "https://angular-mini-app.vercel.app/",
-    bundleUrl: "http://localhost:3006/",
+    bundleUrl: "https://nuxt-mini-app-orcin.vercel.app/",
+    // bundleUrl: "http://localhost:3006/",
     entryType: "framework-agnostic",
     loadStrategy: "plugin",
     compatibility: {
