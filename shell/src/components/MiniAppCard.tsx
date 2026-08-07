@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 
 import type { ModuleManifest } from "@sewa/host-platform";
 
+import { miniAppAnchorId } from "@/lib/mini-app-search";
+
 interface MiniAppCardProps {
   module: ModuleManifest;
 }
@@ -13,8 +15,9 @@ export function MiniAppCard({ module }: MiniAppCardProps) {
 
   return (
     <button
+      id={miniAppAnchorId(module.id)}
       onClick={() => router.push(`/${module.id}`)}
-      className="group bg-white rounded-xl border border-gray-200 hover:border-gov-400 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 p-6 flex flex-col text-left relative overflow-hidden"
+      className="group bg-white rounded-xl border border-gray-200 hover:border-gov-400 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 p-6 flex flex-col text-left relative overflow-hidden scroll-mt-40"
     >
       <div
         className="absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full opacity-10 group-hover:opacity-20 transition-opacity"

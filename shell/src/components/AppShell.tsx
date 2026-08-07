@@ -1,8 +1,8 @@
 'use client';
 
-import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { GlobalSearch } from './GlobalSearch';
 import { Header } from './Header';
 import { ModuleGrid } from './ModuleGrid';
 
@@ -15,15 +15,7 @@ export function AppShell() {
 
       <div className="sticky top-16 z-40 ">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-
-            <input
-              type="text"
-              placeholder="Search government services..."
-              className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-4 text-sm shadow-sm outline-none transition-all duration-200 placeholder:text-gray-400 focus:border-gov-500 focus:ring-4 focus:ring-gov-100"
-            />
-          </div>
+          <GlobalSearch />
         </div>
       </div>
 
