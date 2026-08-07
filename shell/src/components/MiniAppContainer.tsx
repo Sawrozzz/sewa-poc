@@ -9,9 +9,10 @@ import { MiniAppLoader } from './MiniAppLoader';
 
 import type { RemoteLoadResult } from '@sewa/host-platform';
 
+import { useEventBus, usePlatform, useRuntimeLoader } from '@/context';
 import { authClient } from '@/lib/auth-client';
 import { useMiniApp } from '@/lib/use-mini-apps';
-import { useRuntimeLoader, useEventBus, usePlatform, useMiniAppBackButton } from '@/platform';
+import { useMiniAppBackButton } from '@/platform';
 import { loadMiniAppSdk, destroyMiniAppSdk } from '@/platform/sdk-bootstrap';
 
 export interface MiniAppContainerProps {

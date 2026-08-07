@@ -3,7 +3,7 @@
 import { PLATFORM_EVENTS } from '@sewa/host-platform';
 import { useCallback, useEffect, useRef } from 'react';
 
-import { usePlatform } from './PlatformProvider';
+import { usePlatform } from '@/context';
 
 /**
  * Marker stored on the sentinel history entry this hook pushes.
@@ -45,7 +45,7 @@ export interface UseMiniAppBackButtonOptions {
 export function useMiniAppBackButton({ onExit, enabled = true }: UseMiniAppBackButtonOptions) {
   const { services, eventBus } = usePlatform();
 
-  console.log('EVNT', eventBus)
+  console.log('EVNT', eventBus);
   const onExitRef = useRef(onExit);
 
   useEffect(() => {

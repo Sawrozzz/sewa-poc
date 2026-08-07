@@ -1,7 +1,8 @@
+import { PLATFORM_EVENTS } from "@sewa/host-platform";
+
 import { createDeviceService } from "./device";
 import { createHttpService } from "./http";
 
-import { PLATFORM_EVENTS } from "@sewa/host-platform";
 
 import type { AppearanceController } from "../appearance-controller";
 import type {PlatformServicesConfig} from "@/types/platform";
