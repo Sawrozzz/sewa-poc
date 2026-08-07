@@ -78,6 +78,9 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
 
       const services = createShellServices(() => authConfigRef.current, {
         appearanceController,
+        // The navigation service publishes `navigation.back.requested` on it
+        // and waits for the mini app's reply — see `useMiniAppBackButton`.
+        eventBus,
       });
       appearanceController.apply();
 

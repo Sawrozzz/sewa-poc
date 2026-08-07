@@ -40,7 +40,7 @@ export const ACTIONS = {
   PERMISSIONS: { HAS: 'has', LIST: 'list' },
   FLAGS: { IS_ENABLED: 'isEnabled', GET_ALL: 'getAll' },
   CONFIG: { GET: 'get', GET_ALL: 'getAll' },
-  NAVIGATION: { NAVIGATE: 'navigate', GET_CURRENT: 'getCurrent' },
+  NAVIGATION: { NAVIGATE: 'navigate', GET_CURRENT: 'getCurrent', BACK: 'back', PUSH: 'push' },
   PLATFORM: { GET_TYPE: 'getType' },
   DEVICE: {
     LOCATION: 'location', CAMERA: 'camera', GALLERY: 'gallery',

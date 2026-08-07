@@ -21,6 +21,12 @@ export interface PlatformEvent<T = unknown> {
 export const PLATFORM_EVENTS = {
   NAVIGATION_REQUEST: 'navigation.route.request',
   NAVIGATION_CHANGED: 'navigation.route.changed',
+  /**
+   * shell -> mini app: the user pressed back and the shell is holding the
+   * press. The mini app answers with `navigation.back` — `consumed: true`
+   * means it popped one of its own routes and the shell must stay put.
+   */
+  NAVIGATION_BACK_REQUESTED: 'navigation.back.requested',
   MODULE_LOADED: 'module.lifecycle.loaded',
   MODULE_FAILED: 'module.lifecycle.failed',
   MODULE_UNLOADED: 'module.lifecycle.unloaded',

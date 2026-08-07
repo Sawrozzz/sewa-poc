@@ -328,6 +328,18 @@ export class RpcServer {
       this.services.navigation.getCurrent(),
     );
 
+    // The mini app's half of the back-button handshake. `back` is its answer
+    // to `navigation.back.requested`; `push` is it telling the shell it now
+    // has a route of its own to pop, so the next back press is worth asking
+    // about. Both carry a single boolean and default to `true` — an older
+    // mini app that sends no payload is saying "I handled it".
+    r.register(NAMESPACES.NAVIGATION, ACTIONS.NAVIGATION.BACK, (payload, ctx) =>
+      this.services.navigation.back(readConsumed(payload), ctx.moduleId),
+    );
+    r.register(NAMESPACES.NAVIGATION, ACTIONS.NAVIGATION.PUSH, (payload, ctx) =>
+      this.services.navigation.push(readConsumed(payload), ctx.moduleId),
+    );
+
     // platform.getType returns `{ type, appearance }`. `type` MUST be a
     // PlatformTypeLiteral ("web" / "flutter"), not the whole device.info()
     // object — the SDK stores it as `platform.type` and derives
@@ -780,4 +792,18 @@ export class RpcServer {
 
 export function createRpcServer(options: RpcServerOptions): RpcServer {
   return new RpcServer(options);
+}
+
+/**
+ * Reads the single boolean `navigation.back` / `navigation.push` carry. The
+ * SDK sends `{ consumed }`; a bare boolean and a missing payload are both
+ * accepted so the handshake survives a hand-rolled caller.
+ */
+function readConsumed(payload: unknown): boolean {
+  if (typeof payload === 'boolean') return payload;
+  if (payload && typeof payload === 'object') {
+    const { consumed } = payload as { consumed?: unknown };
+    if (typeof consumed === 'boolean') return consumed;
+  }
+  return true;
 }
