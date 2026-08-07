@@ -23,7 +23,7 @@ function toManifest(app: MiniAppRecord): ModuleManifest {
     icon: (app.metadata?.icon as string) ?? "📦",
     color: (app.metadata?.color as string) ?? "#dc9a0d",
     category: (app.metadata?.category as string) ?? "General",
-    route: `/mini-app/${app.miniAppId}`,
+    route: `/${app.miniAppId}`,
     requiredPermissions: [],
     isEnabled: true,
     order: 0,
@@ -52,7 +52,7 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
     icon: "🎯",
     color: "#dc9a0d",
     category: "Playground",
-    route: "/mini-app/test",
+    route: "/test",
     requiredPermissions: [],
     capabilities: [
       "auth",
@@ -71,8 +71,8 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
     ],
     isEnabled: true,
     order: 1,
-    // bundleUrl: "https://test-mini-app-orcin.vercel.app/",
-    bundleUrl: "http://localhost:3002/",
+    bundleUrl: "https://test-mini-app-orcin.vercel.app/",
+    // bundleUrl: "http://localhost:3002/",
     entryType: "framework-agnostic",
     loadStrategy: "plugin",
     compatibility: {
@@ -94,7 +94,7 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
     icon: "🟢",
     color: "#dc9a0d",
     category: "Playground",
-    route: "/mini-app/veu-mini-app",
+    route: "/veu-mini-app",
     requiredPermissions: [],
     capabilities: [
       "auth",
@@ -136,7 +136,7 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
     icon: "🟡",
     color: "#dc9a0d",
     category: "Playground",
-    route: "/mini-app/next-mini-app",
+    route: "/next-mini-app",
     requiredPermissions: [],
     capabilities: [
       "auth",
@@ -178,7 +178,7 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
     icon: "🔴",
     color: "#dc9a0d",
     category: "Playground",
-    route: "/mini-app/angular-mini-app",
+    route: "/angular-mini-app",
     requiredPermissions: [],
     capabilities: [
       "auth",
@@ -220,7 +220,7 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
     icon: "⚫",
     color: "#dc9a0d",
     category: "Playground",
-    route: "/mini-app/nuxt-mini-app",
+    route: "/nuxt-mini-app",
     requiredPermissions: [],
     capabilities: [
       "auth",
@@ -262,7 +262,7 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
     icon: "🔵",
     color: "#dc9a0d",
     category: "Playground",
-    route: "/mini-app/solid-mini-app",
+    route: "/solid-mini-app",
     requiredPermissions: [],
     capabilities: [
       "auth",
@@ -304,7 +304,7 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
     icon: "🟣",
     color: "#dc9a0d",
     category: "Playground",
-    route: "/mini-app/svelte-mini-app",
+    route: "/svelte-mini-app",
     requiredPermissions: [],
     capabilities: [
       "auth",

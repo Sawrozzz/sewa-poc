@@ -13,7 +13,7 @@ export function MiniAppCard({ module }: MiniAppCardProps) {
 
   return (
     <button
-      onClick={() => router.push(`/mini-app/${module.id}`)}
+      onClick={() => router.push(`/${module.id}`)}
       className="group bg-white rounded-xl border border-gray-200 hover:border-gov-400 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 p-6 flex flex-col text-left relative overflow-hidden"
     >
       <div
