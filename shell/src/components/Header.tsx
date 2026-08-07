@@ -92,7 +92,7 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-50 border-b transition-colors duration-300 ${
+      className={`safe-top sticky top-0 z-50 border-b transition-colors duration-300 ${
         isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
       }`}
     >

@@ -34,8 +34,20 @@ export const metadata: Metadata = {
     },
 };
 
+/*
+ * Single source of truth for the viewport tag. Next renders this export into
+ * <head>, so a hand-written <meta name="viewport"> here would ship a second,
+ * competing tag whose precedence varies by engine — that is what made the
+ * installed app scale differently from a browser tab.
+ *
+ * `maximum-scale` / `user-scalable=no` are deliberately absent: Chrome and
+ * Safari ignore them, and they only ever break pinch-zoom for users who need it.
+ */
 export const viewport: Viewport = {
     themeColor: "#3d2806",
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
 };
 
 export default async function RootLayout({
@@ -49,10 +61,6 @@ export default async function RootLayout({
     <html lang={locale}>
       <head>
         <title>Government Citizen Portal</title>
-        <meta
-          content="initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, width=device-width"
-          name="viewport"
-        />
       </head>
       <body>
         <SerwistProvider swUrl="/serwist/sw.js">

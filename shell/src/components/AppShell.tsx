@@ -13,13 +13,13 @@ export function AppShell() {
     <div className="min-h-screen bg-linear-to-br from-gov-50 via-white to-gov-50">
       <Header />
 
-      <div className="sticky top-16 z-40 ">
+      <div className="below-header sticky z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <GlobalSearch />
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="safe-bottom max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-10 bg-linear-to-br from-gov-800 via-gov-900 to-gov-950 rounded-2xl p-8 text-white shadow-xl shadow-gov-300/50 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -mr-32 -mt-32" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full -ml-20 -mb-20" />

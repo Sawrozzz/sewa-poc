@@ -63,7 +63,7 @@ export function InstallPrompt() {
   if (isStandalone || !isMobile || !showCustomPrompt) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 bg-gov-50 border border-gov-200 rounded-lg p-4 shadow-lg z-50">
+    <div className="pinned-bottom-safe fixed left-4 right-4 bg-gov-50 border border-gov-200 rounded-lg p-4 shadow-lg z-50">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-gov-900">Install App</h3>
