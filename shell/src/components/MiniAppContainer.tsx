@@ -11,7 +11,7 @@ import type { RemoteLoadResult } from '@sewa/host-platform';
 
 import { authClient } from '@/lib/auth-client';
 import { useMiniApp } from '@/lib/use-mini-apps';
-import { useRuntimeLoader, useEventBus, usePlatform } from '@/platform';
+import { useRuntimeLoader, useEventBus, usePlatform, useMiniAppBackButton } from '@/platform';
 import { loadMiniAppSdk, destroyMiniAppSdk } from '@/platform/sdk-bootstrap';
 
 export interface MiniAppContainerProps {
@@ -137,6 +137,12 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
     miniAppId,
     communicator,
   ]);
+
+  // Give the mini app first refusal on the browser back button: it pops its
+  // own route while it has one, and only when it says it's at its root does
+  // the shell close the container.
+  const exitToPortal = useCallback(() => router.push('/'), [router]);
+  useMiniAppBackButton({ onExit: exitToPortal, enabled: loadState === 'ready' });
 
   const handleRetry = useCallback(() => {
     setLoadError('');

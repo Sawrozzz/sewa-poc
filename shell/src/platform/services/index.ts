@@ -1,22 +1,33 @@
 import { createDeviceService } from "./device";
 import { createHttpService } from "./http";
 
+import { PLATFORM_EVENTS } from "@sewa/host-platform";
+
 import type { AppearanceController } from "../appearance-controller";
 import type {PlatformServicesConfig} from "@/types/services";
 import type {
+  EventBus,
   NavigationTarget,
   NavigationState,
+  NavigationRouterResult,
   ChatMessage,
   ShellAppearanceService,
 } from "@sewa/host-platform";
 
 export type { PlatformServicesConfig } from "@/types/services";
 
+/**
+ * How long the shell holds a back press waiting for the mini app's answer.
+ * Generous enough for a busy main thread, short enough that a mini app which
+ * never answers doesn't leave the user pressing back at a dead button.
+ */
+const BACK_ANSWER_TIMEOUT_MS = 700;
+
 export function createShellServices(
   getConfig: () => PlatformServicesConfig,
-  deps: { appearanceController?: AppearanceController } = {},
+  deps: { appearanceController?: AppearanceController; eventBus?: EventBus } = {},
 ) {
-  const { appearanceController } = deps;
+  const { appearanceController, eventBus } = deps;
 
   const appearance: ShellAppearanceService = appearanceController
     ? {
@@ -105,6 +116,38 @@ export function createShellServices(
     },
   };
 
+  /**
+   * Back-button handshake state.
+   *
+   * `miniAppCanGoBack` is whatever the mounted mini app last told us about
+   * its own history — via `navigation.push` or its `navigation.route.changed`
+   * event. It starts `false`, so a mini app that knows nothing about the
+   * handshake (or hasn't navigated yet) never costs the user a round trip:
+   * the shell just leaves, exactly as it did before.
+   *
+   * `pendingBack` is the press currently being held, waiting for an answer.
+   */
+  let miniAppCanGoBack = false;
+  let pendingBack: {
+    resolve: (consumed: boolean) => void;
+    timer: ReturnType<typeof setTimeout>;
+  } | null = null;
+  const canGoBackHandlers = new Set<(canGoBack: boolean) => void>();
+
+  const setCanGoBack = (next: boolean) => {
+    if (miniAppCanGoBack === next) return;
+    miniAppCanGoBack = next;
+    canGoBackHandlers.forEach((handler) => handler(next));
+  };
+
+  const settleBack = (consumed: boolean) => {
+    if (!pendingBack) return;
+    clearTimeout(pendingBack.timer);
+    const { resolve } = pendingBack;
+    pendingBack = null;
+    resolve(consumed);
+  };
+
   const navigation = {
     navigate: async (target: NavigationTarget) => {
       navigationState = {
@@ -124,6 +167,58 @@ export function createShellServices(
     onNavigate: (handler: (state: NavigationState) => void) => {
       navigationHandlers.add(handler);
       return () => navigationHandlers.delete(handler);
+    },
+
+    /** The mini app's answer to a held back press. */
+    back: async (consumed: boolean): Promise<NavigationRouterResult> => {
+      settleBack(consumed);
+      // It just popped its last route, so the next press is the shell's.
+      if (!consumed) setCanGoBack(false);
+      return { consumed };
+    },
+
+    /** The mini app moved forward inside itself — it now has something to pop. */
+    push: async (consumed: boolean): Promise<NavigationRouterResult> => {
+      setCanGoBack(true);
+      return { consumed };
+    },
+
+    requestBack: (): Promise<boolean> => {
+      // Nothing to ask: no mini app has claimed history, so the press
+      // belongs to the shell.
+      if (!miniAppCanGoBack || !eventBus) return Promise.resolve(false);
+
+      // A second press while one is still in flight — don't stack them.
+      if (pendingBack) return Promise.resolve(true);
+
+      const answered = new Promise<boolean>((resolve) => {
+        pendingBack = {
+          resolve,
+          timer: setTimeout(() => {
+            pendingBack = null;
+            setCanGoBack(false);
+            resolve(false);
+          }, BACK_ANSWER_TIMEOUT_MS),
+        };
+      });
+
+      void eventBus.emit(PLATFORM_EVENTS.NAVIGATION_BACK_REQUESTED, "shell", {
+        requestId: `back-${Date.now()}`,
+      });
+
+      return answered;
+    },
+
+    canGoBack: () => miniAppCanGoBack,
+    setCanGoBack,
+    onCanGoBackChange: (handler: (canGoBack: boolean) => void) => {
+      canGoBackHandlers.add(handler);
+      return () => canGoBackHandlers.delete(handler);
+    },
+
+    resetRouter: () => {
+      settleBack(false);
+      setCanGoBack(false);
     },
   };
 
