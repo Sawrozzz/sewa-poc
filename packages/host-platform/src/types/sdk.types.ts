@@ -191,10 +191,42 @@ export interface ShellConfigService {
   getAll(moduleId?: string): Record<string, unknown>;
 }
 
+/** Reply to `navigation.back` / `navigation.push`. */
+export interface NavigationRouterResult {
+  /**
+   * `true` = the mini app handled the step inside its own router, so the
+   * shell must leave the container open. `false` = it has no history left
+   * and the shell should take the press back.
+   */
+  consumed: boolean;
+}
+
 export interface ShellNavigationService {
   navigate(target: NavigationTarget): Promise<void>;
   getCurrent(): NavigationState;
   onNavigate(handler: (state: NavigationState) => void): () => void;
+
+  /** A mini app answering `navigation.back.requested`. */
+  back(consumed: boolean, moduleId: string): Promise<NavigationRouterResult>;
+  /** A mini app reporting a forward step inside its own router. */
+  push(consumed: boolean, moduleId: string): Promise<NavigationRouterResult>;
+
+  // --- Host-only surface (never reachable from a mini app) ---
+
+  /**
+   * Publishes `navigation.back.requested` and resolves with the mini app's
+   * answer. Resolves `false` immediately when no mini app has claimed any
+   * history, and `false` on timeout, so the shell never hangs on a mini app
+   * that doesn't implement the handshake.
+   */
+  requestBack(): Promise<boolean>;
+  /** Whether the mounted mini app currently has history of its own to pop. */
+  canGoBack(): boolean;
+  /** Records what the mini app last reported about its own history. */
+  setCanGoBack(canGoBack: boolean): void;
+  onCanGoBackChange(handler: (canGoBack: boolean) => void): () => void;
+  /** Clears router state when a mini app unmounts. */
+  resetRouter(): void;
 }
 
 export interface ChatMessage {
