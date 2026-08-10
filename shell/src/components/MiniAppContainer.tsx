@@ -13,7 +13,7 @@ import { useEventBus, usePlatform, useRuntimeLoader } from '@/context';
 import { authClient } from '@/lib/auth-client';
 import { useMiniApp } from '@/lib/use-mini-apps';
 import { useMiniAppBackButton } from '@/platform';
-import { loadMiniAppSdk, destroyMiniAppSdk } from '@/platform/sdk-bootstrap';
+import { loadMiniAppSdk, destroyMiniAppSdk } from '@/platform/sdk';
 
 export interface MiniAppContainerProps {
   miniAppId: string;

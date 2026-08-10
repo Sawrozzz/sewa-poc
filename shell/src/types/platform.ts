@@ -56,3 +56,112 @@ export interface SdkBootstrapEnv {
   loadScript: (source: string) => Promise<void>;
   now: () => number;
 }
+
+export interface CachedSdkBundle {
+  /** Composite primary key: `"@lizuz/sewa-sdk@1.0.4"`. */
+  key: string;
+  /** Package name. Indexed, so every held version can be enumerated for GC. */
+  name: string;
+  /** Exact version. Never a range, never `"latest"`. */
+  version: string;
+  /** The bundle bytes, `type: "text/javascript"`. */
+  content: Blob;
+  /** SRI-format digest of `content`: `"sha256-<base64>"`. */
+  integrity: string;
+  /** `content.size`, denormalised so quota math never deserialises blobs. */
+  size: number;
+  /** The origin that actually served these bytes. */
+  sourceUrl: string;
+  /** Response validators, kept for cheap conditional revalidation later. */
+  etag?: string;
+  lastModified?: Date | string | undefined;
+  cachedAt: Date | string;
+  lastUsedAt: Date | string;
+}
+
+/** Why a given version is the active one. Diagnostics, mostly. */
+export type SdkPinReason = 'host-default' | 'remote-config' | 'rollback';
+
+/**
+ * Pointer to the version that last executed successfully. Written *after*
+ * execution, never before, so it always names a known-good record — that is
+ * what makes it usable as a local rollback target when the network is down.
+ */
+export interface SdkPointer {
+  key: 'active';
+  name: string;
+  version: string;
+  pinnedBy: SdkPinReason;
+  promotedAt: number;
+}
+
+/** Everything needed to locate, verify and identify one SDK build. */
+export interface SdkSpec {
+  name: string;
+  version: string;
+  /** Absolute URL the bundle is fetched from. */
+  url: string;
+  /**
+   * Expected SRI digest. When absent the bundle is trusted on first use and
+   * the computed digest is stored — later reads still verify against it, which
+   * catches local corruption but not a compromised CDN.
+   */
+  integrity?: string;
+  pinnedBy: SdkPinReason;
+}
+
+/**
+ * Storage abstraction. IndexedDB is one implementation (`db.ts`); tests use an
+ * in-memory one. Keeping the orchestration in `core.ts` free of IDB means it
+ * can be unit-tested without a browser, matching how `sdk-bootstrap/core.ts`
+ * is tested.
+ */
+export interface SdkStore {
+  get(key: string): Promise<CachedSdkBundle | null>;
+  put(bundle: CachedSdkBundle): Promise<void>;
+  delete(key: string): Promise<void>;
+  listByName(name: string): Promise<CachedSdkBundle[]>;
+  touch(key: string, at: number): Promise<void>;
+  getActive(): Promise<SdkPointer | null>;
+  setActive(pointer: SdkPointer): Promise<void>;
+  clear(): Promise<void>;
+  close(): void;
+}
+
+/** How the SDK bytes reached the page. Logged; useful in the field. */
+export type SdkCacheOutcome =
+  /** Served from IndexedDB, hash re-verified. */
+  | 'cache-hit'
+  /** Downloaded, verified, stored, executed. */
+  | 'downloaded'
+  /** Downloaded and verified, but storing failed. Executed from memory. */
+  | 'downloaded-unstored'
+  /** Target version unreachable; ran the last known-good cached version. */
+  | 'stale-hit'
+  /** Cache unusable. Ran today's plain `<script src>` path. */
+  | 'fallback';
+
+export interface SdkCacheResult {
+  outcome: SdkCacheOutcome;
+  /** The version that actually executed. */
+  version: string;
+  /** Wall time of the whole load, ms. */
+  loadTimeMs: number;
+  /** Present when the happy path was not taken. */
+  reason?: string;
+}
+
+/** Injectable environment, so `core.ts` needs neither a DOM nor IndexedDB. */
+export interface SdkCacheEnv {
+  /** Rejects when IndexedDB is unavailable (private mode, blocked, SSR). */
+  openStore: () => Promise<SdkStore>;
+  fetch: typeof fetch;
+  digest: (bytes: ArrayBuffer) => Promise<string>;
+  /** Execute cached bytes. Browser impl: blob URL + `<script>`. */
+  execute: (blob: Blob) => Promise<void>;
+  /** Last resort: today's behaviour, a plain `<script src>` at the CDN. */
+  fallback: (spec: SdkSpec) => Promise<void>;
+  now: () => number;
+  /** Versions retained per package, LRU. 2 keeps a rollback target. */
+  keepVersions: number;
+}

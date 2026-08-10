@@ -8,6 +8,8 @@ const DEFAULT_MESSAGES = [
   "Warming things up…",
   "Almost there…",
   "Any moment now…",
+  "Fetching...",
+  "All set ...."
 ];
 
 interface MiniAppLoaderProps {
