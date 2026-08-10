@@ -9,7 +9,7 @@
     "start": "next start -p 3000",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "node --test src/platform/sdk-bootstrap/core.test.ts",
+    "test": "node --test src/platform/sdk/bootstrap/core.test.ts",
     "clean": "rm -rf .next"
   },
   "dependencies": {

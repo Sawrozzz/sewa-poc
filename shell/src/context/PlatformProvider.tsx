@@ -22,6 +22,7 @@ import { createShellServices, type PlatformServicesConfig } from '../platform/se
 
 import { createAppearanceController, type AppearanceController } from '@/platform/appearance-controller';
 import { installHostApiGuard } from '@/platform/host-guard';
+import { scheduleSdkWarm } from '@/platform/sdk';
 
 
 export interface PlatformContextValue {
@@ -60,6 +61,7 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
     let cancelled = false;
 
     let cleanupInterval: ReturnType<typeof setInterval>;
+    let cancelSdkWarm: (() => void) | undefined;
 
     async function init() {
       // Block sensitive browser APIs before any mini-app code runs
@@ -119,7 +121,7 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
           eventBus.emit('module.lifecycle.unloaded', moduleId, {
             moduleId,
             version: '',
-          });
+          });``
         },
       });
 
@@ -141,6 +143,13 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
       }
 
       cleanupInterval = setInterval(() => eventBus.cleanup(), 300000);
+
+      // Pull the Mini App SDK bundle into IndexedDB now, while the portal is
+      // idle, rather than when a mini app opens and the user is watching the
+      // loader. Downloads only; the bytes are executed by `loadMiniAppSdk` at
+      // open time, which by then is an IndexedDB read. No-ops when the bundle
+      // is already cached or the cache is disabled. See `sdkCache.md` §5.
+      cancelSdkWarm = scheduleSdkWarm();
     }
 
     init().catch(console.error);
@@ -148,6 +157,7 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
     return () => {
       cancelled = true;
       clearInterval(cleanupInterval);
+      cancelSdkWarm?.();
       const p = platformRef.current;
       if (p) {
         p.communicator.destroy();

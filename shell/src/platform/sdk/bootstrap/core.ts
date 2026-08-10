@@ -2,15 +2,16 @@ import {
   SDK_GLOBAL_KEY,
   HOST_DESCRIPTOR_GLOBAL_KEY,
   DEFAULT_SDK_SOURCE,
+  DEFAULT_SDK_VERSION,
   DEFAULT_HOST_CAPABILITIES,
-} from "./constants";
+} from './constants';
 
 import type {
   MiniAppSdkHostOptions,
   MiniAppSdkLoadResult,
   SdkBootstrapEnv,
-} from "@/types/platform";
-import type { MiniAppSdkInterface } from "@lizuz/mini-app-types";
+} from '@/types/platform';
+import type { MiniAppSdkInterface } from '@lizuz/mini-app-types';
 
 /**
  * Contract:
@@ -22,12 +23,10 @@ import type { MiniAppSdkInterface } from "@lizuz/mini-app-types";
  *  - One instance per tab; `destroy()` removes it from the global again.
  */
 
-export function readSdkInstance(
-  w: Window & typeof globalThis,
-): MiniAppSdkInterface | null {
+export function readSdkInstance(w: Window & typeof globalThis): MiniAppSdkInterface | null {
   const global = w as unknown as Record<string, unknown>;
   const sdk = global[SDK_GLOBAL_KEY];
-  return sdk && typeof (sdk as { initialize?: unknown }).initialize === "function"
+  return sdk && typeof (sdk as { initialize?: unknown }).initialize === 'function'
     ? (sdk as MiniAppSdkInterface)
     : null;
 }
@@ -44,20 +43,19 @@ export function seedSdkConfig(
     retryAttempts: options.retryAttempts ?? 5,
     retryDelayMs: options.retryDelayMs ?? 500,
     maxRetryDelayMs: options.maxRetryDelayMs ?? 10_000,
-    targetOrigin: w.location?.origin ?? "*",
+    targetOrigin: w.location?.origin ?? '*',
   };
   global[HOST_DESCRIPTOR_GLOBAL_KEY] = {
-    type: "web" as const,
-    version: options.hostVersion ?? "1.0.0",
+    type: 'web' as const,
+    version: options.hostVersion ?? '1.0.0',
     capabilities: [...(options.capabilities ?? DEFAULT_HOST_CAPABILITIES)],
-    sdkVersion: options.sdkVersion ?? "1.0.2",
+    // Was a hardcoded "1.0.2" while the bundle being loaded was 1.0.4 — the
+    // descriptor now tracks whatever version is actually configured.
+    sdkVersion: options.sdkVersion ?? DEFAULT_SDK_VERSION,
   };
 }
 
-async function initializeSdk(
-  sdk: MiniAppSdkInterface,
-  now: () => number,
-): Promise<number> {
+async function initializeSdk(sdk: MiniAppSdkInterface, now: () => number): Promise<number> {
   const started = now();
   await sdk.initialize();
   return Math.round(now() - started);
@@ -81,7 +79,7 @@ export async function bootstrapMiniAppSdk(
   if (existing) {
     return {
       sdk: existing,
-      source: "existing",
+      source: 'existing',
       initTimeMs: await initializeSdk(existing, env.now),
     };
   }
@@ -97,9 +95,7 @@ export async function bootstrapMiniAppSdk(
 }
 
 /** Tears down the instance on a given window. */
-export function destroySdkInstance(
-  w: Window & typeof globalThis,
-): void {
+export function destroySdkInstance(w: Window & typeof globalThis): void {
   const sdk = readSdkInstance(w);
   if (sdk) sdk.destroy();
 }
