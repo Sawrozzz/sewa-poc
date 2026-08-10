@@ -59,7 +59,7 @@ async function collectGarbage(
 
   const doomed = held
     .slice()
-    .sort((a, b) => b.lastUsedAt - a.lastUsedAt)
+    .sort((a, b) => Number(b.lastUsedAt) - Number(a.lastUsedAt))
     .slice(keep)
     .filter((record) => record.key !== protect);
 
