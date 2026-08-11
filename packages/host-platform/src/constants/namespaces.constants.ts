@@ -17,6 +17,7 @@ export const NAMESPACES = {
   APPEARANCE: 'appearance',
   EVENT: 'event',
   HANDSHAKE: 'handshake',
+  AI: 'ai'
 } as const;
 
 export type Namespace = (typeof NAMESPACES)[keyof typeof NAMESPACES];
@@ -33,6 +34,7 @@ export const SDK_CAPABILITIES: readonly string[] = [
   NAMESPACES.API,
   NAMESPACES.HTTP,
   NAMESPACES.APPEARANCE,
+  NAMESPACES.AI
 ];
 
 export const ACTIONS = {
@@ -54,6 +56,7 @@ export const ACTIONS = {
     GET_LOCALE: 'getLocale',
     GET_THEME: 'getTheme',
   },
+  AI: {CHAT: 'chat'},
   EVENT: { SUBSCRIBE: 'subscribe', UNSUBSCRIBE: 'unsubscribe', EMIT: 'emit' },
   HANDSHAKE: { CONNECT: 'connect' },
 } as const;

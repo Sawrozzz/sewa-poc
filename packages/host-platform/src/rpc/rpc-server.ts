@@ -512,7 +512,7 @@ export class RpcServer {
 
     // Chat — streams model responses back to the mini app as `stream`
     // messages. Requires `services.chat` on the ShellServiceMap.
-    r.register('ai', 'chat', async (payload, ctx) => {
+    r.register(NAMESPACES.AI, ACTIONS.AI.CHAT, async (payload, ctx) => {
       const chatPayload = payload as {
         messages?: { role: string; content: string }[];
         options?: Record<string, unknown>;
@@ -523,7 +523,7 @@ export class RpcServer {
 
       const chatMessages = chatPayload.messages.map((m) => ({
         ...m,
-        role: m.role as 'user' | 'system' | 'ai',
+        role: m.role as 'user' | 'system' ,
       }));
       this.streamChatChunks(
         ctx,
