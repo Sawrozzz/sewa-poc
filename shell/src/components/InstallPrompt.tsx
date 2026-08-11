@@ -78,6 +78,7 @@ export function InstallPrompt() {
         <button
           className="bg-gov-500 text-gov-950 font-medium px-4 py-2 rounded-lg text-sm hover:bg-gov-600 transition"
           onClick={handleInstallClick}
+          type="button"
         >
           {isIOS ? "Instructions" : "Install"}
         </button>

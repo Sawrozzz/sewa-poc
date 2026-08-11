@@ -34,13 +34,13 @@ function Highlight({ text, terms }: { text: string; terms: string[] }) {
 
   return (
     <>
-      {text.split(pattern).map((part, index) =>
+      {text.split(pattern).map((part) =>
         lowered.has(part.toLowerCase()) ? (
-          <mark className="bg-gov-200/70 text-gov-950 rounded-sm px-0.5" key={index}>
+          <mark className="bg-gov-200/70 text-gov-950 rounded-sm px-0.5" key={part}>
             {part}
           </mark>
         ) : (
-          <span key={index}>{part}</span>
+          <span key={part}>{part}</span>
         ),
       )}
     </>
@@ -152,7 +152,7 @@ export function GlobalSearch() {
         aria-autocomplete="list"
         aria-controls="global-search-results"
         aria-expanded={showPanel}
-        className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-24 text-sm shadow-sm outline-none transition-all duration-200 placeholder:text-gray-400 focus:border-gov-500 focus:ring-4 focus:ring-gov-100"
+        className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-24 text-sm shadow-sm outline-none transition-all duration-200 placeholder:text-gray-400 focus:ring-4 focus:ring-gov-100"
         onChange={(event) => {
           updateQuery(event.target.value);
           setIsOpen(true);

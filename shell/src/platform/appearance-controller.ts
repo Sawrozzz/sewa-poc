@@ -91,6 +91,7 @@ export function createAppearanceController(deps: AppearanceControllerDeps) {
       localeCode = code;
       localeState = SHELL_LOCALE_TO_BCP47[code];
       if (typeof document !== "undefined") {
+        // biome-ignore lint/suspicious/noDocumentCookie: <used to set Locale>
         document.cookie = `${LOCALE_COOKIE}=${code}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
       }
       applyDom();

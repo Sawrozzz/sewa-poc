@@ -173,7 +173,11 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
         <div className="text-center max-w-md">
           <span className="text-4xl mb-3 block">⚠️</span>
           <h1 className="text-lg font-semibold text-gray-900 mb-2">{message}</h1>
-          <button className="text-sm text-gov-800 hover:underline" onClick={() => router.push("/")}>
+          <button
+            className="text-sm text-gov-800 hover:underline"
+            onClick={() => router.push("/")}
+            type="button"
+          >
             ←
           </button>
         </div>
@@ -197,6 +201,7 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
         <button
           className="group mr-5 flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gov-800"
           onClick={() => router.push("/")}
+          type="button"
         >
           <svg
             className="h-5 w-5 transition-transform group-hover:-translate-x-1"
@@ -206,6 +211,7 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
           >
+            <title>Back</title>
             <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           Back to Portal

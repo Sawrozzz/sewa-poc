@@ -386,7 +386,7 @@ export class RuntimeLoader {
             entryFileName = manifestBundle.entry ?? entryFileName;
             cssFileNames = manifestBundle.styles ?? [];
             manifestBundle.files?.forEach((file) => {
-              manifestFileNames.add(file)
+              manifestFileNames.add(file);
             });
           }
         }
@@ -394,7 +394,7 @@ export class RuntimeLoader {
         // Always fetch entry file and styles
         if (entryFileName) manifestFileNames.add(entryFileName);
         cssFileNames.forEach((css) => {
-          manifestFileNames.add(css)
+          manifestFileNames.add(css);
         });
 
         files = await this.db.downloadDirectory(
@@ -409,7 +409,7 @@ export class RuntimeLoader {
         const fileNames = new Set<string>();
         fileNames.add(entryFileName);
         cssFileNames.forEach((css) => {
-          fileNames.add(css)
+          fileNames.add(css);
         });
 
         files = await this.db.downloadDirectory(

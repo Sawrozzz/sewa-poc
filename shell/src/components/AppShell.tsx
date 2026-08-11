@@ -24,6 +24,7 @@ export function AppShell() {
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full -ml-20 -mb-20" />
           <div className="absolute top-1/2 right-8 -translate-y-1/2 opacity-10 hidden md:block">
             <svg fill="none" height="200" viewBox="0 0 200 200" width="200">
+              <title>Search</title>
               <rect height="140" rx="12" stroke="white" strokeWidth="2" width="160" x="20" y="30" />
               <rect height="40" rx="6" stroke="white" strokeWidth="1.5" width="60" x="35" y="45" />
               <rect height="40" rx="6" stroke="white" strokeWidth="1.5" width="60" x="105" y="45" />

@@ -20,6 +20,7 @@ export function useMiniApps() {
 export function useMiniApp(id: string | null) {
   return useQuery({
     queryKey: [...MINI_APPS_KEY, id],
+    // biome-ignore lint/style/noNonNullAssertion: <fix this later>
     queryFn: () => fetchMiniApp(id!),
     enabled: !!id,
   });

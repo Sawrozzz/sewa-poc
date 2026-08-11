@@ -134,7 +134,9 @@ export function createShellServices(
   const setCanGoBack = (next: boolean) => {
     if (miniAppCanGoBack === next) return;
     miniAppCanGoBack = next;
-    canGoBackHandlers.forEach((handler) => handler(next));
+    canGoBackHandlers.forEach((handler) => {
+      handler(next);
+    });
   };
 
   const settleBack = (consumed: boolean) => {
@@ -158,7 +160,9 @@ export function createShellServices(
           ? target.route
           : `/mini-app/${target.app}${target.route === "/" ? "" : target.route}`,
       );
-      navigationHandlers.forEach((h) => h(navigationState));
+      navigationHandlers.forEach((h) => {
+        h(navigationState);
+      });
     },
     getCurrent: () => navigationState,
     onNavigate: (handler: (state: NavigationState) => void) => {

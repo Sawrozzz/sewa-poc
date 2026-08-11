@@ -129,6 +129,7 @@ export function ModuleGrid() {
             <button
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gov-500 text-gov-950 rounded-lg hover:bg-gov-600 transition text-sm font-medium"
               onClick={() => refetch()}
+              type="button"
             >
               <span>🔄</span>
               Try Again

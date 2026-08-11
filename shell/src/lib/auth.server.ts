@@ -90,6 +90,7 @@ const phoneOtpPlugin = {
         const session = await ctx.context.internalAdapter.createSession(userId);
         const user = await ctx.context.internalAdapter.findUserById(userId);
 
+        // biome-ignore lint/style/noNonNullAssertion: <Fix this later>
         await setSessionCookie(ctx, { session, user: user! });
 
         return ctx.json({ session, user });

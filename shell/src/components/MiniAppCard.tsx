@@ -58,6 +58,7 @@ export function MiniAppCard({ module }: MiniAppCardProps) {
             strokeWidth={2}
             viewBox="0 0 24 24"
           >
+            <title>Open</title>
             <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>

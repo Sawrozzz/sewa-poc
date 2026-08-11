@@ -90,6 +90,7 @@ export function PhoneLoginScreen({
                   <SriLankaFlag />
                   {SRI_LANKA_DIAL_CODE}
                 </span>
+                {/** biome-ignore lint/correctness/useUniqueElementIds: <used for phoneNumber> */}
                 <input
                   autoComplete="tel-national"
                   className="flex-1 px-4 py-2.5 outline-none tracking-wide"

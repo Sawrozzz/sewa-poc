@@ -65,6 +65,8 @@ function DialogShell<T>({
 
   const controls: DialogControls<T> = { close: onResolve };
 
+  const content = typeof children === "function" ? children(controls) : children;
+
   return (
     <div
       aria-label={title}
@@ -75,7 +77,7 @@ function DialogShell<T>({
       <div className="w-full rounded-2xl bg-white p-6 shadow-2xl" style={{ maxWidth }}>
         <h2 className="mb-2 text-[17px] font-semibold text-gov-900">{title}</h2>
         {message ? <p className="mb-5 text-sm leading-5 text-gray-600">{message}</p> : null}
-        {typeof children === "function" ? children(controls) : children}
+        {content}
         {actions.length > 0 ? (
           <div className="mt-5 flex justify-end gap-3">
             {actions.map((action) => (
