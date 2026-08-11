@@ -10,7 +10,6 @@ export const localeLabels: Record<Locale, string> = {
   tam: "தமிழ்",
 };
 
-
 export function isValidLocale(value: string): value is Locale {
   return (locales as readonly string[]).includes(value);
 }

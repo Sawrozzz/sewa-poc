@@ -1,15 +1,13 @@
 import "./globals.css";
-import {SerwistProvider} from "@serwist/turbopack/react"
+import { SerwistProvider } from "@serwist/turbopack/react";
+import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
-
-import type { Metadata, Viewport } from "next";
-
 import GlobalProvider from "@/components/GlobalProvider";
-import { InstallPrompt } from "@/components/InstallPrompt"
-import { OfflineBanner } from "@/components/OfflineBanner"
-import SplashScreen from '@/components/SplashScreen';
-import { OfflineProvider } from "@/lib/OfflineContext"
+import { InstallPrompt } from "@/components/InstallPrompt";
+import { OfflineBanner } from "@/components/OfflineBanner";
+import SplashScreen from "@/components/SplashScreen";
+import { OfflineProvider } from "@/lib/OfflineContext";
 
 const APP_NAME = "Sewa App";
 const APP_DEFAULT_TITLE = "Sewa App";
@@ -17,21 +15,21 @@ const APP_TITLE_TEMPLATE = "%s | Sewa App";
 const APP_DESCRIPTION = "Your all-in-one super app for Sri Lanka";
 
 export const metadata: Metadata = {
-    applicationName: APP_NAME,
-    title: {
-        default: APP_DEFAULT_TITLE,
-        template: APP_TITLE_TEMPLATE,
-    },
-    description: APP_DESCRIPTION,
-    manifest: "/manifest.webmanifest",
-    appleWebApp: {
-        capable: true,
-        statusBarStyle: "default",
-        title: APP_DEFAULT_TITLE,
-    },
-    formatDetection: {
-        telephone: false,
-    },
+  applicationName: APP_NAME,
+  title: {
+    default: APP_DEFAULT_TITLE,
+    template: APP_TITLE_TEMPLATE,
+  },
+  description: APP_DESCRIPTION,
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: APP_DEFAULT_TITLE,
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 /*
@@ -44,17 +42,13 @@ export const metadata: Metadata = {
  * Safari ignore them, and they only ever break pinch-zoom for users who need it.
  */
 export const viewport: Viewport = {
-    themeColor: "#3d2806",
-    width: "device-width",
-    initialScale: 1,
-    viewportFit: "cover",
+  themeColor: "#3d2806",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
   const messages = await getMessages();
   return (

@@ -1,4 +1,4 @@
-import type { ModuleManifest } from '@sewa/host-platform';
+import type { ModuleManifest } from "@sewa/host-platform";
 
 /**
  * Keyword search over the mini app registry.
@@ -10,7 +10,14 @@ import type { ModuleManifest } from '@sewa/host-platform';
  * "vue.js", and the "veu" spelling already used in the registry).
  */
 
-export type MatchKind = 'name' | 'id' | 'framework' | 'category' | 'vendor' | 'capability' | 'description';
+export type MatchKind =
+  | "name"
+  | "id"
+  | "framework"
+  | "category"
+  | "vendor"
+  | "capability"
+  | "description";
 
 export interface SearchHit {
   module: ModuleManifest;
@@ -48,13 +55,13 @@ interface FrameworkKeywords {
 }
 
 const FRAMEWORK_KEYWORDS: Record<string, FrameworkKeywords> = {
-  react: { spellings: ['react', 'reactjs', 'react.js', 'jsx'], related: ['spa'] },
-  next: { spellings: ['next', 'nextjs', 'next.js'], related: ['react', 'ssr'] },
-  vue: { spellings: ['vue', 'vuejs', 'vue.js', 'veu'], related: [] },
-  nuxt: { spellings: ['nuxt', 'nuxtjs', 'nuxt.js'], related: ['vue', 'ssr'] },
-  angular: { spellings: ['angular', 'angularjs', 'angular.js', 'ng'], related: [] },
-  solid: { spellings: ['solid', 'solidjs', 'solid.js'], related: [] },
-  svelte: { spellings: ['svelte', 'sveltejs', 'svelte.js', 'sveltekit'], related: [] },
+  react: { spellings: ["react", "reactjs", "react.js", "jsx"], related: ["spa"] },
+  next: { spellings: ["next", "nextjs", "next.js"], related: ["react", "ssr"] },
+  vue: { spellings: ["vue", "vuejs", "vue.js", "veu"], related: [] },
+  nuxt: { spellings: ["nuxt", "nuxtjs", "nuxt.js"], related: ["vue", "ssr"] },
+  angular: { spellings: ["angular", "angularjs", "angular.js", "ng"], related: [] },
+  solid: { spellings: ["solid", "solidjs", "solid.js"], related: [] },
+  svelte: { spellings: ["svelte", "sveltejs", "svelte.js", "sveltekit"], related: [] },
 };
 
 const RELATED_FRAMEWORK_WEIGHT = 0.4;
@@ -65,17 +72,32 @@ function frameworksOf(manifest: ModuleManifest): string[] {
 
 function indexModule(manifest: ModuleManifest): IndexedField[] {
   const fields: IndexedField[] = [
-    { kind: 'name', text: manifest.name.toLowerCase(), label: manifest.name, weight: FIELD_WEIGHTS.name },
-    { kind: 'id', text: manifest.id.toLowerCase().replace(/-/g, ' '), label: manifest.id, weight: FIELD_WEIGHTS.id },
     {
-      kind: 'category',
+      kind: "name",
+      text: manifest.name.toLowerCase(),
+      label: manifest.name,
+      weight: FIELD_WEIGHTS.name,
+    },
+    {
+      kind: "id",
+      text: manifest.id.toLowerCase().replace(/-/g, " "),
+      label: manifest.id,
+      weight: FIELD_WEIGHTS.id,
+    },
+    {
+      kind: "category",
       text: manifest.category.toLowerCase(),
       label: manifest.category,
       weight: FIELD_WEIGHTS.category,
     },
-    { kind: 'vendor', text: manifest.vendor.toLowerCase(), label: manifest.vendor, weight: FIELD_WEIGHTS.vendor },
     {
-      kind: 'description',
+      kind: "vendor",
+      text: manifest.vendor.toLowerCase(),
+      label: manifest.vendor,
+      weight: FIELD_WEIGHTS.vendor,
+    },
+    {
+      kind: "description",
       text: manifest.description.toLowerCase(),
       label: manifest.description,
       weight: FIELD_WEIGHTS.description,
@@ -86,12 +108,17 @@ function indexModule(manifest: ModuleManifest): IndexedField[] {
     const keywords = FRAMEWORK_KEYWORDS[framework] ?? { spellings: [framework], related: [] };
 
     for (const spelling of keywords.spellings) {
-      fields.push({ kind: 'framework', text: spelling, label: framework, weight: FIELD_WEIGHTS.framework });
+      fields.push({
+        kind: "framework",
+        text: spelling,
+        label: framework,
+        weight: FIELD_WEIGHTS.framework,
+      });
     }
 
     for (const related of keywords.related) {
       fields.push({
-        kind: 'framework',
+        kind: "framework",
         text: related,
         label: framework,
         weight: FIELD_WEIGHTS.framework * RELATED_FRAMEWORK_WEIGHT,
@@ -101,7 +128,7 @@ function indexModule(manifest: ModuleManifest): IndexedField[] {
 
   for (const capability of manifest.capabilities ?? []) {
     fields.push({
-      kind: 'capability',
+      kind: "capability",
       text: capability.toLowerCase(),
       label: capability,
       weight: FIELD_WEIGHTS.capability,
@@ -156,7 +183,11 @@ function scoreField(field: IndexedField, term: string): number {
   return 0;
 }
 
-export function searchMiniApps(modules: ModuleManifest[], rawQuery: string, limit = 8): SearchHit[] {
+export function searchMiniApps(
+  modules: ModuleManifest[],
+  rawQuery: string,
+  limit = 8,
+): SearchHit[] {
   const terms = rawQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
   if (terms.length === 0) return [];
 
@@ -188,11 +219,21 @@ export function searchMiniApps(modules: ModuleManifest[], rawQuery: string, limi
 
     if (!matchedEveryTerm || !best) continue;
 
-    hits.push({ module: manifest, score: total, matchedOn: best.field.kind, matchedText: best.field.label });
+    hits.push({
+      module: manifest,
+      score: total,
+      matchedOn: best.field.kind,
+      matchedText: best.field.label,
+    });
   }
 
   return hits
-    .sort((a, b) => b.score - a.score || a.module.order - b.module.order || a.module.name.localeCompare(b.module.name))
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        a.module.order - b.module.order ||
+        a.module.name.localeCompare(b.module.name),
+    )
     .slice(0, limit);
 }
 
@@ -232,13 +273,13 @@ export function scrollToMiniApp(moduleId: string): boolean {
   const card = document.getElementById(miniAppAnchorId(moduleId));
   if (!card) return false;
 
-  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  card.classList.remove('mini-app-highlight');
+  card.scrollIntoView({ behavior: "smooth", block: "center" });
+  card.classList.remove("mini-app-highlight");
   // Force a reflow so re-selecting the same card restarts the animation.
   void card.offsetWidth;
-  card.classList.add('mini-app-highlight');
+  card.classList.add("mini-app-highlight");
 
-  window.setTimeout(() => card.classList.remove('mini-app-highlight'), 2200);
+  window.setTimeout(() => card.classList.remove("mini-app-highlight"), 2200);
 
   return true;
 }

@@ -6,13 +6,10 @@
  * imported rather than re-declared — one source of truth.
  */
 
-import { HOST_DESCRIPTOR_GLOBAL_KEY, SDK_CAPABILITIES, SDK_GLOBAL_KEY } from '@sewa/host-platform';
-
+import { HOST_DESCRIPTOR_GLOBAL_KEY, SDK_CAPABILITIES, SDK_GLOBAL_KEY } from "@sewa/host-platform";
 // Relative, not `@/platform/…`: this module is loaded by `node --test`, which
 // does not resolve the TypeScript path alias.
-import { DEFAULT_SDK_SOURCE, DEFAULT_SDK_VERSION } from '../cache/config';
-
-export { SDK_GLOBAL_KEY, HOST_DESCRIPTOR_GLOBAL_KEY, SDK_CAPABILITIES };
+import { DEFAULT_SDK_SOURCE, DEFAULT_SDK_VERSION } from "@/platform/sdk";
 
 /**
  * SDK identity lives in `sdk/cache/config.ts`, which resolves it from
@@ -24,7 +21,13 @@ export { SDK_GLOBAL_KEY, HOST_DESCRIPTOR_GLOBAL_KEY, SDK_CAPABILITIES };
  * the pinned CDN build and stays as an emergency self-hosted source; point
  * `NEXT_PUBLIC_SDK_URL_TEMPLATE` at it if jsDelivr ever has to be cut out.
  */
-export { DEFAULT_SDK_SOURCE, DEFAULT_SDK_VERSION };
+export {
+  DEFAULT_SDK_SOURCE,
+  DEFAULT_SDK_VERSION,
+  HOST_DESCRIPTOR_GLOBAL_KEY,
+  SDK_CAPABILITIES,
+  SDK_GLOBAL_KEY,
+};
 
 /** Capabilities the host advertises: the SDK's built-in set plus `event`. */
-export const DEFAULT_HOST_CAPABILITIES = [...SDK_CAPABILITIES, 'event'] as const;
+export const DEFAULT_HOST_CAPABILITIES = [...SDK_CAPABILITIES, "event"] as const;

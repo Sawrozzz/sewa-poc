@@ -1,9 +1,16 @@
 /// <reference lib="esnext" />
 /// <reference lib="webworker" />
 import { defaultCache } from "@serwist/turbopack/worker";
-import { Serwist, NetworkFirst, NetworkOnly, NavigationRoute, PrecacheFallbackPlugin, StaleWhileRevalidate, ExpirationPlugin } from "serwist";
-
 import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig } from "serwist";
+import {
+  ExpirationPlugin,
+  NavigationRoute,
+  NetworkFirst,
+  NetworkOnly,
+  PrecacheFallbackPlugin,
+  Serwist,
+  StaleWhileRevalidate,
+} from "serwist";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -15,29 +22,32 @@ declare const self: ServiceWorkerGlobalScope;
 
 // Remove the catch-all NetworkOnly from defaultCache so our NavigationRoute handles navigation
 const filteredDefaultCache = defaultCache.filter(
-  (entry) => !(entry.matcher instanceof RegExp && entry.matcher.source === ".*" && entry.method === "GET" && entry.handler.constructor.name === "NetworkOnly")
+  (entry) =>
+    !(
+      entry.matcher instanceof RegExp &&
+      entry.matcher.source === ".*" &&
+      entry.method === "GET" &&
+      entry.handler.constructor.name === "NetworkOnly"
+    ),
 ) as RuntimeCaching[];
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   runtimeCaching: [
     {
-      matcher: ({ url }) =>
-        url.hostname === "localhost" && url.port === "3009",
+      matcher: ({ url }) => url.hostname === "localhost" && url.port === "3009",
       handler: new NetworkOnly(),
     },
     ...filteredDefaultCache,
     {
-      matcher: ({ request, url }) =>
-        request.method === "GET" && url.pathname === "/api/mini-apps",
+      matcher: ({ request, url }) => request.method === "GET" && url.pathname === "/api/mini-apps",
       handler: new NetworkFirst({
         cacheName: "get-mini-app-api",
         networkTimeoutSeconds: 3,
       }),
     },
     {
-      matcher: ({ request, url }) =>
-        request.method === "GET" && url.pathname === "/api/config",
+      matcher: ({ request, url }) => request.method === "GET" && url.pathname === "/api/config",
       handler: new StaleWhileRevalidate({
         cacheName: "app-config",
         plugins: [
@@ -50,8 +60,7 @@ const serwist = new Serwist({
       }),
     },
     {
-      matcher: ({ request, url }) =>
-        request.method === "GET" && url.pathname === "/api/modules",
+      matcher: ({ request, url }) => request.method === "GET" && url.pathname === "/api/modules",
       handler: new StaleWhileRevalidate({
         cacheName: "modules-list",
         plugins: [
@@ -64,8 +73,7 @@ const serwist = new Serwist({
       }),
     },
     {
-      matcher: ({ request, url }) =>
-        request.method === "GET" && url.pathname === "/api/data",
+      matcher: ({ request, url }) => request.method === "GET" && url.pathname === "/api/data",
       handler: new NetworkFirst({
         cacheName: "app-data",
         networkTimeoutSeconds: 5,
@@ -94,12 +102,9 @@ const navigationHandler = new NetworkFirst({
   ],
 });
 
-const navigationRoute = new NavigationRoute(
-  (options) => navigationHandler.handle(options),
-  {
-    allowlist: [/^\/((?!api\/|_next\/|serwist\/|icons\/).)*$/],
-  }
-);
+const navigationRoute = new NavigationRoute((options) => navigationHandler.handle(options), {
+  allowlist: [/^\/((?!api\/|_next\/|serwist\/|icons\/).)*$/],
+});
 
 serwist.registerRoute(navigationRoute);
 serwist.addEventListeners();

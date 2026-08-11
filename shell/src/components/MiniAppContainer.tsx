@@ -1,19 +1,16 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
-
-import { Header } from './Header';
-import { MiniAppErrorBoundary } from './MiniAppErrorBoundary';
-import { MiniAppLoader } from './MiniAppLoader';
-
-import type { RemoteLoadResult } from '@sewa/host-platform';
-
-import { useEventBus, usePlatform, useRuntimeLoader } from '@/context';
-import { authClient } from '@/lib/auth-client';
-import { useMiniApp } from '@/lib/use-mini-apps';
-import { useMiniAppBackButton } from '@/platform';
-import { loadMiniAppSdk, destroyMiniAppSdk } from '@/platform/sdk';
+import type { RemoteLoadResult } from "@sewa/host-platform";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useEventBus, usePlatform, useRuntimeLoader } from "@/context";
+import { authClient } from "@/lib/auth-client";
+import { useMiniApp } from "@/lib/use-mini-apps";
+import { useMiniAppBackButton } from "@/platform";
+import { destroyMiniAppSdk, loadMiniAppSdk } from "@/platform/sdk";
+import { Header } from "./Header";
+import { MiniAppErrorBoundary } from "./MiniAppErrorBoundary";
+import { MiniAppLoader } from "./MiniAppLoader";
 
 export interface MiniAppContainerProps {
   miniAppId: string;
@@ -32,8 +29,8 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
   } = useMiniApp(miniAppId);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const [loadState, setLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
-  const [loadError, setLoadError] = useState('');
+  const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [loadError, setLoadError] = useState("");
   const mountCount = useRef(0);
   const cleanupDone = useRef(false);
   const sdkLoaded = useRef(false);
@@ -47,13 +44,13 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
 
   const loadModule = useCallback(async () => {
     if (!manifest) return;
-    setLoadState('loading');
+    setLoadState("loading");
 
     try {
       await initMiniAppBridge();
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'SDK initialization failed');
-      setLoadState('error');
+      setLoadError(err instanceof Error ? err.message : "SDK initialization failed");
+      setLoadState("error");
       return;
     }
 
@@ -63,22 +60,22 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
         retryAttempts: 3,
       });
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Failed to load module');
-      setLoadState('error');
+      setLoadError(err instanceof Error ? err.message : "Failed to load module");
+      setLoadState("error");
       return;
     }
 
     if (result.success && result.bundle) {
-      setLoadState('ready');
-      eventBus.emit('module.lifecycle.loaded', 'shell', {
+      setLoadState("ready");
+      eventBus.emit("module.lifecycle.loaded", "shell", {
         miniAppId,
         version: manifest.version,
         loadTimeMs: result.loadTimeMs,
       });
     } else {
-      setLoadError(result.error ?? 'Failed to load plugin bundle');
-      setLoadState('error');
-      eventBus.emit('module.lifecycle.failed', 'shell', {
+      setLoadError(result.error ?? "Failed to load plugin bundle");
+      setLoadState("error");
+      eventBus.emit("module.lifecycle.failed", "shell", {
         miniAppId,
         version: manifest.version,
         error: result.error,
@@ -87,7 +84,7 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
   }, [manifest, miniAppId, loader, eventBus, initMiniAppBridge]);
 
   useEffect(() => {
-    if (loadState !== 'ready' || !containerRef.current) return;
+    if (loadState !== "ready" || !containerRef.current) return;
 
     const loadedModule = loader.getLoadedModule(miniAppId);
     if (!loadedModule?.bundle) return;
@@ -104,7 +101,7 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
     if (authLoading || manifestLoading) return;
 
     if (!session) {
-      router.replace('/');
+      router.replace("/");
       return;
     }
 
@@ -142,26 +139,26 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
   // Give the mini app first refusal on the browser back button: it pops its
   // own route while it has one, and only when it says it's at its root does
   // the shell close the container.
-  const exitToPortal = useCallback(() => router.push('/'), [router]);
-  useMiniAppBackButton({ onExit: exitToPortal, enabled: loadState === 'ready' });
+  const exitToPortal = useCallback(() => router.push("/"), [router]);
+  useMiniAppBackButton({ onExit: exitToPortal, enabled: loadState === "ready" });
 
   const handleRetry = useCallback(() => {
-    setLoadError('');
-    setLoadState('idle');
+    setLoadError("");
+    setLoadState("idle");
     loader.unload(miniAppId).then(() => loadModule());
   }, [loader, miniAppId, loadModule]);
 
   const handleUnload = useCallback(() => {
     loader.unload(miniAppId);
-    router.push('/');
+    router.push("/");
   }, [loader, miniAppId, router]);
 
   if (authLoading || manifestLoading) {
     return (
       <MiniAppLoader
-        name={manifest?.name ?? miniAppId}
-        icon={manifest?.icon}
         color={manifest?.color}
+        icon={manifest?.icon}
+        name={manifest?.name ?? miniAppId}
       />
     );
   }
@@ -169,14 +166,14 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
   const manifestFailure =
     manifestError?.message ?? (!manifest ? `Module "${miniAppId}" not found` : null);
 
-  if (loadState === 'error' || loadError || manifestFailure) {
-    const message = loadError || manifestFailure || '';
+  if (loadState === "error" || loadError || manifestFailure) {
+    const message = loadError || manifestFailure || "";
     return (
       <div className="flex items-center justify-center h-screen bg-slate-50">
         <div className="text-center max-w-md">
           <span className="text-4xl mb-3 block">⚠️</span>
           <h1 className="text-lg font-semibold text-gray-900 mb-2">{message}</h1>
-          <button onClick={() => router.push('/')} className="text-sm text-gov-800 hover:underline">
+          <button className="text-sm text-gov-800 hover:underline" onClick={() => router.push("/")}>
             ←
           </button>
         </div>
@@ -184,12 +181,12 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
     );
   }
 
-  if (loadState === 'idle' || loadState === 'loading') {
+  if (loadState === "idle" || loadState === "loading") {
     return (
       <MiniAppLoader
-        name={manifest?.name ?? miniAppId}
-        icon={manifest?.icon}
         color={manifest?.color}
+        icon={manifest?.icon}
+        name={manifest?.name ?? miniAppId}
       />
     );
   }
@@ -198,18 +195,18 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
     <div className="h-screen flex flex-col">
       <div className="flex flex-row col-span-full">
         <button
-          onClick={() => router.push('/')}
           className="group mr-5 flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gov-800"
+          onClick={() => router.push("/")}
         >
           <svg
-            xmlns="http://www.w3.org/2000/svg"
             className="h-5 w-5 transition-transform group-hover:-translate-x-1"
             fill="none"
-            viewBox="0 0 24 24"
             stroke="currentColor"
             strokeWidth={2}
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           Back to Portal
         </button>
@@ -222,11 +219,11 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
         <MiniAppErrorBoundary
           miniAppId={miniAppId}
           moduleName={manifest.name}
-          retryAttempts={3}
           onRetry={handleRetry}
           onUnload={handleUnload}
+          retryAttempts={3}
         >
-          <div ref={containerRef} className="w-full h-full" />
+          <div className="w-full h-full" ref={containerRef} />
         </MiniAppErrorBoundary>
       </div>
     </div>

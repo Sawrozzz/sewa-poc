@@ -1,13 +1,7 @@
-'use client';
+"use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useSyncExternalStore,
-  type ReactNode,
-} from 'react';
+import type { ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useSyncExternalStore } from "react";
 
 interface OfflineContextType {
   isOffline: boolean;
@@ -20,11 +14,11 @@ const OfflineContext = createContext<OfflineContextType>({
 });
 
 function subscribeToOnlineState(onChange: () => void) {
-  window.addEventListener('online', onChange);
-  window.addEventListener('offline', onChange);
+  window.addEventListener("online", onChange);
+  window.addEventListener("offline", onChange);
   return () => {
-    window.removeEventListener('online', onChange);
-    window.removeEventListener('offline', onChange);
+    window.removeEventListener("online", onChange);
+    window.removeEventListener("offline", onChange);
   };
 }
 
@@ -42,10 +36,10 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
       setWasOffline(true);
     };
 
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("offline", handleOffline);
 
     return () => {
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 

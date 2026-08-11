@@ -1,11 +1,10 @@
-'use client';
-import { useRouter } from 'next/navigation';
-import { type ReactNode, useEffect, useMemo, useRef } from 'react';
-
-import type { PlatformServicesConfig } from '@/platform/services';
-
-import { PlatformProvider } from '@/context';
-import { authClient, mapSessionUser } from '@/lib/auth-client';
+"use client";
+import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { PlatformProvider } from "@/context";
+import { authClient, mapSessionUser } from "@/lib/auth-client";
+import type { PlatformServicesConfig } from "@/platform/services";
 
 export default function PlatformShell({ children }: { children: ReactNode }) {
   const router = useRouter();

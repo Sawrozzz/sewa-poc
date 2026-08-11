@@ -19,7 +19,7 @@ function injectAndWait(
     const settle = (run: () => void) => {
       if (settled) return;
       settled = true;
-      window.removeEventListener('error', onEvalError);
+      window.removeEventListener("error", onEvalError);
       cleanup?.();
       run();
     };
@@ -30,8 +30,8 @@ function injectAndWait(
       settle(() => reject(new Error(`SDK bundle threw during evaluation: ${event.message}`)));
     };
 
-    window.addEventListener('error', onEvalError);
-    const script = document.createElement('script');
+    window.addEventListener("error", onEvalError);
+    const script = document.createElement("script");
     script.async = true;
     configure(script);
     script.onload = () => settle(resolve);
@@ -56,7 +56,7 @@ export function injectScript({ src, integrity }: InjectScriptOptions): Promise<v
     script.src = src;
     if (integrity) {
       script.integrity = integrity;
-      script.crossOrigin = 'anonymous';
+      script.crossOrigin = "anonymous";
     }
   }, src);
 }
@@ -75,7 +75,7 @@ export function injectBlobScript(blob: Blob): Promise<void> {
     (script) => {
       script.src = blobUrl;
     },
-    'cached bundle',
+    "cached bundle",
     () => URL.revokeObjectURL(blobUrl),
   );
 }

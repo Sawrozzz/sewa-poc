@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
 
 export type DialogVariant = "primary" | "secondary";
@@ -66,30 +67,25 @@ function DialogShell<T>({
 
   return (
     <div
+      aria-label={title}
+      aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6"
       role="dialog"
-      aria-modal="true"
-      aria-label={title}
     >
       <div className="w-full rounded-2xl bg-white p-6 shadow-2xl" style={{ maxWidth }}>
         <h2 className="mb-2 text-[17px] font-semibold text-gov-900">{title}</h2>
-        {message ? (
-          <p className="mb-5 text-sm leading-5 text-gray-600">{message}</p>
-        ) : null}
+        {message ? <p className="mb-5 text-sm leading-5 text-gray-600">{message}</p> : null}
         {typeof children === "function" ? children(controls) : children}
         {actions.length > 0 ? (
           <div className="mt-5 flex justify-end gap-3">
             {actions.map((action) => (
               <button
-                key={action.label}
-                type="button"
-                autoFocus={action.autoFocus}
-                onClick={action.onClick ?? (() => onResolve(action.value as T))}
                 className={
-                  action.variant === "secondary"
-                    ? dialogButtonSecondary
-                    : dialogButtonPrimary
+                  action.variant === "secondary" ? dialogButtonSecondary : dialogButtonPrimary
                 }
+                key={action.label}
+                onClick={action.onClick ?? (() => onResolve(action.value as T))}
+                type="button"
               >
                 {action.label}
               </button>

@@ -1,8 +1,7 @@
-'use client';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
-
-import PlatformShell from './PlatformShell';
+"use client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type React from "react";
+import PlatformShell from "./PlatformShell";
 
 const queryClient = new QueryClient({
   defaultOptions: {

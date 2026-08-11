@@ -1,9 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import type { ModuleManifest } from "@sewa/host-platform";
-
+import { useRouter } from "next/navigation";
 import { miniAppAnchorId } from "@/lib/mini-app-search";
 
 interface MiniAppCardProps {
@@ -15,9 +13,10 @@ export function MiniAppCard({ module }: MiniAppCardProps) {
 
   return (
     <button
+      className="group bg-white rounded-xl border border-gray-200 hover:border-gov-400 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 p-6 flex flex-col text-left relative overflow-hidden scroll-mt-40"
       id={miniAppAnchorId(module.id)}
       onClick={() => router.push(`/${module.id}`)}
-      className="group bg-white rounded-xl border border-gray-200 hover:border-gov-400 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 p-6 flex flex-col text-left relative overflow-hidden scroll-mt-40"
+      type="button"
     >
       <div
         className="absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full opacity-10 group-hover:opacity-20 transition-opacity"
@@ -48,20 +47,18 @@ export function MiniAppCard({ module }: MiniAppCardProps) {
           <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
             {module.vendor}
           </span>
-          {module.category && (
-            <span className="text-xs text-gray-400">{module.category}</span>
-          )}
+          {!!module.category && <span className="text-xs text-gray-400">{module.category}</span>}
         </div>
         <span className="text-sm font-medium text-gov-800 group-hover:text-gov-900 transition flex items-center gap-1">
           Open
           <svg
             className="w-4 h-4 transition-transform group-hover:translate-x-0.5"
             fill="none"
-            viewBox="0 0 24 24"
             stroke="currentColor"
             strokeWidth={2}
+            viewBox="0 0 24 24"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>
       </div>

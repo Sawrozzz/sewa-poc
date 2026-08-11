@@ -18,7 +18,7 @@ export class SdkIntegrityError extends Error {
 
   constructor(url: string, expected: string, actual: string) {
     super(`SDK integrity check failed for ${url} — expected ${expected}, got ${actual}`);
-    this.name = 'SdkIntegrityError';
+    this.name = "SdkIntegrityError";
     this.url = url;
     this.expected = expected;
     this.actual = actual;
@@ -27,7 +27,7 @@ export class SdkIntegrityError extends Error {
 
 function toBase64(bytes: Uint8Array): string {
   // Chunked so a large bundle can never blow the argument limit of `apply`.
-  let binary = '';
+  let binary = "";
   const CHUNK = 0x8000;
   for (let i = 0; i < bytes.length; i += CHUNK) {
     binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
@@ -37,7 +37,7 @@ function toBase64(bytes: Uint8Array): string {
 
 /** SHA-256 of `bytes`, formatted as `"sha256-<base64>"`. */
 export async function digest(bytes: ArrayBuffer): Promise<string> {
-  const hash = await crypto.subtle.digest('SHA-256', bytes);
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
   return `sha256-${toBase64(new Uint8Array(hash))}`;
 }
 
@@ -58,7 +58,7 @@ export async function verify(
   return actual;
 }
 
- /** Versions retained per package. 2 keeps a rollback target alongside current. */
+/** Versions retained per package. 2 keeps a rollback target alongside current. */
 export function resolveKeepVersions(): number {
   const raw = process.env.NEXT_PUBLIC_SDK_CACHE_VERSIONS;
   if (!raw) return 2;

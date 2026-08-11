@@ -9,10 +9,12 @@
  */
 
 function lock(obj: unknown, prop: string, value: unknown) {
-  if (!obj || typeof obj !== "object" && typeof obj !== "function" || !(prop in obj)) return;
+  if (!obj || (typeof obj !== "object" && typeof obj !== "function") || !(prop in obj)) return;
   try {
     Object.defineProperty(obj, prop, { value, writable: false, configurable: false });
-  } catch { /* ignore unfrozen / undefined */ }
+  } catch {
+    /* ignore unfrozen / undefined */
+  }
 }
 
 function deny(msg: string) {
@@ -29,7 +31,9 @@ function geoErr() {
   return {
     code: 1,
     message: "[HostGuard] Use sdk.device.location() instead.",
-    PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3,
+    PERMISSION_DENIED: 1,
+    POSITION_UNAVAILABLE: 2,
+    TIMEOUT: 3,
   };
 }
 
@@ -67,7 +71,14 @@ export function installHostApiGuard(): void {
   // ── Notifications ──────────────────────────────────────────────
   if (window.Notification) {
     lock(Notification, "requestPermission", () => Promise.resolve("denied"));
-    try { Object.defineProperty(Notification, "permission", { get: () => "denied", configurable: false }); } catch { /* already defined */ }
+    try {
+      Object.defineProperty(Notification, "permission", {
+        get: () => "denied",
+        configurable: false,
+      });
+    } catch {
+      /* already defined */
+    }
   }
 
   // ── WebAuthn credentials ───────────────────────────────────────
@@ -77,7 +88,7 @@ export function installHostApiGuard(): void {
   // }
 
   // ── Service workers (host PWA must keep working) ───────────────
-  if (navigator.serviceWorker && navigator.serviceWorker.register) {
+  if (navigator.serviceWorker?.register) {
     const realRegister = navigator.serviceWorker.register.bind(navigator.serviceWorker);
     lock(navigator.serviceWorker, "register", (scriptURL: string | URL) => {
       const url = String(scriptURL);
@@ -85,7 +96,10 @@ export function installHostApiGuard(): void {
         return realRegister(scriptURL);
       }
       return Promise.reject(
-        new DOMException("[HostGuard] Mini apps may not register service workers.", "NotAllowedError"),
+        new DOMException(
+          "[HostGuard] Mini apps may not register service workers.",
+          "NotAllowedError",
+        ),
       );
     });
   }

@@ -19,6 +19,6 @@
 }
 
 .animationWrapper {
-  width: 280px;  /* Constrain the scaling bounds for mobile displays */
+  width: 280px; /* Constrain the scaling bounds for mobile displays */
   height: 280px;
 }

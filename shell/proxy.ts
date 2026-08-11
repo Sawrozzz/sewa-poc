@@ -1,8 +1,6 @@
 import { headers } from "next/headers";
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-
-import type { NextRequest} from "next/server";
-
 import { auth } from "@/lib/auth.server";
 
 const publicPaths = [
@@ -18,9 +16,7 @@ const publicPaths = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isPublic = publicPaths.some(
-    (p) => pathname === p || pathname.startsWith(p + "/"),
-  );
+  const isPublic = publicPaths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
   if (isPublic) {
     return NextResponse.next();

@@ -1,5 +1,5 @@
-import type { MiniAppSdkInterface } from '@lizuz/mini-app-types';
-import type { PlatformUser } from '@sewa/host-platform';
+import type { MiniAppSdkInterface } from "@lizuz/mini-app-types";
+import type { PlatformUser } from "@sewa/host-platform";
 
 export interface PlatformServicesConfig {
   getUser: () => PlatformUser | null;
@@ -80,7 +80,7 @@ export interface CachedSdkBundle {
 }
 
 /** Why a given version is the active one. Diagnostics, mostly. */
-export type SdkPinReason = 'host-default' | 'remote-config' | 'rollback';
+export type SdkPinReason = "host-default" | "remote-config" | "rollback";
 
 /**
  * Pointer to the version that last executed successfully. Written *after*
@@ -88,7 +88,7 @@ export type SdkPinReason = 'host-default' | 'remote-config' | 'rollback';
  * what makes it usable as a local rollback target when the network is down.
  */
 export interface SdkPointer {
-  key: 'active';
+  key: "active";
   name: string;
   version: string;
   pinnedBy: SdkPinReason;
@@ -131,15 +131,15 @@ export interface SdkStore {
 /** How the SDK bytes reached the page. Logged; useful in the field. */
 export type SdkCacheOutcome =
   /** Served from IndexedDB, hash re-verified. */
-  | 'cache-hit'
+  | "cache-hit"
   /** Downloaded, verified, stored, executed. */
-  | 'downloaded'
+  | "downloaded"
   /** Downloaded and verified, but storing failed. Executed from memory. */
-  | 'downloaded-unstored'
+  | "downloaded-unstored"
   /** Target version unreachable; ran the last known-good cached version. */
-  | 'stale-hit'
+  | "stale-hit"
   /** Cache unusable. Ran today's plain `<script src>` path. */
-  | 'fallback';
+  | "fallback";
 
 export interface SdkCacheResult {
   outcome: SdkCacheOutcome;

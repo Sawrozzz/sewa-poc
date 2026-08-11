@@ -1,21 +1,12 @@
+import type { HttpResult, ShellApiService, ShellStorageService } from "@sewa/host-platform";
 import type { LocalApiRequestParams, LocalApiResult } from "@/types/platform";
-import type {
-  HttpResult,
-  ShellApiService,
-  ShellStorageService,
-} from "@sewa/host-platform";
 
 export function createHttpService() {
   const http = {
-    get: async <T = unknown>(
-      endpoint?: string,
-      query?: Record<string, string>,
-    ) => {
+    get: async <T = unknown>(endpoint?: string, query?: Record<string, string>) => {
       try {
         const params = query ? new URLSearchParams(query).toString() : "";
-        const res = await fetch(
-          params ? `${endpoint ?? "/api"}?${params}` : (endpoint ?? "/api"),
-        );
+        const res = await fetch(params ? `${endpoint ?? "/api"}?${params}` : (endpoint ?? "/api"));
         const data = await res.json();
         return {
           status: res.status,
@@ -101,10 +92,7 @@ export function createHttpService() {
         } as unknown as HttpResult<T>;
       }
     },
-    delete: async <T = unknown>(
-      endpoint?: string,
-      headers?: Record<string, string>,
-    ) => {
+    delete: async <T = unknown>(endpoint?: string, headers?: Record<string, string>) => {
       try {
         const res = await fetch(endpoint ?? "/api", {
           method: "DELETE",
@@ -126,13 +114,10 @@ export function createHttpService() {
   };
 
   const api: ShellApiService = {
-    request: async <T = unknown>(
-      params: LocalApiRequestParams,
-    ) => {
+    request: async <T = unknown>(params: LocalApiRequestParams) => {
       try {
         const res = await fetch(
-          params.endpoint?.startsWith("http") ||
-            params.endpoint?.startsWith("/")
+          params.endpoint?.startsWith("http") || params.endpoint?.startsWith("/")
             ? params.endpoint
             : `https://api.example.com${params.endpoint}`,
           {
@@ -165,9 +150,7 @@ export function createHttpService() {
   const storage: ShellStorageService = {
     get: async (key: string) => {
       try {
-        const result = await http.get<{ value?: string } | null>(
-          `/api/storage/${key}`,
-        );
+        const result = await http.get<{ value?: string } | null>(`/api/storage/${key}`);
         return result.data?.value ?? null;
       } catch {
         return null;

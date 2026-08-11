@@ -18,17 +18,17 @@
  * `text-gov-950` on top) while 800–950 are deep enough for white text.
  */
 @theme {
-    --color-gov-50: #fffbea;
-    --color-gov-100: #fff3c4;
-    --color-gov-200: #fce588;
-    --color-gov-300: #fadb5f;
-    --color-gov-400: #f7c948;
-    --color-gov-500: #f0b429;
-    --color-gov-600: #dc9a0d;
-    --color-gov-700: #b87b09;
-    --color-gov-800: #8f5f0a;
-    --color-gov-900: #6b470c;
-    --color-gov-950: #3d2806;
+  --color-gov-50: #fffbea;
+  --color-gov-100: #fff3c4;
+  --color-gov-200: #fce588;
+  --color-gov-300: #fadb5f;
+  --color-gov-400: #f7c948;
+  --color-gov-500: #f0b429;
+  --color-gov-600: #dc9a0d;
+  --color-gov-700: #b87b09;
+  --color-gov-800: #8f5f0a;
+  --color-gov-900: #6b470c;
+  --color-gov-950: #3d2806;
 }
 
 /*
@@ -43,7 +43,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--gov-bg);
   color: var(--gov-text);
   min-height: 100dvh;
@@ -73,8 +73,14 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-in {
@@ -82,8 +88,13 @@ body {
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .pulse-dot {
@@ -92,24 +103,47 @@ body {
 
 /* Mini app launch loader */
 @keyframes miniapp-halo {
-  0%   { transform: scale(0.92); opacity: 0.5; }
-  70%  { opacity: 0; }
-  100% { transform: scale(1.85); opacity: 0; }
+  0% {
+    transform: scale(0.92);
+    opacity: 0.5;
+  }
+  70% {
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.85);
+    opacity: 0;
+  }
 }
 
 @keyframes miniapp-breathe {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50%      { transform: translateY(-5px) scale(1.04); }
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.04);
+  }
 }
 
 @keyframes miniapp-slide {
-  0%   { transform: translateX(-110%); }
-  100% { transform: translateX(320%); }
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
 }
 
 @keyframes miniapp-message-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .miniapp-message {
@@ -130,9 +164,15 @@ body {
 
 /* Flash on the card the global search just scrolled to */
 @keyframes mini-app-highlight {
-  0%   { box-shadow: 0 0 0 0 rgba(240, 180, 41, 0.7); }
-  20%  { box-shadow: 0 0 0 6px rgba(240, 180, 41, 0.45); }
-  100% { box-shadow: 0 0 0 10px rgba(240, 180, 41, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(240, 180, 41, 0.7);
+  }
+  20% {
+    box-shadow: 0 0 0 6px rgba(240, 180, 41, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(240, 180, 41, 0);
+  }
 }
 
 .mini-app-highlight {

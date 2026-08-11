@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { AppShell } from '@/components/AppShell';
-import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow';
-import { authClient } from '@/lib/auth-client';
+import { AppShell } from "@/components/AppShell";
+import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
+import { authClient } from "@/lib/auth-client";
 
 export default function HomePage() {
   const { data: session, isPending, refetch } = authClient.useSession();

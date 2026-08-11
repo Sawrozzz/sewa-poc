@@ -1,6 +1,5 @@
-import axios from "axios";
-
 import type { ModuleManifest } from "@sewa/host-platform";
+import axios from "axios";
 
 interface MiniAppRecord {
   miniAppId: string;
@@ -45,7 +44,8 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
   {
     id: "test-mini-app",
     name: "Test Mini App",
-    description: "This mini app contain all the basic operations that can be perform thorough any mini app.",
+    description:
+      "This mini app contain all the basic operations that can be perform thorough any mini app.",
     vendor: "Sawroz",
     version: "2.1.0",
     sdkVersion: "1.0.0",
@@ -87,7 +87,8 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
   {
     id: "chat-mini-app",
     name: "Chat Mini App",
-    description: "This chat mini app in react framework contain all the basic operations that can be perform thorough any mini app.",
+    description:
+      "This chat mini app in react framework contain all the basic operations that can be perform thorough any mini app.",
     vendor: "Sawroz",
     version: "2.1.0",
     sdkVersion: "1.0.0",
@@ -129,7 +130,8 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
   {
     id: "veu-mini-app",
     name: "Veu Mini App",
-    description: "This mini app in veu framework contain all the basic operations that can be perform thorough any mini app.",
+    description:
+      "This mini app in veu framework contain all the basic operations that can be perform thorough any mini app.",
     vendor: "Sawroz",
     version: "2.1.0",
     sdkVersion: "1.0.0",
@@ -171,7 +173,8 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
   {
     id: "next-mini-app",
     name: "Next Mini App",
-    description: "This mini app in next framework contain all the basic operations that can be perform thorough any mini app.",
+    description:
+      "This mini app in next framework contain all the basic operations that can be perform thorough any mini app.",
     vendor: "Sawroz",
     version: "2.1.0",
     sdkVersion: "1.0.0",
@@ -213,7 +216,8 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
   {
     id: "angular-mini-app",
     name: "Angular Mini App",
-    description: "This mini app in angular framework contain all the basic operations that can be perform thorough any mini app.",
+    description:
+      "This mini app in angular framework contain all the basic operations that can be perform thorough any mini app.",
     vendor: "Sawroz",
     version: "2.1.0",
     sdkVersion: "1.0.0",
@@ -255,7 +259,8 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
   {
     id: "nuxt-mini-app",
     name: "Nuxt Mini App",
-    description: "This mini app in nuxt framework contain all the basic operations that can be perform thorough any mini app.",
+    description:
+      "This mini app in nuxt framework contain all the basic operations that can be perform thorough any mini app.",
     vendor: "Sawroz",
     version: "2.1.0",
     sdkVersion: "1.0.0",
@@ -297,7 +302,8 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
   {
     id: "solid-mini-app",
     name: "Solid Mini App",
-    description: "This mini app in solid framework contain all the basic operations that can be perform thorough any mini app.",
+    description:
+      "This mini app in solid framework contain all the basic operations that can be perform thorough any mini app.",
     vendor: "Sawroz",
     version: "2.1.0",
     sdkVersion: "1.0.0",
@@ -339,7 +345,8 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
   {
     id: "svelte-mini-app",
     name: "Svelte Mini App",
-    description: "This mini app in Svelte framework contain all the basic operations that can be perform thorough any mini app.",
+    description:
+      "This mini app in Svelte framework contain all the basic operations that can be perform thorough any mini app.",
     vendor: "Sawroz",
     version: "2.1.0",
     sdkVersion: "1.0.0",
@@ -383,9 +390,9 @@ const FALLBACK_MANIFESTS: ModuleManifest[] = [
 export async function fetchMiniApps(): Promise<ModuleManifest[]> {
   const res = await axios.get<MiniAppRecord[]>("/api/mini-apps");
 
-  console.log("Response in mini app", res)
+  console.log("Response in mini app", res);
 
-  console.log("Res", res?.data)
+  console.log("Res", res?.data);
   // return res.data.map(toManifest);
   return Array.isArray(res.data) ? res.data.map(toManifest) : FALLBACK_MANIFESTS;
 }

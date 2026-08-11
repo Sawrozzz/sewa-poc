@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -8,8 +8,8 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 function getUserAgent() {
-  if (typeof navigator === 'undefined') return '';
-  return navigator.userAgent || navigator.vendor || '';
+  if (typeof navigator === "undefined") return "";
+  return navigator.userAgent || navigator.vendor || "";
 }
 
 function isMobileDevice() {
@@ -21,7 +21,7 @@ function isIOSDevice() {
 }
 
 function isStandaloneMode() {
-  return typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
+  return typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches;
 }
 
 export function InstallPrompt() {
@@ -43,12 +43,12 @@ export function InstallPrompt() {
       setShowCustomPrompt(false);
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
 
@@ -76,10 +76,10 @@ export function InstallPrompt() {
           )}
         </div>
         <button
-          onClick={handleInstallClick}
           className="bg-gov-500 text-gov-950 font-medium px-4 py-2 rounded-lg text-sm hover:bg-gov-600 transition"
+          onClick={handleInstallClick}
         >
-          {isIOS ? 'Instructions' : 'Install'}
+          {isIOS ? "Instructions" : "Install"}
         </button>
       </div>
     </div>

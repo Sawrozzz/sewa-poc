@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+import type { ErrorInfo, ReactNode } from "react";
+import { Component } from "react";
 
 export interface MiniAppErrorBoundaryProps {
   miniAppId: string;
@@ -34,7 +35,7 @@ export class MiniAppErrorBoundary extends Component<MiniAppErrorBoundaryProps, S
     console.error(
       `[MiniAppErrorBoundary] Module ${this.props.miniAppId} crashed:`,
       error.message,
-      info.componentStack
+      info.componentStack,
     );
   }
 
@@ -64,21 +65,21 @@ export class MiniAppErrorBoundary extends Component<MiniAppErrorBoundaryProps, S
             <p className="text-sm text-gray-500 mb-1">
               The service has been isolated to protect the portal.
             </p>
-            <p className="text-xs text-gray-400 font-mono mb-4">
-              {this.state.error?.message}
-            </p>
+            <p className="text-xs text-gray-400 font-mono mb-4">{this.state.error?.message}</p>
             <div className="flex gap-3 justify-center">
               {this.state.retryCount < MAX_RETRIES && (
                 <button
-                  onClick={this.handleRetry}
                   className="px-4 py-2 text-sm bg-gov-500 text-gov-950 rounded-lg hover:bg-gov-600 transition"
+                  onClick={this.handleRetry}
+                  type="button"
                 >
                   Retry ({MAX_RETRIES - this.state.retryCount} left)
                 </button>
               )}
               <button
-                onClick={this.handleUnload}
                 className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                onClick={this.handleUnload}
+                type="button"
               >
                 Return to Portal
               </button>

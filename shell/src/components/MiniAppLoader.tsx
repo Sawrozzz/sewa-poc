@@ -9,7 +9,7 @@ const DEFAULT_MESSAGES = [
   "Almost there…",
   "Any moment now…",
   "Fetching...",
-  "All set ...."
+  "All set ....",
 ];
 
 interface MiniAppLoaderProps {
@@ -63,8 +63,8 @@ export function MiniAppLoader({
 
         <p className="text-base font-semibold text-gray-900">{name}</p>
 
-        <div className="mt-1 flex h-5 items-center" aria-live="polite">
-          <p key={step} className="miniapp-message text-xs text-gray-400">
+        <div aria-live="polite" className="mt-1 flex h-5 items-center">
+          <p className="miniapp-message text-xs text-gray-400" key={step}>
             {messages[step]}
           </p>
         </div>

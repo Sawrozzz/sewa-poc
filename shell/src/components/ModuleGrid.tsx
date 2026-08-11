@@ -1,13 +1,10 @@
-'use client';
+"use client";
 
-import { useMemo } from 'react';
-
-import { MiniAppCard } from './MiniAppCard';
-
-import type { ModuleManifest } from '@sewa/host-platform';
-
-import { authClient, mapSessionUser } from '@/lib/auth-client';
-import { useMiniApps, useFallbackMiniApps } from '@/lib/use-mini-apps';
+import type { ModuleManifest } from "@sewa/host-platform";
+import { useMemo } from "react";
+import { authClient, mapSessionUser } from "@/lib/auth-client";
+import { useFallbackMiniApps, useMiniApps } from "@/lib/use-mini-apps";
+import { MiniAppCard } from "./MiniAppCard";
 
 function filterByPermission(mods: ModuleManifest[], permissions: string[]) {
   return mods
@@ -18,7 +15,7 @@ function filterByPermission(mods: ModuleManifest[], permissions: string[]) {
 
 function groupByCategory(mods: ModuleManifest[]) {
   return mods.reduce<Record<string, ModuleManifest[]>>((acc, m) => {
-    const cat = m.category || 'Other';
+    const cat = m.category || "Other";
     acc[cat] = acc[cat] || [];
     acc[cat].push(m);
     return acc;
@@ -96,7 +93,7 @@ export function ModuleGrid() {
           </div>
           <div className="space-y-8">
             {Object.entries(fallbackGroups).map(([category, mods]) => (
-              <CategorySection key={category} category={category} modules={mods} />
+              <CategorySection category={category} key={category} modules={mods} />
             ))}
           </div>
         </div>
@@ -127,11 +124,11 @@ export function ModuleGrid() {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Could Not Load Services</h3>
             <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
               {error?.message ||
-                'Unable to fetch services from the platform. Please check your connection.'}
+                "Unable to fetch services from the platform. Please check your connection."}
             </p>
             <button
-              onClick={() => refetch()}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gov-500 text-gov-950 rounded-lg hover:bg-gov-600 transition text-sm font-medium"
+              onClick={() => refetch()}
             >
               <span>🔄</span>
               Try Again
@@ -149,7 +146,7 @@ export function ModuleGrid() {
         ) : (
           <div className="space-y-8">
             {Object.entries(apiGroups).map(([category, mods]) => (
-              <CategorySection key={category} category={category} modules={mods} />
+              <CategorySection category={category} key={category} modules={mods} />
             ))}
           </div>
         )}

@@ -7,25 +7,6 @@
  * to the CDN `<script>` that shipped before this module existed.
  */
 
-export {
-  DEFAULT_SDK_SOURCE,
-  DEFAULT_SDK_VERSION,
-  SDK_CACHE_SWITCH_KEY,
-  SDK_NAME,
-  SDK_VERSION,
-  bundleKey,
-  isSdkCacheEnabled,
-  resolveSdkSpec,
-} from './config';
-export type { SdkSpecOverrides } from './config';
-
-export { loadSdkScript, purgeSdkCache, scheduleSdkWarm, warmSdkCache } from './browser';
-
-export { injectScript, injectBlobScript } from './execute';
-export { SdkIntegrityError, digest, verify } from '@/utils/sdk-utils';
-export { loadSdkBundle, purgeSdkBundles, warmSdkBundle } from './core';
-export { IdbSdkStore } from './db';
-
 export type {
   CachedSdkBundle,
   SdkCacheEnv,
@@ -35,4 +16,20 @@ export type {
   SdkPointer,
   SdkSpec,
   SdkStore,
-} from '@/types/platform';
+} from "@/types/platform";
+export { digest, SdkIntegrityError, verify } from "@/utils/sdk-utils";
+export { loadSdkScript, purgeSdkCache, scheduleSdkWarm, warmSdkCache } from "./browser";
+export type { SdkSpecOverrides } from "./config";
+export {
+  bundleKey,
+  DEFAULT_SDK_SOURCE,
+  DEFAULT_SDK_VERSION,
+  isSdkCacheEnabled,
+  resolveSdkSpec,
+  SDK_CACHE_SWITCH_KEY,
+  SDK_NAME,
+  SDK_VERSION,
+} from "./config";
+export { loadSdkBundle, purgeSdkBundles, warmSdkBundle } from "./core";
+export { IdbSdkStore } from "./db";
+export { injectBlobScript, injectScript } from "./execute";

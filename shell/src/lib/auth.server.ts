@@ -1,10 +1,9 @@
-import { betterAuth, APIError } from "better-auth";
+import { APIError, betterAuth } from "better-auth";
 import { memoryAdapter } from "better-auth/adapters/memory";
 import { createAuthEndpoint } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { nextCookies } from "better-auth/next-js";
 import { z } from "zod";
-
 import { MOCK_CITIZEN, MOCK_OTP, normalisePhoneNumber, toE164 } from "./mock-user";
 
 const db: Record<string, []> = {
@@ -66,13 +65,9 @@ const phoneOtpPlugin = {
         // citizen. The number the user typed is kept on the session so the UI
         // shows it back.
         const phoneNumber = normalisePhoneNumber(ctx.body.phoneNumber);
-        const phoneE164 = phoneNumber
-          ? toE164(phoneNumber)
-          : MOCK_CITIZEN.phoneE164;
+        const phoneE164 = phoneNumber ? toE164(phoneNumber) : MOCK_CITIZEN.phoneE164;
 
-        const existing = await ctx.context.internalAdapter.findUserByEmail(
-          MOCK_CITIZEN.email,
-        );
+        const existing = await ctx.context.internalAdapter.findUserByEmail(MOCK_CITIZEN.email);
 
         let userId: string;
         if (existing) {
@@ -119,9 +114,7 @@ export const auth = betterAuth({
           "http://192.168.*",
         ]
       : []),
-    ...(process.env.BETTER_AUTH_URL
-      ? [new URL(process.env.BETTER_AUTH_URL).origin]
-      : []),
+    ...(process.env.BETTER_AUTH_URL ? [new URL(process.env.BETTER_AUTH_URL).origin] : []),
   ],
   user: {
     additionalFields: {
@@ -130,8 +123,5 @@ export const auth = betterAuth({
       nationalId: { type: "string", required: false, input: false },
     },
   },
-  plugins: [
-    nextCookies(),
-    phoneOtpPlugin,
-  ],
+  plugins: [nextCookies(), phoneOtpPlugin],
 });

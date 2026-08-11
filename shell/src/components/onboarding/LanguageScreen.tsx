@@ -4,13 +4,9 @@ import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-
 import { setLocale } from "@/i18n/actions";
-import {
-  localeLabels,
-  locales,
-  type Locale,
-} from "@/i18n/config";
+import type { Locale } from "@/i18n/config";
+import { localeLabels, locales } from "@/i18n/config";
 
 export function LanguageScreen({ onContinueAction }: { onContinueAction: () => void }) {
   const t = useTranslations("LanguageSelect");
@@ -34,7 +30,7 @@ export function LanguageScreen({ onContinueAction }: { onContinueAction: () => v
         await setLocale(selected);
         router.refresh();
       }
-        onContinueAction();
+      onContinueAction();
     });
   };
 
@@ -51,15 +47,15 @@ export function LanguageScreen({ onContinueAction }: { onContinueAction: () => v
             const isSelected = code === selected;
             return (
               <button
-                key={code}
-                type="button"
-                onClick={() => handleLanguageSelect(code)}
                 aria-pressed={isSelected}
                 className={`w-full flex items-center justify-between gap-4 rounded-2xl border p-5 text-left transition ${
                   isSelected
                     ? "border-white bg-white shadow-xl"
                     : "border-white/20 bg-white/5 hover:bg-white/10"
                 }`}
+                key={code}
+                onClick={() => handleLanguageSelect(code)}
+                type="button"
               >
                 <div>
                   <p
@@ -69,7 +65,6 @@ export function LanguageScreen({ onContinueAction }: { onContinueAction: () => v
                   >
                     {localeLabels[code]}
                   </p>
-      
                 </div>
 
                 <span
@@ -87,10 +82,10 @@ export function LanguageScreen({ onContinueAction }: { onContinueAction: () => v
         </div>
 
         <button
-          type="button"
-          onClick={handleContinue}
-          disabled={isPending}
           className="mt-8 w-full py-3.5 bg-white text-gov-800 font-semibold rounded-xl shadow-lg shadow-gov-950/40 hover:bg-gov-50 disabled:opacity-70 active:scale-[0.99] transition"
+          disabled={isPending}
+          onClick={handleContinue}
+          type="button"
         >
           {t("continue")}
         </button>

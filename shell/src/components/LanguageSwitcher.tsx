@@ -4,10 +4,10 @@ import { Globe } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
-
 import { usePlatform } from "@/context";
 import { setLocale } from "@/i18n/actions";
-import { localeLabels, locales, type Locale } from "@/i18n/config";
+import type { Locale } from "@/i18n/config";
+import { localeLabels, locales } from "@/i18n/config";
 
 export function LocaleSwitcher() {
   const t = useTranslations("LocaleSwitcher");
@@ -33,15 +33,9 @@ export function LocaleSwitcher() {
 
   return (
     <div className="relative inline-flex items-center">
-      <Globe
-        size={18}
-        className="pointer-events-none absolute left-3 text-gov-700"
-      />
+      <Globe className="pointer-events-none absolute left-3 text-gov-700" size={18} />
 
       <select
-        value={locale}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={isPending}
         aria-label={t("label")}
         className="
           appearance-none
@@ -74,6 +68,9 @@ export function LocaleSwitcher() {
           sm:w-auto
           sm:min-w-37.5
         "
+        disabled={isPending}
+        onChange={(e) => onChange(e.target.value)}
+        value={locale}
       >
         {locales.map((code) => (
           <option key={code} value={code}>
@@ -84,17 +81,13 @@ export function LocaleSwitcher() {
 
       <svg
         className="pointer-events-none absolute right-3 h-4 w-4 text-gray-500"
-        xmlns="http://www.w3.org/2000/svg"
         fill="none"
-        viewBox="0 0 24 24"
         stroke="currentColor"
         strokeWidth={2}
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
       >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M19 9l-7 7-7-7"
-        />
+        <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </div>
   );

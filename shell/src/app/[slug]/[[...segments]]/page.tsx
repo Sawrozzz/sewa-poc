@@ -1,8 +1,7 @@
-'use client';
+"use client";
 
-import { useParams } from 'next/navigation';
-
-import { MiniAppContainer } from '@/components/MiniAppContainer';
+import { useParams } from "next/navigation";
+import { MiniAppContainer } from "@/components/MiniAppContainer";
 
 /**
  * Mini App Loader Page

@@ -1,11 +1,9 @@
-'use client';
+"use client";
 
-import Lottie from 'lottie-react';
-import { useEffect, useState } from 'react';
-
-import splashAnim from '../../public/assets/animations/splash-animation.json';
-
-import styles from './SplashScreen.module.css';
+import Lottie from "lottie-react";
+import { useEffect, useState } from "react";
+import splashAnim from "../../public/assets/animations/splash-animation.json";
+import styles from "./SplashScreen.module.css";
 
 export default function SplashScreen() {
   const [isVisible, setIsVisible] = useState(true);
@@ -28,13 +26,13 @@ export default function SplashScreen() {
   if (!isVisible) return null;
 
   return (
-    <div className={`${styles.overlay} ${isFadingOut ? styles.fadeOut : ''}`}>
+    <div className={`${styles.overlay} ${isFadingOut ? styles.fadeOut : ""}`}>
       <div className={styles.animationWrapper}>
         <Lottie
           animationData={splashAnim}
-          loop={true}
           autoplay={true}
-          style={{ width: '100%', height: '100%' }}
+          loop={true}
+          style={{ width: "100%", height: "100%" }}
         />
       </div>
     </div>

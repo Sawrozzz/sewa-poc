@@ -10,18 +10,16 @@
  * than quietly re-fetching bytes that already failed verification.
  */
 
-import { bundleKey } from './config';
-import { downloadBundle } from './fetch';
-
 import type {
   CachedSdkBundle,
   SdkCacheEnv,
   SdkCacheResult,
   SdkSpec,
   SdkStore,
-} from '@/types/platform';
-
-import { SdkIntegrityError } from '@/utils';
+} from "@/types/platform";
+import { SdkIntegrityError } from "@/utils";
+import { bundleKey } from "./config";
+import { downloadBundle } from "./fetch";
 
 /**
  * Re-verifies a stored record before executing it.
@@ -31,13 +29,13 @@ import { SdkIntegrityError } from '@/utils';
  */
 async function isRecordSound(
   record: CachedSdkBundle,
-  env: Pick<SdkCacheEnv, 'digest'>,
+  env: Pick<SdkCacheEnv, "digest">,
 ): Promise<boolean> {
   try {
     const actual = await env.digest(await record.content.arrayBuffer());
     return actual === record.integrity;
   } catch (err) {
-    console.warn('[SdkCache] Could not verify cached record:', record.key, err);
+    console.warn("[SdkCache] Could not verify cached record:", record.key, err);
     return false;
   }
 }
@@ -65,18 +63,18 @@ async function collectGarbage(
 
   for (const record of doomed) {
     await store.delete(record.key).catch((err) => {
-      console.warn('[SdkCache] Eviction failed for:', record.key, err);
+      console.warn("[SdkCache] Eviction failed for:", record.key, err);
     });
   }
   if (doomed.length) {
-    console.log('[SdkCache] Evicted', doomed.map((r) => r.key).join(', '));
+    console.log("[SdkCache] Evicted", doomed.map((r) => r.key).join(", "));
   }
 }
 
 /** Records what actually ran. Written after execution, never before. */
 async function promote(store: SdkStore, spec: SdkSpec, at: number): Promise<void> {
   await store.setActive({
-    key: 'active',
+    key: "active",
     name: spec.name,
     version: spec.version,
     pinnedBy: spec.pinnedBy,
@@ -94,13 +92,13 @@ async function persist(store: SdkStore, record: CachedSdkBundle): Promise<boolea
     await store.put(record);
     return true;
   } catch (err) {
-    console.warn('[SdkCache] Store failed, retrying after eviction:', err);
+    console.warn("[SdkCache] Store failed, retrying after eviction:", err);
     try {
       await collectGarbage(store, record.name, 0, record.key);
       await store.put(record);
       return true;
     } catch (retryErr) {
-      console.warn('[SdkCache] Store failed after eviction, running unstored:', retryErr);
+      console.warn("[SdkCache] Store failed after eviction, running unstored:", retryErr);
       return false;
     }
   }
@@ -142,7 +140,7 @@ export async function loadSdkBundle(spec: SdkSpec, env: SdkCacheEnv): Promise<Sd
 
   const bail = async (reason: string): Promise<SdkCacheResult> => {
     await env.fallback(spec);
-    return { outcome: 'fallback', version: spec.version, loadTimeMs: elapsed(), reason };
+    return { outcome: "fallback", version: spec.version, loadTimeMs: elapsed(), reason };
   };
 
   let store: SdkStore;
@@ -163,9 +161,9 @@ export async function loadSdkBundle(spec: SdkSpec, env: SdkCacheEnv): Promise<Sd
       // Best-effort bookkeeping: a failure here must not fail the load.
       void store.touch(key, at).catch(() => {});
       void promote(store, spec, at).catch(() => {});
-      return { outcome: 'cache-hit', version: spec.version, loadTimeMs: elapsed() };
+      return { outcome: "cache-hit", version: spec.version, loadTimeMs: elapsed() };
     }
-    console.warn('[SdkCache] Cached record failed verification, discarding:', key);
+    console.warn("[SdkCache] Cached record failed verification, discarding:", key);
     await store.delete(key).catch(() => {});
   }
 
@@ -178,7 +176,7 @@ export async function loadSdkBundle(spec: SdkSpec, env: SdkCacheEnv): Promise<Sd
     // through a `<script>` would fail the same check with a worse error, so
     // surface it instead.
     if (err instanceof SdkIntegrityError) {
-      console.error('[SdkCache]', err.message);
+      console.error("[SdkCache]", err.message);
       throw err;
     }
 
@@ -189,7 +187,7 @@ export async function loadSdkBundle(spec: SdkSpec, env: SdkCacheEnv): Promise<Sd
       await env.execute(stale.content);
       void store.touch(stale.key, env.now()).catch(() => {});
       return {
-        outcome: 'stale-hit',
+        outcome: "stale-hit",
         version: stale.version,
         loadTimeMs: elapsed(),
         reason: err instanceof Error ? err.message : String(err),
@@ -211,13 +209,13 @@ export async function loadSdkBundle(spec: SdkSpec, env: SdkCacheEnv): Promise<Sd
   }
 
   return {
-    outcome: stored ? 'downloaded' : 'downloaded-unstored',
+    outcome: stored ? "downloaded" : "downloaded-unstored",
     version: spec.version,
     loadTimeMs: elapsed(),
   };
 }
 
-export type WarmOutcome = 'already-cached' | 'downloaded' | 'skipped';
+export type WarmOutcome = "already-cached" | "downloaded" | "skipped";
 
 /**
  * Downloads and stores `spec` without executing it.
@@ -233,32 +231,32 @@ export async function warmSdkBundle(spec: SdkSpec, env: SdkCacheEnv): Promise<Wa
   try {
     store = await env.openStore();
   } catch {
-    return 'skipped';
+    return "skipped";
   }
 
   const key = bundleKey(spec.name, spec.version);
   const existing = await store.get(key).catch(() => null);
-  if (existing && (await isRecordSound(existing, env))) return 'already-cached';
+  if (existing && (await isRecordSound(existing, env))) return "already-cached";
 
   try {
     const record = await downloadBundle(spec, env);
     await store.put(record);
     void collectGarbage(store, spec.name, env.keepVersions, key).catch(() => {});
-    return 'downloaded';
+    return "downloaded";
   } catch (err) {
-    if (err instanceof SdkIntegrityError) console.error('[SdkCache]', err.message);
-    else console.warn('[SdkCache] Warm failed:', err);
-    return 'skipped';
+    if (err instanceof SdkIntegrityError) console.error("[SdkCache]", err.message);
+    else console.warn("[SdkCache] Warm failed:", err);
+    return "skipped";
   }
 }
 
 /** Field kill switch: drop everything and let the CDN path take over. */
-export async function purgeSdkBundles(env: Pick<SdkCacheEnv, 'openStore'>): Promise<void> {
+export async function purgeSdkBundles(env: Pick<SdkCacheEnv, "openStore">): Promise<void> {
   try {
     const store = await env.openStore();
     await store.clear();
-    console.log('[SdkCache] Purged');
+    console.log("[SdkCache] Purged");
   } catch (err) {
-    console.warn('[SdkCache] Purge failed:', err);
+    console.warn("[SdkCache] Purge failed:", err);
   }
 }

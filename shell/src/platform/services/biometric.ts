@@ -1,6 +1,5 @@
-import { privileged } from "../host-privileges";
-
 import type { PlatformUser } from "@sewa/host-platform";
+import { privileged } from "../host-privileges";
 
 /** True once the Shell is running from the home screen rather than a browser tab. */
 export function isInstalledPwa(): boolean {
@@ -9,12 +8,9 @@ export function isInstalledPwa(): boolean {
   if ((navigator as Navigator & { standalone?: boolean }).standalone === true) {
     return true;
   }
-  return [
-    "standalone",
-    "fullscreen",
-    "minimal-ui",
-    "window-controls-overlay",
-  ].some((mode) => window.matchMedia(`(display-mode: ${mode})`).matches);
+  return ["standalone", "fullscreen", "minimal-ui", "window-controls-overlay"].some(
+    (mode) => window.matchMedia(`(display-mode: ${mode})`).matches,
+  );
 }
 
 /**
@@ -99,9 +95,7 @@ function checkUvm(credential: PublicKeyCredential): FingerprintOutcome {
  * authenticated identity. Any server-trusted flow needs a real challenge issued
  * and verified by the backend.
  */
-export async function verifyFingerprint(
-  user: PlatformUser | null,
-): Promise<FingerprintOutcome> {
+export async function verifyFingerprint(user: PlatformUser | null): Promise<FingerprintOutcome> {
   if (typeof window === "undefined" || !window.PublicKeyCredential) {
     return "cancelled";
   }
@@ -152,9 +146,7 @@ export async function verifyFingerprint(
     publicKey: {
       challenge: randomChallenge(),
       rpId: window.location.hostname,
-      allowCredentials: [
-        { type: "public-key", id: base64UrlDecode(storedId) },
-      ],
+      allowCredentials: [{ type: "public-key", id: base64UrlDecode(storedId) }],
       userVerification: "required",
       timeout: 60_000,
       extensions: UVM_EXTENSION,

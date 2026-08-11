@@ -13,23 +13,6 @@
  * own shims that re-export from here, so nothing outside this folder changed.
  */
 
-export {
-  DEFAULT_SDK_SOURCE,
-  DEFAULT_SDK_VERSION,
-  SDK_CACHE_SWITCH_KEY,
-  SDK_NAME,
-  SDK_VERSION,
-  bundleKey,
-  isSdkCacheEnabled,
-  resolveSdkSpec,
-} from './cache';
-export type { SdkSpecOverrides } from './cache';
-
-export { loadSdkScript, purgeSdkCache, scheduleSdkWarm, warmSdkCache } from './cache';
-export { injectScript, injectBlobScript } from './cache';
-export { SdkIntegrityError, digest, verify } from '@/utils/sdk-utils';
-export { loadSdkBundle, purgeSdkBundles, warmSdkBundle } from './cache';
-export { IdbSdkStore } from './cache';
 export type {
   CachedSdkBundle,
   SdkCacheEnv,
@@ -39,13 +22,37 @@ export type {
   SdkPointer,
   SdkSpec,
   SdkStore,
-} from '@/types/platform';
-
-export { SDK_GLOBAL_KEY, HOST_DESCRIPTOR_GLOBAL_KEY, DEFAULT_HOST_CAPABILITIES } from './bootstrap';
+} from "@/types/platform";
+export { digest, SdkIntegrityError, verify } from "@/utils/sdk-utils";
 export {
-  readSdkInstance,
-  seedSdkConfig,
   bootstrapMiniAppSdk,
+  DEFAULT_HOST_CAPABILITIES,
+  destroyMiniAppSdk,
   destroySdkInstance,
-} from './bootstrap';
-export { loadMiniAppSdk, destroyMiniAppSdk } from './bootstrap';
+  HOST_DESCRIPTOR_GLOBAL_KEY,
+  loadMiniAppSdk,
+  readSdkInstance,
+  SDK_GLOBAL_KEY,
+  seedSdkConfig,
+} from "./bootstrap";
+export type { SdkSpecOverrides } from "./cache";
+export {
+  bundleKey,
+  DEFAULT_SDK_SOURCE,
+  DEFAULT_SDK_VERSION,
+  IdbSdkStore,
+  injectBlobScript,
+  injectScript,
+  isSdkCacheEnabled,
+  loadSdkBundle,
+  loadSdkScript,
+  purgeSdkBundles,
+  purgeSdkCache,
+  resolveSdkSpec,
+  SDK_CACHE_SWITCH_KEY,
+  SDK_NAME,
+  SDK_VERSION,
+  scheduleSdkWarm,
+  warmSdkBundle,
+  warmSdkCache,
+} from "./cache";

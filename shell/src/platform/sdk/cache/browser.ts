@@ -8,20 +8,19 @@
  * before the cache existed.
  */
 
-import { isSdkCacheEnabled, resolveSdkSpec, type SdkSpecOverrides } from './config';
-import { loadSdkBundle, purgeSdkBundles, warmSdkBundle } from './core';
-import { IdbSdkStore } from './db';
-import { injectBlobScript, injectScript } from './execute';
-
-import type { SdkCacheEnv, SdkCacheResult, SdkSpec, SdkStore } from '@/types/platform';
-
-import { digest, resolveKeepVersions } from '@/utils';
+import type { SdkCacheEnv, SdkCacheResult, SdkSpec, SdkStore } from "@/types/platform";
+import { digest, resolveKeepVersions } from "@/utils";
+import type { SdkSpecOverrides } from "./config";
+import { isSdkCacheEnabled, resolveSdkSpec } from "./config";
+import { loadSdkBundle, purgeSdkBundles, warmSdkBundle } from "./core";
+import { IdbSdkStore } from "./db";
+import { injectBlobScript, injectScript } from "./execute";
 
 let store: IdbSdkStore | null = null;
 
 function openStore(): Promise<SdkStore> {
-  if (typeof window === 'undefined') {
-    return Promise.reject(new Error('No window — SDK cache is client-only'));
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("No window — SDK cache is client-only"));
   }
   store ??= new IdbSdkStore();
   return Promise.resolve(store);
@@ -59,7 +58,7 @@ async function honourKillSwitch(): Promise<void> {
 export async function loadSdkScript(spec: SdkSpec): Promise<void> {
   if (!isSdkCacheEnabled()) {
     await honourKillSwitch();
-    console.log('[SdkCache] Disabled — loading', spec.url, 'directly');
+    console.log("[SdkCache] Disabled — loading", spec.url, "directly");
     await browserEnv.fallback(spec);
     return;
   }
@@ -67,7 +66,7 @@ export async function loadSdkScript(spec: SdkSpec): Promise<void> {
   const result: SdkCacheResult = await loadSdkBundle(spec, browserEnv);
   console.log(
     `[SdkCache] ${result.outcome} — ${spec.name}@${result.version} in ${result.loadTimeMs}ms` +
-      (result.reason ? ` (${result.reason})` : ''),
+      (result.reason ? ` (${result.reason})` : ""),
   );
 }
 
@@ -80,11 +79,11 @@ export async function loadSdkScript(spec: SdkSpec): Promise<void> {
  * opening a mini app becomes an IndexedDB read and a blob eval.
  */
 export async function warmSdkCache(overrides: SdkSpecOverrides = {}): Promise<void> {
-  if (typeof window === 'undefined' || !isSdkCacheEnabled()) return;
+  if (typeof window === "undefined" || !isSdkCacheEnabled()) return;
 
   const spec = resolveSdkSpec(overrides);
   const outcome = await warmSdkBundle(spec, browserEnv);
-  if (outcome !== 'skipped') {
+  if (outcome !== "skipped") {
     console.log(`[SdkCache] Warm: ${outcome} — ${spec.name}@${spec.version}`);
   }
 }
@@ -94,11 +93,11 @@ export async function warmSdkCache(overrides: SdkSpecOverrides = {}): Promise<vo
  * first paint. Returns a canceller.
  */
 export function scheduleSdkWarm(overrides: SdkSpecOverrides = {}): () => void {
-  if (typeof window === 'undefined') return () => {};
+  if (typeof window === "undefined") return () => {};
 
   const run = () => void warmSdkCache(overrides).catch(() => {});
 
-  if (typeof window.requestIdleCallback === 'function') {
+  if (typeof window.requestIdleCallback === "function") {
     const handle = window.requestIdleCallback(run, { timeout: 10_000 });
     return () => window.cancelIdleCallback?.(handle);
   }

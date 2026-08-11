@@ -2,12 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-
-import { SriLankaFlag } from "./SriLankaFlag";
-
 import { LocaleSwitcher } from "@/components/LanguageSwitcher";
 import { SRI_LANKA_DIAL_CODE } from "@/lib/mock-user";
-
+import { SriLankaFlag } from "./SriLankaFlag";
 
 /** Groups a bare national number as "71 234 5678" while typing. */
 function formatPhone(digits: string) {
@@ -68,50 +65,41 @@ export function PhoneLoginScreen({
           <div className="w-20 h-20 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20">
             <span className="text-4xl">🏛️</span>
           </div>
-          <h1 className="text-2xl font-bold text-white mb-1">
-            {t("portal_title")}
-          </h1>
+          <h1 className="text-2xl font-bold text-white mb-1">{t("portal_title")}</h1>
           <p className="text-gov-300 text-sm">{t("subtitle")}</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-2xl p-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-1">
-            {t("heading")}
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">{t("heading")}</h2>
           <p className="text-sm text-gray-500 mb-6">{t("description")}</p>
 
-          {error && (
+          {!!error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label
-                htmlFor="phone"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
+              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="phone">
                 {t("phone_label")}
               </label>
 
-              <div className="flex items-stretch rounded-lg border border-gray-300 focus-within:border-gov-500 focus-within:ring-2 focus-within:ring-gov-500 transition overflow-hidden">
+              <div className="flex items-stretch rounded-lg border border-gray-300 focus-within:ring-2 focus-within:ring-gov-500 transition overflow-hidden">
                 <span className="flex items-center gap-2 px-3 bg-gray-50 border-r border-gray-300 text-sm font-medium text-gray-700 select-none">
                   <SriLankaFlag />
                   {SRI_LANKA_DIAL_CODE}
                 </span>
                 <input
-                  id="phone"
-                  type="tel"
-                  inputMode="numeric"
                   autoComplete="tel-national"
-                  value={formatPhone(digits)}
-                  onChange={(e) =>
-                    setDigits(e.target.value.replace(/\D/g, "").slice(0, 9))
-                  }
                   className="flex-1 px-4 py-2.5 outline-none tracking-wide"
+                  id="phone"
+                  inputMode="numeric"
+                  onChange={(e) => setDigits(e.target.value.replace(/\D/g, "").slice(0, 9))}
                   placeholder={t("phone_placeholder")}
                   required
+                  type="tel"
+                  value={formatPhone(digits)}
                 />
               </div>
 
@@ -119,9 +107,9 @@ export function PhoneLoginScreen({
             </div>
 
             <button
-              type="submit"
+              className="w-full py-2.5 bg-gov-500 hover:bg-gov-600 disabled:text-gov-700 font-semibold rounded-lg transition flex items-center justify-center gap-2"
               disabled={loading || digits.length < 9}
-              className="w-full py-2.5 bg-gov-500 hover:bg-gov-600 disabled:bg-gov-200 disabled:text-gov-700 text-gov-950 font-semibold rounded-lg transition flex items-center justify-center gap-2"
+              type="submit"
             >
               {loading ? (
                 <>

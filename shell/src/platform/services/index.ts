@@ -1,19 +1,16 @@
-import { PLATFORM_EVENTS } from "@sewa/host-platform";
-
-import { createDeviceService } from "./device";
-import { createHttpService } from "./http";
-
-
-import type { AppearanceController } from "../appearance-controller";
-import type {PlatformServicesConfig} from "@/types/platform";
 import type {
-  EventBus,
-  NavigationTarget,
-  NavigationState,
-  NavigationRouterResult,
   ChatMessage,
+  EventBus,
+  NavigationRouterResult,
+  NavigationState,
+  NavigationTarget,
   ShellAppearanceService,
 } from "@sewa/host-platform";
+import { PLATFORM_EVENTS } from "@sewa/host-platform";
+import type { PlatformServicesConfig } from "@/types/platform";
+import type { AppearanceController } from "../appearance-controller";
+import { createDeviceService } from "./device";
+import { createHttpService } from "./http";
 
 export type { PlatformServicesConfig } from "@/types/platform";
 
@@ -89,8 +86,7 @@ export function createShellServices(
   };
 
   const globalConfig: Record<string, unknown> = {
-    apiBaseUrl:
-      process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.gov.example",
+    apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.gov.example",
     environment: process.env.NODE_ENV ?? "development",
     // No hardcoded locale — resolved from the appearance controller (host-driven).
     locale: appearanceController?.getLocale().locale ?? "en-LK",
@@ -227,10 +223,7 @@ export function createShellServices(
   const device = createDeviceService(() => getConfig().getUser());
 
   const chat = {
-    chat: async function* (
-      messages: ChatMessage[],
-      _options?: Record<string, unknown>,
-    ) {
+    chat: async function* (messages: ChatMessage[], _options?: Record<string, unknown>) {
       try {
         const resp = await fetch("/api/chat", {
           method: "POST",
@@ -287,10 +280,7 @@ export function createShellServices(
           }
         }
       } catch (err) {
-        console.error(
-          "[chat] error:",
-          err instanceof Error ? err.message : err,
-        );
+        console.error("[chat] error:", err instanceof Error ? err.message : err);
         yield "[error fetching reply]";
       }
     },

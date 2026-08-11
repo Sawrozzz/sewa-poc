@@ -1,10 +1,3 @@
-import { privileged } from '../host-privileges';
-
-import { isInstalledPwa, verifyFingerprint } from './biometric';
-import { ensureConsent, showNotice } from './consent';
-import { contactPicker } from './contact-picker';
-import { filePicker, getFallbackMimeType } from './file-picker';
-
 import type {
   DeviceBiometricResult,
   DeviceCameraResult,
@@ -21,7 +14,12 @@ import type {
   FileModule,
   FileOptions,
   PlatformUser,
-} from '@sewa/host-platform';
+} from "@sewa/host-platform";
+import { privileged } from "../host-privileges";
+import { isInstalledPwa, verifyFingerprint } from "./biometric";
+import { ensureConsent, showNotice } from "./consent";
+import { contactPicker } from "./contact-picker";
+import { filePicker, getFallbackMimeType } from "./file-picker";
 
 interface FileSystemWritableFileStreamLike {
   write: (data: Blob) => Promise<void>;
@@ -40,20 +38,20 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
   const device = {
     location: async (_options?: { highAccuracy?: boolean; timeout?: number; reason?: string }) => {
       try {
-        if (!(await ensureConsent(_options?.reason, 'Location Access'))) {
+        if (!(await ensureConsent(_options?.reason, "Location Access"))) {
           return {
-            status: 'denied',
+            status: "denied",
             data: null,
-            error: 'User declined location access',
+            error: "User declined location access",
           } as unknown as DevicePermissionResponse<DeviceLocationResult>;
         }
-        if (!privileged.geolocation) throw new Error('Geolocation not supported');
+        if (!privileged.geolocation) throw new Error("Geolocation not supported");
         const result = await new Promise<DevicePermissionResponse<DeviceLocationResult>>(
           (resolve, reject) => {
-            privileged.geolocation!.getCurrentPosition(
+            privileged.geolocation?.getCurrentPosition(
               (pos) =>
                 resolve({
-                  status: 'granted',
+                  status: "granted",
                   data: {
                     latitude: pos.coords.latitude,
                     longitude: pos.coords.longitude,
@@ -69,47 +67,47 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
             );
           },
         );
-        console.log('location data in host:', result);
+        console.log("location data in host:", result);
         return result;
       } catch (err) {
-        console.log('Error on host in location:', err);
+        console.log("Error on host in location:", err);
         return {
-          status: 'denied',
+          status: "denied",
           data: null,
-          error: err instanceof Error ? err.message : 'Location access denied',
+          error: err instanceof Error ? err.message : "Location access denied",
         } as unknown as DevicePermissionResponse<DeviceLocationResult>;
       }
     },
-    camera: async (options?: { facing?: 'front' | 'back'; reason?: string }) => {
+    camera: async (options?: { facing?: "front" | "back"; reason?: string }) => {
       try {
-        if (!(await ensureConsent(options?.reason, 'Camera Access'))) {
+        if (!(await ensureConsent(options?.reason, "Camera Access"))) {
           return {
-            status: 'denied',
+            status: "denied",
             data: null,
-            error: 'User declined camera access',
+            error: "User declined camera access",
           } as unknown as DevicePermissionResponse<DeviceCameraResult>;
         }
         const file = await new Promise<File>((resolve, reject) => {
-          const input = document.createElement('input');
-          input.type = 'file';
-          input.accept = 'image/*';
+          const input = document.createElement("input");
+          input.type = "file";
+          input.accept = "image/*";
           // On mobile (web or installed PWA) this opens the native camera
           // directly; desktop browsers ignore it and show a file picker.
-          input.capture = options?.facing === 'front' ? 'user' : 'environment';
+          input.capture = options?.facing === "front" ? "user" : "environment";
 
           input.onchange = () => {
             if (!input.files || input.files.length === 0) {
-              return reject(new Error('No photo captured'));
+              return reject(new Error("No photo captured"));
             }
             resolve(input.files[0]);
           };
 
           window.addEventListener(
-            'focus',
+            "focus",
             () => {
               setTimeout(() => {
                 if (!input.files || input.files.length === 0) {
-                  reject(new Error('Camera capture cancelled'));
+                  reject(new Error("Camera capture cancelled"));
                 }
               }, 300);
             },
@@ -120,85 +118,85 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
 
         const blobUrl = URL.createObjectURL(file);
         return {
-          status: 'granted',
+          status: "granted",
           data: {
             url: blobUrl,
             fileName: file.name,
-            mimeType: file.type || 'image/jpeg',
+            mimeType: file.type || "image/jpeg",
             byteSize: file.size,
           },
         } as DevicePermissionResponse<DeviceCameraResult>;
       } catch (error) {
         return {
-          status: 'denied',
+          status: "denied",
           data: null,
-          error: error instanceof Error ? error.message : 'Camera capture cancelled',
+          error: error instanceof Error ? error.message : "Camera capture cancelled",
         } as unknown as DevicePermissionResponse<DeviceCameraResult>;
       }
     },
 
     gallery: async (options?: FileOptions) => {
       try {
-        if (!(await ensureConsent(options?.reason, 'Photo Access'))) {
+        if (!(await ensureConsent(options?.reason, "Photo Access"))) {
           return {
-            status: 'denied',
-            error: 'User declined photo access',
+            status: "denied",
+            error: "User declined photo access",
           } as unknown as DevicePermissionResponse<DeviceGalleryResult>;
         }
         const files = await filePicker({
           multiple: options?.multiple,
-          accept: ['image/*', '.png', '.jpg', '.jpeg', '.webp', '.heic'],
+          accept: ["image/*", ".png", ".jpg", ".jpeg", ".webp", ".heic"],
         });
 
         return {
-          status: 'granted',
+          status: "granted",
           data: {
             images: files,
           },
         } as unknown as DevicePermissionResponse<DeviceGalleryResult>;
       } catch (error) {
         return {
-          status: 'denied',
-          error: error instanceof Error ? error.message : 'Gallery selection cancelled',
+          status: "denied",
+          error: error instanceof Error ? error.message : "Gallery selection cancelled",
         } as unknown as DevicePermissionResponse<DeviceGalleryResult>;
       }
     },
     files: async (options?: FileOptions) => {
       try {
-        if (!(await ensureConsent(options?.reason, 'File Access'))) {
+        if (!(await ensureConsent(options?.reason, "File Access"))) {
           return {
-            status: 'denied',
-            error: 'User declined file access',
+            status: "denied",
+            error: "User declined file access",
           } as unknown as DevicePermissionResponse<DeviceFilesResult>;
         }
         const files = await filePicker({
           multiple: options?.multiple,
-          accept: ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt', '.csv'],
+          accept: [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".csv"],
         });
 
         return {
-          status: 'granted',
+          status: "granted",
           data: {
             files: files,
           },
         } as unknown as DevicePermissionResponse<DeviceFilesResult>;
       } catch (error) {
         return {
-          status: 'denied',
-          error: error instanceof Error ? error.message : 'File selection cancelled',
+          status: "denied",
+          error: error instanceof Error ? error.message : "File selection cancelled",
         } as unknown as DevicePermissionResponse<DeviceFilesResult>;
       }
     },
     download: async (options?: DownloadOptions) => {
       try {
         if (!options?.url || !options?.fileName) {
-          throw new Error('url and fileName are required');
+          throw new Error("url and fileName are required");
         }
 
-        if (!(await ensureConsent(options.reason, 'Download File', 'Download'))) {
+        if (!(await ensureConsent(options.reason, "Download File", "Download"))) {
           return {
-            status: 'denied',
-            error: 'User declined the download',
+            status: "denied",
+            error: "User declined the download",
           } as unknown as DevicePermissionResponse<DeviceDownloadResult>;
         }
 
@@ -207,16 +205,16 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
         // an await), and cancelling here should skip the transfer entirely.
         let handle: FileSystemFileHandleLike | null = null;
         const saveWindow = window as WindowWithSaveFilePicker;
-        if (typeof saveWindow.showSaveFilePicker === 'function') {
+        if (typeof saveWindow.showSaveFilePicker === "function") {
           try {
             handle = await saveWindow.showSaveFilePicker({
               suggestedName: options.fileName,
             });
           } catch (err) {
-            if (err instanceof Error && err.name === 'AbortError') {
+            if (err instanceof Error && err.name === "AbortError") {
               return {
-                status: 'denied',
-                error: 'Download cancelled',
+                status: "denied",
+                error: "Download cancelled",
               } as unknown as DevicePermissionResponse<DeviceDownloadResult>;
             }
             throw err;
@@ -236,7 +234,7 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
         } else {
           // No File System Access API. The browser's download manager takes
           // over and reports nothing back, so `saved` stays false.
-          const a = document.createElement('a');
+          const a = document.createElement("a");
           a.href = blobUrl;
           a.download = options.fileName;
           document.body.appendChild(a);
@@ -244,7 +242,7 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
           document.body.removeChild(a);
         }
 
-        const ext = options.fileName.split('.').pop()?.toLowerCase() || '';
+        const ext = options.fileName.split(".").pop()?.toLowerCase() || "";
         const fileModule: FileModule = {
           url: blobUrl,
           previewUrl: blobUrl,
@@ -255,46 +253,46 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
         };
 
         return {
-          status: 'granted',
+          status: "granted",
           data: {
             file: fileModule,
             saved: handle !== null,
           },
         } as unknown as DevicePermissionResponse<DeviceDownloadResult>;
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Download failed';
+        const message = error instanceof Error ? error.message : "Download failed";
         const isCancelled =
-          (error instanceof Error && error.name === 'AbortError') ||
-          message.toLowerCase().includes('abort') ||
-          message.toLowerCase().includes('cancelled') ||
-          message.toLowerCase().includes('canceled');
+          (error instanceof Error && error.name === "AbortError") ||
+          message.toLowerCase().includes("abort") ||
+          message.toLowerCase().includes("cancelled") ||
+          message.toLowerCase().includes("canceled");
         return {
-          status: 'denied',
-          error: isCancelled ? 'Download cancelled' : message,
+          status: "denied",
+          error: isCancelled ? "Download cancelled" : message,
         } as unknown as DevicePermissionResponse<DeviceDownloadResult>;
       }
     },
     contact: async (options?: { reason?: string }) => {
       try {
-        if (!(await ensureConsent(options?.reason, 'Contact Access', 'Share'))) {
+        if (!(await ensureConsent(options?.reason, "Contact Access", "Share"))) {
           return {
-            status: 'denied',
+            status: "denied",
             data: null,
-            error: 'User declined contact access',
+            error: "User declined contact access",
           } as unknown as DevicePermissionResponse<DeviceContactResult>;
         }
 
         const picked = await contactPicker();
         if (!picked) {
           return {
-            status: 'denied',
+            status: "denied",
             data: null,
-            error: 'Contact selection cancelled',
+            error: "Contact selection cancelled",
           } as unknown as DevicePermissionResponse<DeviceContactResult>;
         }
 
         return {
-          status: 'granted',
+          status: "granted",
           data: {
             contactName: picked.contactName,
             number: picked.number,
@@ -302,9 +300,9 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
         } as unknown as DevicePermissionResponse<DeviceContactResult>;
       } catch (error) {
         return {
-          status: 'denied',
+          status: "denied",
           data: null,
-          error: error instanceof Error ? error.message : 'Contact selection cancelled',
+          error: error instanceof Error ? error.message : "Contact selection cancelled",
         } as unknown as DevicePermissionResponse<DeviceContactResult>;
       }
     },
@@ -316,56 +314,56 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
       // dropping the user into a prompt that goes nowhere.
       if (!isInstalledPwa()) {
         await showNotice(
-          'Not available in the browser',
-          'Fingerprint unlock only works in the installed Sewa app. Add Sewa to your home screen and try again.',
+          "Not available in the browser",
+          "Fingerprint unlock only works in the installed Sewa app. Add Sewa to your home screen and try again.",
         );
         return {
-          status: 'denied',
+          status: "denied",
           data: { success: false },
-          error: 'Biometric unlock requires the installed Sewa app',
+          error: "Biometric unlock requires the installed Sewa app",
         };
       }
 
-      if (!(await ensureConsent(options?.reason, 'Fingerprint Unlock', 'Continue'))) {
-        return { status: 'denied', data: { success: false } };
+      if (!(await ensureConsent(options?.reason, "Fingerprint Unlock", "Continue"))) {
+        return { status: "denied", data: { success: false } };
       }
 
       try {
         const outcome = await verifyFingerprint(getUser());
-        if (outcome === 'not-fingerprint') {
+        if (outcome === "not-fingerprint") {
           await showNotice(
-            'Fingerprint required',
-            'This device verified you with a PIN or password instead of a fingerprint. Add a fingerprint in your device settings and try again.',
+            "Fingerprint required",
+            "This device verified you with a PIN or password instead of a fingerprint. Add a fingerprint in your device settings and try again.",
           );
         }
-        return { status: 'granted', data: { success: outcome === 'verified' } };
+        return { status: "granted", data: { success: outcome === "verified" } };
       } catch (error) {
         // NotAllowedError covers both "user cancelled" and "no matching
         // credential on this device" — neither is recoverable here, and the
         // contract carries no error channel, so both land on success: false.
-        console.log('[biometric] failed:', error instanceof Error ? error.name : error);
-        return { status: 'denied', data: { success: false } };
+        console.log("[biometric] failed:", error instanceof Error ? error.name : error);
+        return { status: "denied", data: { success: false } };
       }
     },
     notifications: async (_options?: { requestPermission?: boolean; reason?: string }) =>
-      ({ status: 'granted', data: { granted: false } }) as unknown as DeviceNotificationResult,
+      ({ status: "granted", data: { granted: false } }) as unknown as DeviceNotificationResult,
     network: async () =>
       ({
-        status: 'granted',
+        status: "granted",
         data: {
           online: navigator.onLine,
-          type: navigator.onLine ? 'unknown' : 'none',
+          type: navigator.onLine ? "unknown" : "none",
         },
       }) as unknown as DeviceNetworkResult,
     info: async () => {
       const ua = navigator.userAgent;
       const isMobile = /Mobi|Android/i.test(ua);
       return {
-        status: 'granted',
+        status: "granted",
         data: {
-          platform: isMobile ? (ua.includes('iPhone') ? 'IOS' : 'ANDROID') : 'WEB',
-          osVersion: '',
-          appVersion: '1',
+          platform: isMobile ? (ua.includes("iPhone") ? "IOS" : "ANDROID") : "WEB",
+          osVersion: "",
+          appVersion: "1",
           deviceModel: ua,
           locale: navigator.language,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,

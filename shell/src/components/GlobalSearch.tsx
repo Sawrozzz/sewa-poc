@@ -1,39 +1,42 @@
-'use client';
+"use client";
 
-import { Crosshair, Search, X } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Crosshair, Search, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { SearchHit } from "@/lib/mini-app-search";
+import {
+  dedupeModules,
+  scrollToMiniApp,
+  searchMiniApps,
+  suggestedKeywords,
+} from "@/lib/mini-app-search";
+import { useFallbackMiniApps, useMiniApps } from "@/lib/use-mini-apps";
 
-import type { SearchHit } from '@/lib/mini-app-search';
-
-import { dedupeModules, scrollToMiniApp, searchMiniApps, suggestedKeywords } from '@/lib/mini-app-search';
-import { useFallbackMiniApps, useMiniApps } from '@/lib/use-mini-apps';
-
-const MATCH_LABELS: Record<SearchHit['matchedOn'], string> = {
-  name: 'name',
-  id: 'id',
-  framework: 'framework',
-  category: 'category',
-  vendor: 'vendor',
-  capability: 'capability',
-  description: 'description',
+const MATCH_LABELS: Record<SearchHit["matchedOn"], string> = {
+  name: "name",
+  id: "id",
+  framework: "framework",
+  category: "category",
+  vendor: "vendor",
+  capability: "capability",
+  description: "description",
 };
 
 function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function Highlight({ text, terms }: { text: string; terms: string[] }) {
   if (terms.length === 0) return <>{text}</>;
 
-  const pattern = new RegExp(`(${terms.map(escapeRegExp).join('|')})`, 'ig');
+  const pattern = new RegExp(`(${terms.map(escapeRegExp).join("|")})`, "ig");
   const lowered = new Set(terms.map((term) => term.toLowerCase()));
 
   return (
     <>
       {text.split(pattern).map((part, index) =>
         lowered.has(part.toLowerCase()) ? (
-          <mark key={index} className="bg-gov-200/70 text-gov-950 rounded-sm px-0.5">
+          <mark className="bg-gov-200/70 text-gov-950 rounded-sm px-0.5" key={index}>
             {part}
           </mark>
         ) : (
@@ -49,7 +52,7 @@ export function GlobalSearch() {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -77,21 +80,21 @@ export function GlobalSearch() {
       if (!containerRef.current?.contains(event.target as Node)) setIsOpen(false);
     }
 
-    document.addEventListener('mousedown', onPointerDown);
-    return () => document.removeEventListener('mousedown', onPointerDown);
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
   }, []);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         inputRef.current?.focus();
         setIsOpen(true);
       }
     }
 
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   const close = () => {
@@ -112,24 +115,24 @@ export function GlobalSearch() {
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Escape') {
-      if (query) updateQuery('');
+    if (event.key === "Escape") {
+      if (query) updateQuery("");
       else close();
       return;
     }
 
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       if (hits.length === 0) return;
       event.preventDefault();
       setIsOpen(true);
       setActiveIndex((current) => {
-        const next = event.key === 'ArrowDown' ? current + 1 : current - 1;
+        const next = event.key === "ArrowDown" ? current + 1 : current - 1;
         return (next + hits.length) % hits.length;
       });
       return;
     }
 
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       const hit = hits[activeIndex];
       if (!hit) return;
       event.preventDefault();
@@ -139,18 +142,17 @@ export function GlobalSearch() {
   };
 
   return (
-    <div ref={containerRef} className="relative">
+    <div className="relative" ref={containerRef}>
       <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
 
       <input
-        ref={inputRef}
-        type="text"
-        role="combobox"
-        aria-expanded={showPanel}
-        aria-controls="global-search-results"
+        aria-activedescendant={
+          hits[activeIndex] ? `global-search-option-${hits[activeIndex].module.id}` : undefined
+        }
         aria-autocomplete="list"
-        aria-activedescendant={hits[activeIndex] ? `global-search-option-${hits[activeIndex].module.id}` : undefined}
-        value={query}
+        aria-controls="global-search-results"
+        aria-expanded={showPanel}
+        className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-24 text-sm shadow-sm outline-none transition-all duration-200 placeholder:text-gray-400 focus:border-gov-500 focus:ring-4 focus:ring-gov-100"
         onChange={(event) => {
           updateQuery(event.target.value);
           setIsOpen(true);
@@ -158,19 +160,22 @@ export function GlobalSearch() {
         onFocus={() => setIsOpen(true)}
         onKeyDown={handleKeyDown}
         placeholder="Search services by name, framework or capability…"
-        className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-24 text-sm shadow-sm outline-none transition-all duration-200 placeholder:text-gray-400 focus:border-gov-500 focus:ring-4 focus:ring-gov-100"
+        ref={inputRef}
+        role="combobox"
+        type="text"
+        value={query}
       />
 
       <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
-        {query && (
+        {!!query && (
           <button
-            type="button"
+            aria-label="Clear search"
+            className="rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
             onClick={() => {
-              updateQuery('');
+              updateQuery("");
               inputRef.current?.focus();
             }}
-            className="rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-            aria-label="Clear search"
+            type="button"
           >
             <X className="h-4 w-4" />
           </button>
@@ -180,11 +185,11 @@ export function GlobalSearch() {
         </kbd>
       </div>
 
-      {showPanel && (
+      {!!showPanel && (
         <div
+          className="animate-fade-in absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl shadow-gray-900/5"
           id="global-search-results"
           role="listbox"
-          className="animate-fade-in absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl shadow-gray-900/5"
         >
           {terms.length === 0 ? (
             <div className="p-4">
@@ -194,13 +199,13 @@ export function GlobalSearch() {
               <div className="flex flex-wrap gap-2">
                 {keywords.map((keyword) => (
                   <button
+                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:border-gov-400 hover:bg-gov-50 hover:text-gov-800"
                     key={keyword}
-                    type="button"
                     onClick={() => {
                       updateQuery(keyword);
                       inputRef.current?.focus();
                     }}
-                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:border-gov-400 hover:bg-gov-50 hover:text-gov-800"
+                    type="button"
                   >
                     {keyword}
                   </button>
@@ -223,18 +228,18 @@ export function GlobalSearch() {
                 {hits.map((hit, index) => (
                   <li key={hit.module.id}>
                     <div
-                      id={`global-search-option-${hit.module.id}`}
-                      role="option"
                       aria-selected={index === activeIndex}
                       className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
-                        index === activeIndex ? 'bg-gov-50' : 'bg-white'
+                        index === activeIndex ? "bg-gov-50" : "bg-white"
                       }`}
+                      id={`global-search-option-${hit.module.id}`}
                       onMouseEnter={() => setActiveIndex(index)}
+                      role="option"
                     >
                       <button
-                        type="button"
-                        onClick={() => openMiniApp(hit)}
                         className="flex flex-1 items-center gap-3 text-left"
+                        onClick={() => openMiniApp(hit)}
+                        type="button"
                       >
                         <span
                           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xl"
@@ -246,9 +251,9 @@ export function GlobalSearch() {
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-2">
                             <span className="truncate text-sm font-semibold text-gray-900">
-                              <Highlight text={hit.module.name} terms={terms} />
+                              <Highlight terms={terms} text={hit.module.name} />
                             </span>
-                            {hit.matchedOn !== 'name' && (
+                            {hit.matchedOn !== "name" && (
                               <span className="shrink-0 rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
                                 {MATCH_LABELS[hit.matchedOn]}: {hit.matchedText}
                               </span>
@@ -261,11 +266,11 @@ export function GlobalSearch() {
                       </button>
 
                       <button
-                        type="button"
-                        onClick={() => locateMiniApp(hit)}
-                        title="Show this service in the grid"
                         aria-label={`Show ${hit.module.name} in the grid`}
                         className="shrink-0 rounded-lg p-2 text-gray-400 transition hover:bg-white hover:text-gov-700"
+                        onClick={() => locateMiniApp(hit)}
+                        title="Show this service in the grid"
+                        type="button"
                       >
                         <Crosshair className="h-4 w-4" />
                       </button>
@@ -276,9 +281,11 @@ export function GlobalSearch() {
 
               <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50/70 px-3 py-2 text-[11px] text-gray-400">
                 <span>
-                  {hits.length} {hits.length === 1 ? 'service' : 'services'}
+                  {hits.length} {hits.length === 1 ? "service" : "services"}
                 </span>
-                <span className="hidden sm:block">↑↓ navigate · ↵ open · ⇧↵ show in grid · esc close</span>
+                <span className="hidden sm:block">
+                  ↑↓ navigate · ↵ open · ⇧↵ show in grid · esc close
+                </span>
               </div>
             </>
           )}

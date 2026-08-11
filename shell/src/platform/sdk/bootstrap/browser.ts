@@ -1,12 +1,11 @@
 // Relative, not `@/platform/…`: this module is reached by `node --test`, which
 // does not resolve the TypeScript path alias.
-import { loadSdkScript } from '../cache/browser';
-import { resolveSdkSpec } from '../cache/config';
-import { injectScript } from '../cache/execute';
 
-import { bootstrapMiniAppSdk, destroySdkInstance } from './core';
-
-import type { MiniAppSdkHostOptions, MiniAppSdkLoadResult } from '@/types/platform';
+import type { MiniAppSdkHostOptions, MiniAppSdkLoadResult } from "@/types/platform";
+import { loadSdkScript } from "../cache/browser";
+import { resolveSdkSpec } from "../cache/config";
+import { injectScript } from "../cache/execute";
+import { bootstrapMiniAppSdk, destroySdkInstance } from "./core";
 
 /**
  * Browser adapters for the Mini App SDK bootstrap. These are the only pieces

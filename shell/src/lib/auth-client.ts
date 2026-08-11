@@ -1,5 +1,4 @@
 import { createAuthClient } from "better-auth/react";
-
 import { MOCK_CITIZEN } from "./mock-user";
 
 export const authClient = createAuthClient({
@@ -32,9 +31,7 @@ type RawSessionUser = {
   nationalId?: string | null;
 };
 
-export function mapSessionUser(
-  user: RawSessionUser | undefined,
-): SessionUser | null {
+export function mapSessionUser(user: RawSessionUser | undefined): SessionUser | null {
   if (!user) return null;
   return {
     id: user.id,

@@ -1,5 +1,4 @@
-import { NextResponse } from 'next/server';
-
+import { NextResponse } from "next/server";
 import {
   addModule,
   getAllModules,
@@ -7,18 +6,14 @@ import {
   moduleExists,
   removeModuleById,
   updateModuleById,
-} from '@/lib/modules-store';
-import {
-  type ApiResponse,
-  type MiniAppModule,
-  type ModuleRegistrationRequest,
-} from '@/types/modules';
+} from "@/lib/modules-store";
+import type { ApiResponse, MiniAppModule, ModuleRegistrationRequest } from "@/types/modules";
 
 function corsHeaders() {
   return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
 }
 
@@ -30,13 +25,13 @@ export async function OPTIONS() {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const id = searchParams.get('id');
+  const id = searchParams.get("id");
 
   if (id) {
     const existing = getModuleById(id);
     const response: ApiResponse<MiniAppModule> = existing
       ? { success: true, data: existing }
-      : { success: false, error: 'Module not found' };
+      : { success: false, error: "Module not found" };
     return NextResponse.json(response, { headers: corsHeaders() });
   }
 
@@ -53,10 +48,10 @@ export async function POST(request: Request) {
   try {
     const body: ModuleRegistrationRequest = await request.json();
 
-    const routeParts = body.route.split('/').filter(Boolean);
+    const routeParts = body.route.split("/").filter(Boolean);
     const id =
       routeParts[routeParts.length - 1] ||
-      body.route.replace(/[^a-z0-9]/g, '-').replace(/^-+|-+$/g, '');
+      body.route.replace(/[^a-z0-9]/g, "-").replace(/^-+|-+$/g, "");
 
     if (moduleExists(id)) {
       const response: ApiResponse<never> = {
@@ -84,7 +79,7 @@ export async function POST(request: Request) {
   } catch {
     const response: ApiResponse<never> = {
       success: false,
-      error: 'Invalid request body',
+      error: "Invalid request body",
     };
     return NextResponse.json(response, { status: 400, headers: corsHeaders() });
   }
@@ -101,7 +96,7 @@ export async function PUT(request: Request) {
     if (!updated) {
       const response: ApiResponse<never> = {
         success: false,
-        error: 'Module not found',
+        error: "Module not found",
       };
       return NextResponse.json(response, { status: 404, headers: corsHeaders() });
     }
@@ -114,7 +109,7 @@ export async function PUT(request: Request) {
   } catch {
     const response: ApiResponse<never> = {
       success: false,
-      error: 'Invalid request',
+      error: "Invalid request",
     };
     return NextResponse.json(response, { status: 400, headers: corsHeaders() });
   }
@@ -124,12 +119,12 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
-  const id = searchParams.get('id');
+  const id = searchParams.get("id");
 
   if (!id) {
     const response: ApiResponse<never> = {
       success: false,
-      error: 'Module ID required',
+      error: "Module ID required",
     };
     return NextResponse.json(response, { status: 400, headers: corsHeaders() });
   }
@@ -137,7 +132,7 @@ export async function DELETE(request: Request) {
   if (!removeModuleById(id)) {
     const response: ApiResponse<never> = {
       success: false,
-      error: 'Module not found',
+      error: "Module not found",
     };
     return NextResponse.json(response, { status: 404, headers: corsHeaders() });
   }

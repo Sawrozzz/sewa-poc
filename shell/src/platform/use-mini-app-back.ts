@@ -1,11 +1,10 @@
-'use client';
+"use client";
 
-import { PLATFORM_EVENTS } from '@sewa/host-platform';
-import { useCallback, useEffect, useRef } from 'react';
+import { PLATFORM_EVENTS } from "@sewa/host-platform";
+import { useCallback, useEffect, useRef } from "react";
+import { usePlatform } from "@/context";
 
-import { usePlatform } from '@/context';
-
-const BACK_TRAP_KEY = '__sewaMiniAppBackTrap';
+const BACK_TRAP_KEY = "__sewaMiniAppBackTrap";
 
 type HistoryState = Record<string, unknown> | null;
 
@@ -52,10 +51,7 @@ export interface UseMiniAppBackButtonOptions {
  * If the mini app has no history left, it returns consumed=false
  * and the host exits the mini app.
  */
-export function useMiniAppBackButton({
-  onExit,
-  enabled = true,
-}: UseMiniAppBackButtonOptions) {
+export function useMiniAppBackButton({ onExit, enabled = true }: UseMiniAppBackButtonOptions) {
   const { services, eventBus } = usePlatform();
 
   const onExitRef = useRef(onExit);
@@ -97,7 +93,7 @@ export function useMiniAppBackButton({
         ...state,
         [BACK_TRAP_KEY]: true,
       },
-      '',
+      "",
       window.location.href,
     );
   }, []);
@@ -121,15 +117,13 @@ export function useMiniAppBackButton({
     const unsubscribeRouteChanged = eventBus.subscribe(
       PLATFORM_EVENTS.NAVIGATION_CHANGED,
       (event: any) => {
-        if (event.source === 'shell') {
+        if (event.source === "shell") {
           return;
         }
 
-        const payload = event.payload as
-          | { canGoBack?: boolean }
-          | undefined;
+        const payload = event.payload as { canGoBack?: boolean } | undefined;
 
-        if (typeof payload?.canGoBack === 'boolean') {
+        if (typeof payload?.canGoBack === "boolean") {
           navigation.setCanGoBack(payload.canGoBack);
         }
       },
@@ -156,7 +150,7 @@ export function useMiniAppBackButton({
     const restoreTrap = (): Promise<void> => {
       return new Promise((resolve) => {
         const handleRestored = () => {
-          window.removeEventListener('popstate', handleRestored);
+          window.removeEventListener("popstate", handleRestored);
 
           restoringTrapRef.current = false;
 
@@ -165,7 +159,7 @@ export function useMiniAppBackButton({
 
         restoringTrapRef.current = true;
 
-        window.addEventListener('popstate', handleRestored);
+        window.addEventListener("popstate", handleRestored);
 
         window.history.forward();
       });
@@ -251,10 +245,7 @@ export function useMiniAppBackButton({
          */
         onExitRef.current();
       } catch (error) {
-        console.error(
-          '[MiniAppBackButton] Failed to handle browser back:',
-          error,
-        );
+        console.error("[MiniAppBackButton] Failed to handle browser back:", error);
       } finally {
         handlingBackRef.current = false;
       }
@@ -265,10 +256,10 @@ export function useMiniAppBackButton({
      */
     armTrap();
 
-    window.addEventListener('popstate', handlePopState);
+    window.addEventListener("popstate", handlePopState);
 
     return () => {
-      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener("popstate", handlePopState);
 
       unsubscribeRouteChanged();
 

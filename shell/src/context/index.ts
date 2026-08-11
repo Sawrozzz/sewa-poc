@@ -1,6 +1,6 @@
 export {
   PlatformProvider,
+  useEventBus,
   usePlatform,
   useRuntimeLoader,
-  useEventBus,
-} from './PlatformProvider';
+} from "./PlatformProvider";

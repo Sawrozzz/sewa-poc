@@ -1,8 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-
-import { fetchMiniApps, fetchMiniApp, getFallbackManifests } from "./modules-api";
+import { fetchMiniApp, fetchMiniApps, getFallbackManifests } from "./modules-api";
 
 const MINI_APPS_KEY = ["mini-apps"] as const;
 

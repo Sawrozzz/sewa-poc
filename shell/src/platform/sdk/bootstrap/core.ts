@@ -1,17 +1,16 @@
-import {
-  SDK_GLOBAL_KEY,
-  HOST_DESCRIPTOR_GLOBAL_KEY,
-  DEFAULT_SDK_SOURCE,
-  DEFAULT_SDK_VERSION,
-  DEFAULT_HOST_CAPABILITIES,
-} from './constants';
-
+import type { MiniAppSdkInterface } from "@lizuz/mini-app-types";
 import type {
   MiniAppSdkHostOptions,
   MiniAppSdkLoadResult,
   SdkBootstrapEnv,
-} from '@/types/platform';
-import type { MiniAppSdkInterface } from '@lizuz/mini-app-types';
+} from "@/types/platform";
+import {
+  DEFAULT_HOST_CAPABILITIES,
+  DEFAULT_SDK_SOURCE,
+  DEFAULT_SDK_VERSION,
+  HOST_DESCRIPTOR_GLOBAL_KEY,
+  SDK_GLOBAL_KEY,
+} from "./constants";
 
 /**
  * Contract:
@@ -26,7 +25,7 @@ import type { MiniAppSdkInterface } from '@lizuz/mini-app-types';
 export function readSdkInstance(w: Window & typeof globalThis): MiniAppSdkInterface | null {
   const global = w as unknown as Record<string, unknown>;
   const sdk = global[SDK_GLOBAL_KEY];
-  return sdk && typeof (sdk as { initialize?: unknown }).initialize === 'function'
+  return sdk && typeof (sdk as { initialize?: unknown }).initialize === "function"
     ? (sdk as MiniAppSdkInterface)
     : null;
 }
@@ -43,11 +42,11 @@ export function seedSdkConfig(
     retryAttempts: options.retryAttempts ?? 5,
     retryDelayMs: options.retryDelayMs ?? 500,
     maxRetryDelayMs: options.maxRetryDelayMs ?? 10_000,
-    targetOrigin: w.location?.origin ?? '*',
+    targetOrigin: w.location?.origin ?? "*",
   };
   global[HOST_DESCRIPTOR_GLOBAL_KEY] = {
-    type: 'web' as const,
-    version: options.hostVersion ?? '1.0.0',
+    type: "web" as const,
+    version: options.hostVersion ?? "1.0.0",
     capabilities: [...(options.capabilities ?? DEFAULT_HOST_CAPABILITIES)],
     // Was a hardcoded "1.0.2" while the bundle being loaded was 1.0.4 — the
     // descriptor now tracks whatever version is actually configured.
@@ -79,7 +78,7 @@ export async function bootstrapMiniAppSdk(
   if (existing) {
     return {
       sdk: existing,
-      source: 'existing',
+      source: "existing",
       initTimeMs: await initializeSdk(existing, env.now),
     };
   }

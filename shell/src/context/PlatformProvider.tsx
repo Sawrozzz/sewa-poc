@@ -1,29 +1,17 @@
-'use client';
+"use client";
 
-import {
-  createEventBus,
-  type EventBus,
-  createHostPlatform,
-  type HostPlatformHandle,
-  type ShellServiceMap,
-  PostMessageTransport,
-} from '@sewa/host-platform';
-import { createRuntimeLoader, type RuntimeLoader } from '@sewa/runtime-loader';
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
-
-import { createShellServices, type PlatformServicesConfig } from '../platform/services';
-
-import { createAppearanceController, type AppearanceController } from '@/platform/appearance-controller';
-import { installHostApiGuard } from '@/platform/host-guard';
-import { scheduleSdkWarm } from '@/platform/sdk';
-
+import type { EventBus, HostPlatformHandle, ShellServiceMap } from "@sewa/host-platform";
+import { createEventBus, createHostPlatform, PostMessageTransport } from "@sewa/host-platform";
+import type { RuntimeLoader } from "@sewa/runtime-loader";
+import { createRuntimeLoader } from "@sewa/runtime-loader";
+import type { ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import type { AppearanceController } from "@/platform/appearance-controller";
+import { createAppearanceController } from "@/platform/appearance-controller";
+import { installHostApiGuard } from "@/platform/host-guard";
+import { scheduleSdkWarm } from "@/platform/sdk";
+import type { PlatformServicesConfig } from "../platform/services";
+import { createShellServices } from "../platform/services";
 
 export interface PlatformContextValue {
   eventBus: EventBus;
@@ -68,9 +56,9 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
       installHostApiGuard();
 
       const eventBus = createEventBus({
-        enableTracing: process.env.NODE_ENV === 'development',
+        enableTracing: process.env.NODE_ENV === "development",
         onError: (err, event) => {
-          console.error('[EventBus] Handler error:', err.message, event.type);
+          console.error("[EventBus] Handler error:", err.message, event.type);
         },
       });
 
@@ -89,18 +77,18 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
       const loader = createRuntimeLoader({
         maxModules: resolveMaxCachedMiniApps(),
         onLoadStart: (moduleId) => {
-          eventBus.emit('module.lifecycle.loading', 'shell', {
+          eventBus.emit("module.lifecycle.loading", "shell", {
             moduleId,
-            version: '',
+            version: "",
           });
         },
         onLoadComplete: (result) => {
-          console.log('Successfully load', result.success);
+          console.log("Successfully load", result.success);
         },
         onLoadError: (moduleId, error) => {
-          eventBus.emit('module.lifecycle.failed', 'shell', {
+          eventBus.emit("module.lifecycle.failed", "shell", {
             moduleId,
-            version: '',
+            version: "",
             error,
           });
         },
@@ -110,18 +98,19 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
         services,
         eventBus,
         transport: new PostMessageTransport(),
-        allowedOrigins: ['*'],
+        allowedOrigins: ["*"],
         onModuleConnected: (moduleId) => {
-          eventBus.emit('module.lifecycle.loaded', moduleId, {
+          eventBus.emit("module.lifecycle.loaded", moduleId, {
             moduleId,
-            version: '',
+            version: "",
           });
         },
         onModuleDisconnected: (moduleId) => {
-          eventBus.emit('module.lifecycle.unloaded', moduleId, {
+          eventBus.emit("module.lifecycle.unloaded", moduleId, {
             moduleId,
-            version: '',
-          });``
+            version: "",
+          });
+          ``;
         },
       });
 
@@ -167,7 +156,7 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
     };
   }, []);
 
-  if (!platform || !platform.isReady) {
+  if (!platform?.isReady) {
     return null;
   }
 
@@ -176,7 +165,7 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
 
 export function usePlatform(): PlatformContextValue {
   const ctx = useContext(PlatformContext);
-  if (!ctx) throw new Error('usePlatform must be used within PlatformProvider');
+  if (!ctx) throw new Error("usePlatform must be used within PlatformProvider");
   return ctx;
 }
 

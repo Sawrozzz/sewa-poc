@@ -1,13 +1,12 @@
-'use client';
+"use client";
 
-import { useTranslations } from 'next-intl';
-
-import { GlobalSearch } from './GlobalSearch';
-import { Header } from './Header';
-import { ModuleGrid } from './ModuleGrid';
+import { useTranslations } from "next-intl";
+import { GlobalSearch } from "./GlobalSearch";
+import { Header } from "./Header";
+import { ModuleGrid } from "./ModuleGrid";
 
 export function AppShell() {
-  const t = useTranslations('HomePage');
+  const t = useTranslations("HomePage");
 
   return (
     <div className="min-h-screen bg-linear-to-br from-gov-50 via-white to-gov-50">
@@ -24,19 +23,19 @@ export function AppShell() {
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -mr-32 -mt-32" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full -ml-20 -mb-20" />
           <div className="absolute top-1/2 right-8 -translate-y-1/2 opacity-10 hidden md:block">
-            <svg width="200" height="200" viewBox="0 0 200 200" fill="none">
-              <rect x="20" y="30" width="160" height="140" rx="12" stroke="white" strokeWidth="2" />
-              <rect x="35" y="45" width="60" height="40" rx="6" stroke="white" strokeWidth="1.5" />
-              <rect x="105" y="45" width="60" height="40" rx="6" stroke="white" strokeWidth="1.5" />
-              <rect x="35" y="100" width="60" height="40" rx="6" stroke="white" strokeWidth="1.5" />
+            <svg fill="none" height="200" viewBox="0 0 200 200" width="200">
+              <rect height="140" rx="12" stroke="white" strokeWidth="2" width="160" x="20" y="30" />
+              <rect height="40" rx="6" stroke="white" strokeWidth="1.5" width="60" x="35" y="45" />
+              <rect height="40" rx="6" stroke="white" strokeWidth="1.5" width="60" x="105" y="45" />
+              <rect height="40" rx="6" stroke="white" strokeWidth="1.5" width="60" x="35" y="100" />
               <rect
-                x="105"
-                y="100"
-                width="60"
                 height="40"
                 rx="6"
                 stroke="white"
                 strokeWidth="1.5"
+                width="60"
+                x="105"
+                y="100"
               />
               <circle cx="50" cy="65" r="8" stroke="white" strokeWidth="1.5" />
               <circle cx="120" cy="65" r="8" stroke="white" strokeWidth="1.5" />
@@ -51,8 +50,8 @@ export function AppShell() {
                   <span className="text-2xl">🏛️</span>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight">{t('welcome_text')}</h2>
-                  <p className="text-gov-200 text-sm">{t('services_description')}</p>
+                  <h2 className="text-2xl font-bold tracking-tight">{t("welcome_text")}</h2>
+                  <p className="text-gov-200 text-sm">{t("services_description")}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4 mt-6">
