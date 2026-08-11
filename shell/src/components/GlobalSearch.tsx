@@ -2,7 +2,7 @@
 
 import { Crosshair, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { SearchHit } from "@/lib/mini-app-search";
 import {
   dedupeModules,
@@ -51,6 +51,7 @@ export function GlobalSearch() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const resultsId = useId();
 
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -150,7 +151,7 @@ export function GlobalSearch() {
           hits[activeIndex] ? `global-search-option-${hits[activeIndex].module.id}` : undefined
         }
         aria-autocomplete="list"
-        aria-controls="global-search-results"
+        aria-controls={resultsId}
         aria-expanded={showPanel}
         className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-24 text-sm shadow-sm outline-none transition-all duration-200 placeholder:text-gray-400 focus:ring-4 focus:ring-gov-100"
         onChange={(event) => {
@@ -188,7 +189,7 @@ export function GlobalSearch() {
       {!!showPanel && (
         <div
           className="animate-fade-in absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl shadow-gray-900/5"
-          id="global-search-results"
+          id={resultsId}
           role="listbox"
         >
           {terms.length === 0 ? (
@@ -235,6 +236,7 @@ export function GlobalSearch() {
                       id={`global-search-option-${hit.module.id}`}
                       onMouseEnter={() => setActiveIndex(index)}
                       role="option"
+                      tabIndex={0}
                     >
                       <button
                         className="flex flex-1 items-center gap-3 text-left"

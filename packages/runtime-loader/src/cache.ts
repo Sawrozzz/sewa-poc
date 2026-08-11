@@ -190,8 +190,7 @@ export class PluginCacheDB {
             const contentType = res.headers.get("content-type") || "";
             if (contentType.includes("text/html")) {
               const hrefRegex = /href="([^"]+)"/g;
-              let match;
-              while ((match = hrefRegex.exec(text)) !== null) {
+              for (const match of text.matchAll(hrefRegex)) {
                 const href = match[1];
                 const cleanName = href.includes("/")
                   ? href.substring(href.lastIndexOf("/") + 1)

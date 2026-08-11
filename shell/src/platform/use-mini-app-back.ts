@@ -1,5 +1,6 @@
 "use client";
 
+import type { PlatformEvent } from "@sewa/host-platform";
 import { PLATFORM_EVENTS } from "@sewa/host-platform";
 import { useCallback, useEffect, useRef } from "react";
 import { usePlatform } from "@/context";
@@ -116,7 +117,7 @@ export function useMiniAppBackButton({ onExit, enabled = true }: UseMiniAppBackB
      */
     const unsubscribeRouteChanged = eventBus.subscribe(
       PLATFORM_EVENTS.NAVIGATION_CHANGED,
-      (event: any) => {
+      (event: PlatformEvent) => {
         if (event.source === "shell") {
           return;
         }
