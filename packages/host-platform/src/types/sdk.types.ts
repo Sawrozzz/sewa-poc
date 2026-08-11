@@ -7,33 +7,32 @@
  */
 
 import type {
-  NavigationTarget,
+  ApiResult,
+  DeviceGalleryResult,
   DevicePermissionStatus,
   FileModule,
-  DeviceGalleryResult,
-  HttpResult,
   HttpMethod,
-  ApiResult,
-} from '@lizuz/mini-app-types';
-
-export type {
+  HttpResult,
   NavigationTarget,
-  FileModule,
-  DeviceGalleryResult,
-  HttpResult,
-  HttpMethod,
-  ApiResult,
-};
+} from "@lizuz/mini-app-types";
 
 export type {
-  Direction,
-  ThemePreference,
-  ThemeMode,
-  LocaleState,
-  ThemeState,
-  AppearanceState,
   AppearanceSdkModule,
-} from '@lizuz/mini-app-types';
+  AppearanceState,
+  Direction,
+  LocaleState,
+  ThemeMode,
+  ThemePreference,
+  ThemeState,
+} from "@lizuz/mini-app-types";
+export type {
+  ApiResult,
+  DeviceGalleryResult,
+  FileModule,
+  HttpMethod,
+  HttpResult,
+  NavigationTarget,
+};
 
 export interface PlatformUser {
   id: string;
@@ -120,7 +119,7 @@ export interface DownloadOptions {
  * guarantee of which sensor ran. The web cannot ask a device what hardware it
  * has, so an older Touch ID iPhone still reports `face`.
  */
-export type BiometricMethod = 'face' | 'fingerprint' | 'biometric';
+export type BiometricMethod = "face" | "fingerprint" | "biometric";
 
 export interface DeviceBiometricResult {
   /** True only when the device's own biometric prompt verified the user. */
@@ -136,7 +135,7 @@ export interface DeviceNotificationResult {
 
 export interface DeviceNetworkResult {
   online: boolean;
-  type: 'wifi' | 'cellular' | 'ethernet' | 'unknown';
+  type: "wifi" | "cellular" | "ethernet" | "unknown";
   effectiveType?: string;
 }
 
@@ -149,7 +148,7 @@ export interface DeviceInfoResult {
   timezone: string;
 }
 
-export type PlatformTypeLiteral = 'WEB' | 'FLUTTER';
+export type PlatformTypeLiteral = "WEB" | "FLUTTER";
 
 export interface ApiRequestParams<TBody = unknown> {
   method: HttpMethod;
@@ -230,7 +229,7 @@ export interface ShellNavigationService {
 }
 
 export interface ChatMessage {
-  role: 'user' | 'system' | 'ai';
+  role: "user" | "system" | "ai";
   content: string;
 }
 

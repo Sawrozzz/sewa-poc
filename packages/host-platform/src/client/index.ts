@@ -1,6 +1,6 @@
 export {
-  HostPlatform,
   createHostPlatform,
-  type HostPlatformOptions,
+  HostPlatform,
   type HostPlatformHandle,
-} from './host-platform';
+  type HostPlatformOptions,
+} from "./host-platform";

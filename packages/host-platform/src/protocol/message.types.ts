@@ -8,22 +8,18 @@
  * which the SDK validates out but legacy chat streaming still emits.
  */
 
-import type {
-  MessageType,
-  PlatformError,
-  PlatformMessage,
-} from '@lizuz/mini-app-types';
+import type { MessageType, PlatformError, PlatformMessage } from "@lizuz/mini-app-types";
 
 export type {
+  HandshakeAckPayload,
+  HandshakePayload,
   MessageType,
   PlatformError,
   PlatformMessage,
-  HandshakePayload,
-  HandshakeAckPayload,
-} from '@lizuz/mini-app-types';
+} from "@lizuz/mini-app-types";
 
 /** Host-side extension of the canonical 4-type protocol for chat streaming. */
-export type HostMessageType = MessageType | 'stream';
+export type HostMessageType = MessageType | "stream";
 
 export interface StreamMessageFields {
   streamIndex?: number;
@@ -32,10 +28,7 @@ export interface StreamMessageFields {
 }
 
 /** A `PlatformMessage` plus the host's streaming extension. */
-export type HostPlatformMessage<T = unknown> = Omit<
-  PlatformMessage<T>,
-  'type'
-> & {
+export type HostPlatformMessage<T = unknown> = Omit<PlatformMessage<T>, "type"> & {
   type: HostMessageType;
   streamIndex?: number;
   streamTotal?: number;

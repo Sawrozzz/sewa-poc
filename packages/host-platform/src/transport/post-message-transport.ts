@@ -4,16 +4,15 @@
  * the host, since it matches the SDK's own `DefaultTransport`.
  */
 
-import { MESSAGE_CHANNEL } from '../constants';
-
-import type { HostPlatformMessage } from '../protocol';
-import type { Transport, MessageHandler } from './transport';
+import { MESSAGE_CHANNEL } from "../constants";
+import type { HostPlatformMessage } from "../protocol";
+import type { MessageHandler, Transport } from "./transport";
 
 export class PostMessageTransport implements Transport {
   private handler: ((event: MessageEvent) => void) | null = null;
 
   send(message: HostPlatformMessage, target?: Window | null): void {
-    (target ?? window.parent).postMessage(message, '*');
+    (target ?? window.parent).postMessage(message, "*");
   }
 
   subscribe(handler: MessageHandler): () => void {
@@ -27,10 +26,10 @@ export class PostMessageTransport implements Transport {
       }
       handler(detail as HostPlatformMessage, event.source instanceof Window ? event.source : null);
     };
-    window.addEventListener('message', this.handler);
+    window.addEventListener("message", this.handler);
     return () => {
       if (this.handler) {
-        window.removeEventListener('message', this.handler);
+        window.removeEventListener("message", this.handler);
         this.handler = null;
       }
     };
@@ -38,7 +37,7 @@ export class PostMessageTransport implements Transport {
 
   destroy(): void {
     if (this.handler) {
-      window.removeEventListener('message', this.handler);
+      window.removeEventListener("message", this.handler);
       this.handler = null;
     }
   }

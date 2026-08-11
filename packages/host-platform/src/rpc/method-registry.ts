@@ -5,7 +5,7 @@
  * metadata and a `send` escape hatch for out-of-band responses.
  */
 
-import type { HostPlatformMessage } from '../protocol';
+import type { HostPlatformMessage } from "../protocol";
 
 export interface RpcContext {
   /** The connected module that initiated the request. */
@@ -33,18 +33,14 @@ export class MethodRegistry {
   }
 
   /** Register a handler for `namespace.action`. */
-  register(
-    namespace: string,
-    action: string,
-    handler: RpcHandler,
-  ): void {
+  register(namespace: string, action: string, handler: RpcHandler): void {
     this.methods.set(this.key(namespace, action), handler);
   }
 
   /** Register a handler for a dotted `namespace.action` string. */
   registerMethod(method: string, handler: RpcHandler): void {
-    const [namespace, ...rest] = method.split('.');
-    const action = rest.join('.');
+    const [namespace, ...rest] = method.split(".");
+    const action = rest.join(".");
     if (!namespace || !action) {
       throw new Error(`Invalid method name: "${method}"`);
     }

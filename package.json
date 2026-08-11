@@ -8,25 +8,18 @@
     "shell"
   ],
   "devDependencies": {
-    "@eslint/js": "^9.31.0",
-    "eslint": "^9.31.0",
-    "eslint-config-next": "^16.1.0",
-    "eslint-config-prettier": "^10.1.0",
-    "eslint-plugin-import-x": "^4.10.0",
-    "globals": "^16.3.0",
-    "prettier": "^3.5.3",
-    "turbo": "^2.9.18",
-    "typescript-eslint": "^8.40.0"
+    "@biomejs/biome": "^2.5.7",
+    "turbo": "^2.9.18"
   },
   "scripts": {
     "build:turbo": "turbo run build",
     "build:platform": "pnpm --filter @sewa/host-platform build && pnpm --filter @sewa/runtime-loader build",
     "build": "pnpm build:platform && pnpm --filter @sewa/shell build",
-    "dev": "pnpm --filter @sewa/shell dev",
-    "lint": "turbo run lint",
-    "lint:fix": "turbo run lint:fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "dev": "pnpm link:env && pnpm --filter @sewa/shell dev",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome check --write .",
+    "format:check": "biome check .",
     "clean": "turbo run clean",
     "link:env": "ln -s ../.env shell/.env"
   },

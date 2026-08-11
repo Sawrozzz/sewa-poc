@@ -5,31 +5,31 @@
  * in the same JS context as the shell. No Module Federation, no iframes.
  */
 
-import type { PlatformEvent } from '../events';
+import type { DeviceExtraOptions } from "@lizuz/mini-app-types";
+import type { PlatformEvent } from "../events";
 import type {
-  PlatformUser,
-  NavigationTarget,
-  NavigationState,
-  DevicePermissionResponse,
-  DeviceLocationResult,
-  DeviceCameraResult,
-  DeviceGalleryResult,
-  DeviceFilesResult,
-  DeviceDownloadResult,
-  DownloadOptions,
   DeviceBiometricResult,
-  DeviceNotificationResult,
-  DeviceNetworkResult,
-  DeviceInfoResult,
-  HttpResult,
+  DeviceCameraResult,
   DeviceContactResult,
-} from './sdk.types';
-import type { DeviceExtraOptions } from '@lizuz/mini-app-types';
+  DeviceDownloadResult,
+  DeviceFilesResult,
+  DeviceGalleryResult,
+  DeviceInfoResult,
+  DeviceLocationResult,
+  DeviceNetworkResult,
+  DeviceNotificationResult,
+  DevicePermissionResponse,
+  DownloadOptions,
+  HttpResult,
+  NavigationState,
+  NavigationTarget,
+  PlatformUser,
+} from "./sdk.types";
 
 /** The only loading strategy; shell downloads and evaluates the bundle on demand */
-export type LoadStrategy = 'plugin';
+export type LoadStrategy = "plugin";
 
-export type EntryType = 'framework-agnostic';
+export type EntryType = "framework-agnostic";
 
 export interface ModuleManifest {
   id: string;
@@ -59,7 +59,7 @@ export interface ModuleManifest {
   /** Subresource integrity hash for bundle verification */
   integrity?: string;
   /** How to mount the loaded plugin into the shell's DOM */
-  mountMode?: 'dom' | 'shadow' | 'portal';
+  mountMode?: "dom" | "shadow" | "portal";
   createdAt: string;
   updatedAt: string;
 }
@@ -69,17 +69,17 @@ export interface ModuleCompatibility {
   maxShellVersion?: string;
   minSdkVersion: string;
   supportedPlatforms: PlatformType[];
-  supportedFrameworks: ('react' | 'next' | 'vue' | 'angular' | 'nuxt' | 'solid' | "svelte")[];
+  supportedFrameworks: ("react" | "next" | "vue" | "angular" | "nuxt" | "solid" | "svelte")[];
 }
 
-export type PlatformType = 'WEB' | 'ANDROID' | 'IOS';
+export type PlatformType = "WEB" | "ANDROID" | "IOS";
 
 /** Result of loading a plugin bundle into the shell */
 export interface RemoteLoadResult {
   moduleId: string;
   success: boolean;
   loadTimeMs: number;
-  strategy: 'plugin';
+  strategy: "plugin";
   bundle?: {
     mount: (container: HTMLElement, props?: Record<string, unknown>) => void;
     unmount: (container: HTMLElement) => void;
@@ -122,27 +122,62 @@ export interface PluginServices {
   };
   /** Device capabilities — only accessible through the shell bridge */
   device: {
-    location(options?: { highAccuracy?: boolean; timeout?: number; reason?: string }): Promise<DevicePermissionResponse<DeviceLocationResult>>;
-    camera(options?: { facing?: 'front' | 'back'; reason?: string }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
-    gallery(options?: { maxCount?: number; reason?: string }): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
-    files(options?: { accept?: string[]; multiple?: boolean }): Promise<DevicePermissionResponse<DeviceFilesResult>>;
+    location(options?: {
+      highAccuracy?: boolean;
+      timeout?: number;
+      reason?: string;
+    }): Promise<DevicePermissionResponse<DeviceLocationResult>>;
+    camera(options?: {
+      facing?: "front" | "back";
+      reason?: string;
+    }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
+    gallery(options?: {
+      maxCount?: number;
+      reason?: string;
+    }): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
+    files(options?: {
+      accept?: string[];
+      multiple?: boolean;
+    }): Promise<DevicePermissionResponse<DeviceFilesResult>>;
     download(options?: DownloadOptions): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
     contact(options?: DeviceExtraOptions): Promise<DevicePermissionResponse<DeviceContactResult>>;
-    biometric(options?: { reason?: string }): Promise<DevicePermissionResponse<DeviceBiometricResult>>;
+    biometric(options?: {
+      reason?: string;
+    }): Promise<DevicePermissionResponse<DeviceBiometricResult>>;
     notifications(options?: { requestPermission?: boolean }): Promise<DeviceNotificationResult>;
     network(): Promise<DeviceNetworkResult>;
     info(): Promise<DeviceInfoResult>;
   };
   http: {
     get<T = unknown>(endpoint?: string, query?: Record<string, string>): Promise<HttpResult<T>>;
-    post<T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>): Promise<HttpResult<T>>;
-    put<T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>): Promise<HttpResult<T>>;
-    patch<T = unknown>(endpoint?: string, body?: unknown, headers?: Record<string, string>): Promise<HttpResult<T>>;
-    delete<T = unknown>(endpoint?: string, headers?: Record<string, string>): Promise<HttpResult<T>>;
+    post<T = unknown>(
+      endpoint?: string,
+      body?: unknown,
+      headers?: Record<string, string>,
+    ): Promise<HttpResult<T>>;
+    put<T = unknown>(
+      endpoint?: string,
+      body?: unknown,
+      headers?: Record<string, string>,
+    ): Promise<HttpResult<T>>;
+    patch<T = unknown>(
+      endpoint?: string,
+      body?: unknown,
+      headers?: Record<string, string>,
+    ): Promise<HttpResult<T>>;
+    delete<T = unknown>(
+      endpoint?: string,
+      headers?: Record<string, string>,
+    ): Promise<HttpResult<T>>;
   };
   /** Internal event bus — plugins can subscribe to platform events */
   eventBus: {
-    emit(type: string, source: string, payload: unknown, options?: { traceId?: string }): Promise<boolean>;
+    emit(
+      type: string,
+      source: string,
+      payload: unknown,
+      options?: { traceId?: string },
+    ): Promise<boolean>;
     subscribe(type: string, handler: (event: PlatformEvent<unknown>) => void): () => void;
   };
 }

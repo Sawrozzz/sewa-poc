@@ -1,10 +1,8 @@
-export type {
-  PlatformEvent,
-} from './platform-event';
-export { PLATFORM_EVENTS, createPlatformEvent } from './platform-event';
 export {
-  EventBus,
   createEventBus,
-  type EventHandler,
+  EventBus,
   type EventBusOptions,
-} from './event-bus';
+  type EventHandler,
+} from "./event-bus";
+export type { PlatformEvent } from "./platform-event";
+export { createPlatformEvent, PLATFORM_EVENTS } from "./platform-event";

@@ -12,30 +12,30 @@
  */
 
 import type {
-  DeviceLocationResult,
-  DeviceCameraResult,
-  DeviceGalleryResult,
-  DeviceFilesResult,
-  DeviceDownloadResult,
-  DeviceBiometricResult,
-  DeviceNotificationResult,
-  DeviceNetworkResult,
-  DeviceInfoResult,
-  DevicePermissionResponse,
-  DeviceContactResult,
   ChatMessage,
+  DeviceBiometricResult,
+  DeviceCameraResult,
+  DeviceContactResult,
+  DeviceDownloadResult,
+  DeviceFilesResult,
+  DeviceGalleryResult,
+  DeviceInfoResult,
+  DeviceLocationResult,
+  DeviceNetworkResult,
+  DeviceNotificationResult,
+  DevicePermissionResponse,
   FileOptions,
   HttpResult,
   LocaleState,
-  ThemeState,
   ShellApiService,
-  ShellStorageService,
   ShellAuthService,
-  ShellPermissionsService,
-  ShellFlagsService,
   ShellConfigService,
-  ShellNavigationService
-} from './sdk.types';
+  ShellFlagsService,
+  ShellNavigationService,
+  ShellPermissionsService,
+  ShellStorageService,
+  ThemeState,
+} from "./sdk.types";
 
 /**
  * Shell-side host-driven appearance contract (locale, theme, tokens, host
@@ -50,10 +50,7 @@ export interface ShellAppearanceService {
 }
 
 export interface ShellChatService {
-  chat(
-    messages: ChatMessage[],
-    options?: Record<string, unknown>,
-  ): AsyncIterable<string>;
+  chat(messages: ChatMessage[], options?: Record<string, unknown>): AsyncIterable<string>;
 }
 
 export interface ShellDeviceService {
@@ -63,22 +60,16 @@ export interface ShellDeviceService {
     reason?: string;
   }): Promise<DevicePermissionResponse<DeviceLocationResult>>;
   camera(options?: {
-    facing?: 'front' | 'back';
+    facing?: "front" | "back";
     reason?: string;
   }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
-  gallery(
-    options?: FileOptions,
-  ): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
-  files(
-    options?: FileOptions,
-  ): Promise<DevicePermissionResponse<DeviceFilesResult>>;
-  download(
-    options?: { reason?: string },
-  ): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
-  contact(
-    options?: { reason?: string },
-  ): Promise<DevicePermissionResponse<DeviceContactResult>>;
-  biometric(options?: { reason?: string }): Promise<DevicePermissionResponse<DeviceBiometricResult>>;
+  gallery(options?: FileOptions): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
+  files(options?: FileOptions): Promise<DevicePermissionResponse<DeviceFilesResult>>;
+  download(options?: { reason?: string }): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
+  contact(options?: { reason?: string }): Promise<DevicePermissionResponse<DeviceContactResult>>;
+  biometric(options?: {
+    reason?: string;
+  }): Promise<DevicePermissionResponse<DeviceBiometricResult>>;
   notifications(options?: {
     requestPermission?: boolean;
     reason?: string;
@@ -88,10 +79,7 @@ export interface ShellDeviceService {
 }
 
 export interface ShellHttpService {
-  get<T = unknown>(
-    endpoint?: string,
-    query?: Record<string, string>,
-  ): Promise<HttpResult<T>>;
+  get<T = unknown>(endpoint?: string, query?: Record<string, string>): Promise<HttpResult<T>>;
   post<T = unknown>(
     endpoint?: string,
     body?: unknown,
@@ -107,10 +95,7 @@ export interface ShellHttpService {
     body?: unknown,
     headers?: Record<string, string>,
   ): Promise<HttpResult<T>>;
-  delete<T = unknown>(
-    endpoint?: string,
-    headers?: Record<string, string>,
-  ): Promise<HttpResult<T>>;
+  delete<T = unknown>(endpoint?: string, headers?: Record<string, string>): Promise<HttpResult<T>>;
 }
 
 export interface ShellServiceMap {

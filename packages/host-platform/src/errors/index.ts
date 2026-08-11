@@ -1,1 +1,1 @@
-export { RpcMethodError } from './rpc-error';
+export { RpcMethodError } from "./rpc-error";

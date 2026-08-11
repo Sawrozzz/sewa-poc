@@ -5,11 +5,9 @@
  * `RpcServer`. This is the host's pub/sub layer for cross-boundary events.
  */
 
-import { generateId } from '../utils';
-
-import { createPlatformEvent } from './platform-event';
-
-import type { PlatformEvent } from './platform-event';
+import { generateId } from "../utils";
+import type { PlatformEvent } from "./platform-event";
+import { createPlatformEvent } from "./platform-event";
 
 export type EventHandler<T = unknown> = (event: PlatformEvent<T>) => void | Promise<void>;
 
@@ -44,7 +42,7 @@ export class EventBus {
     if (!event.id || !event.type || !event.source) return false;
 
     if (this.enableTracing) {
-      this.trace('publish', event);
+      this.trace("publish", event);
     }
 
     const handlers = this.getMatchingHandlers(event.type, event.source);
@@ -106,7 +104,10 @@ export class EventBus {
   cleanup(maxAgeMs = 3600000): void {
     const cutoff = Date.now() - maxAgeMs;
     for (const [type, subs] of this.subscriptions) {
-      this.subscriptions.set(type, subs.filter((s) => s.createdAt > cutoff));
+      this.subscriptions.set(
+        type,
+        subs.filter((s) => s.createdAt > cutoff),
+      );
     }
   }
 
@@ -125,16 +126,18 @@ export class EventBus {
   }
 
   private matchesType(eventType: string, pattern: string): boolean {
-    if (pattern === '*') return true;
-    if (pattern.endsWith('*')) {
+    if (pattern === "*") return true;
+    if (pattern.endsWith("*")) {
       return eventType.startsWith(pattern.slice(0, -1));
     }
     return eventType === pattern;
   }
 
   private trace(action: string, event: PlatformEvent): void {
-    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
-      console.debug(`[EventBus:${action}] ${event.type} trace=${event.traceId} src=${event.source}`);
+    if (typeof process !== "undefined" && process.env?.NODE_ENV === "development") {
+      console.debug(
+        `[EventBus:${action}] ${event.type} trace=${event.traceId} src=${event.source}`,
+      );
     }
   }
 }

@@ -12,19 +12,18 @@
  * and Shadow DOM isolation (default) for style scoping.
  */
 
-import {PluginCacheDB} from "./cache";
-import {delay, mountWithIsolation} from "./utils";
-
+import type { PluginLoadOptions, RemoteLoadResult } from "@sewa/host-platform";
+import { PluginCacheDB } from "./cache";
 import type {
-    LoadedModule,
-    ManifestEntry,
-    MiniAppBundle,
-    MiniAppModuleExports,
-    MiniAppRuntime,
-    RuntimeLoaderOptions,
-    ViteManifest,
+  LoadedModule,
+  ManifestEntry,
+  MiniAppBundle,
+  MiniAppModuleExports,
+  MiniAppRuntime,
+  RuntimeLoaderOptions,
+  ViteManifest,
 } from "./types";
-import type {PluginLoadOptions, RemoteLoadResult,} from "@sewa/host-platform";
+import { delay, mountWithIsolation } from "./utils";
 
 export class RuntimeLoader {
   /** Map of loaded modules by ID */
@@ -56,9 +55,7 @@ export class RuntimeLoader {
    * @returns Complete URL
    */
   private async getFullUrl(baseUrl: string, fileName: string): Promise<string> {
-    const baseUrlNoSlash = baseUrl.endsWith("/")
-      ? baseUrl.slice(0, -1)
-      : baseUrl;
+    const baseUrlNoSlash = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
     return `${baseUrlNoSlash}/${fileName}`;
   }
 
@@ -112,7 +109,7 @@ export class RuntimeLoader {
   ): Promise<RemoteLoadResult> {
     // Return cached module if already loaded (and version still matches)
     const cached = this.loadedModules.get(moduleId);
-    if (cached && cached.bundle && (!version || cached.version === version)) {
+    if (cached?.bundle && (!version || cached.version === version)) {
       return {
         moduleId,
         success: true,
@@ -132,12 +129,7 @@ export class RuntimeLoader {
     }
 
     // Start new load operation
-    const promise = this.loadInternal(
-      moduleId,
-      bundleUrl,
-      version,
-      options,
-    );
+    const promise = this.loadInternal(moduleId, bundleUrl, version, options);
     this.loadingPromises.set(loadKey, promise);
     try {
       return await promise;
@@ -193,10 +185,7 @@ export class RuntimeLoader {
    * @param cssFileNames - Names of the CSS files to apply
    * @returns CSS contents to inject into the shadow root
    */
-  private collectStyles(
-    files: Record<string, string>,
-    cssFileNames: string[],
-  ): string[] {
+  private collectStyles(files: Record<string, string>, cssFileNames: string[]): string[] {
     const styles: string[] = [];
     for (const cssFile of cssFileNames) {
       const cssContent = files[cssFile];
@@ -216,27 +205,17 @@ export class RuntimeLoader {
   private async fetchViteManifest(
     baseUrl: string,
   ): Promise<{ manifest: ViteManifest; signature: boolean } | null> {
-    const baseUrlNoSlash = baseUrl.endsWith("/")
-      ? baseUrl.slice(0, -1)
-      : baseUrl;
+    const baseUrlNoSlash = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
     const manifestUrl = `${baseUrlNoSlash}/manifest.json`;
     console.log("[RuntimeLoader] fetchViteManifest — URL:", manifestUrl);
     try {
       const res = await this.fetcher(manifestUrl, {
         cache: "no-store",
       });
-      console.log(
-        "[RuntimeLoader] fetchViteManifest response status:",
-        res.status,
-        "ok:",
-        res.ok,
-      );
+      console.log("[RuntimeLoader] fetchViteManifest response status:", res.status, "ok:", res.ok);
       if (!res.ok) return null;
       const raw = (await res.json()) as Record<string, unknown>;
-      console.log(
-        "[RuntimeLoader] fetchViteManifest parsed JSON keys:",
-        Object.keys(raw),
-      );
+      console.log("[RuntimeLoader] fetchViteManifest parsed JSON keys:", Object.keys(raw));
       const signature = raw.signature === true;
       const { signature: _sig, ...entries } = raw;
       console.log(
@@ -277,13 +256,7 @@ export class RuntimeLoader {
 
     for (let attempt = 0; attempt <= retryAttempts; attempt++) {
       try {
-        const result = await this.loadPlugin(
-          moduleId,
-          bundleUrl,
-          version,
-          startTime,
-          options,
-        );
+        const result = await this.loadPlugin(moduleId, bundleUrl, version, startTime, options);
         if (result.success) {
           this.onLoadComplete?.(result);
           return result;
@@ -373,9 +346,7 @@ export class RuntimeLoader {
       // Load entry JS file from storage
       const indexJs = await this.db.getFile(moduleId, entryFileName);
       if (!indexJs) {
-        throw new Error(
-          `Cached directory exists but ${entryFileName} was not found`,
-        );
+        throw new Error(`Cached directory exists but ${entryFileName} was not found`);
       }
       files[entryFileName] = indexJs;
 
@@ -394,9 +365,7 @@ export class RuntimeLoader {
         const { manifest, signature } = manifestResult; // manifest is typed as ManifestEntry
 
         if (this.signatureRequired && !signature) {
-          throw new Error(
-            `Signature verification failed for module ${moduleId}`,
-          );
+          throw new Error(`Signature verification failed for module ${moduleId}`);
         }
 
         // Determine all files that need downloading (or pass manifest.bundle.files)
@@ -416,13 +385,17 @@ export class RuntimeLoader {
           if (manifestBundle) {
             entryFileName = manifestBundle.entry ?? entryFileName;
             cssFileNames = manifestBundle.styles ?? [];
-            manifestBundle.files?.forEach((file) => manifestFileNames.add(file));
+            manifestBundle.files?.forEach((file) => {
+              manifestFileNames.add(file)
+            });
           }
         }
 
         // Always fetch entry file and styles
         if (entryFileName) manifestFileNames.add(entryFileName);
-        cssFileNames.forEach((css) => manifestFileNames.add(css));
+        cssFileNames.forEach((css) => {
+          manifestFileNames.add(css)
+        });
 
         files = await this.db.downloadDirectory(
           bundleDirUrl,
@@ -435,7 +408,9 @@ export class RuntimeLoader {
         // Fallback if manifest download fails
         const fileNames = new Set<string>();
         fileNames.add(entryFileName);
-        cssFileNames.forEach((css) => fileNames.add(css));
+        cssFileNames.forEach((css) => {
+          fileNames.add(css)
+        });
 
         files = await this.db.downloadDirectory(
           bundleDirUrl,
@@ -486,11 +461,11 @@ export class RuntimeLoader {
         // root, so unmount from there and clear the root afterwards.
         const shadow = container.shadowRoot;
         if (shadow) {
-          const inner = shadow.querySelector('[data-mini-app-container]');
-          if (inner && typeof typedExports.unmount === 'function') {
+          const inner = shadow.querySelector("[data-mini-app-container]");
+          if (inner && typeof typedExports.unmount === "function") {
             typedExports.unmount(inner as HTMLElement);
           }
-          shadow.innerHTML = '';
+          shadow.innerHTML = "";
         }
       },
       styles,
@@ -541,12 +516,7 @@ export class RuntimeLoader {
       type: "application/javascript",
     });
     const blobUrl = URL.createObjectURL(blob);
-    console.log(
-      "[RuntimeLoader] evaluateModule — moduleId:",
-      moduleId,
-      "file:",
-      fileUrl,
-    );
+    console.log("[RuntimeLoader] evaluateModule — moduleId:", moduleId, "file:", fileUrl);
 
     // Release any previous blob URL for this module before registering the
     // new one. The URL stays alive while the module is loaded and is revoked
@@ -583,8 +553,6 @@ export class RuntimeLoader {
  * });
  * ```
  */
-export function createRuntimeLoader(
-  options: RuntimeLoaderOptions,
-): RuntimeLoader {
+export function createRuntimeLoader(options: RuntimeLoaderOptions): RuntimeLoader {
   return new RuntimeLoader(options);
 }

@@ -1,7 +1,6 @@
 import "fake-indexeddb/auto";
 import assert from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-
 import { PluginCacheDB } from "../src/cache";
 
 function mockFetch() {
@@ -72,8 +71,14 @@ describe("PluginCacheDB FIFO eviction", () => {
       false,
       `oldest module (app-a) should be evicted, got: ${JSON.stringify(keys)}`,
     );
-    assert.ok(keys.some((k) => k.startsWith("app-b/")), "app-b should remain");
-    assert.ok(keys.some((k) => k.startsWith("app-c/")), "app-c should remain");
+    assert.ok(
+      keys.some((k) => k.startsWith("app-b/")),
+      "app-b should remain",
+    );
+    assert.ok(
+      keys.some((k) => k.startsWith("app-c/")),
+      "app-c should remain",
+    );
     assert.ok(keys.includes("__cache-order__"), "order record should persist");
   });
 
@@ -82,10 +87,22 @@ describe("PluginCacheDB FIFO eviction", () => {
     await db.downloadDirectory("https://x/d", "app-d", {} as never, ["index.js"], manifest);
 
     const keys = await storedKeys();
-    assert.strictEqual(keys.some((k) => k.startsWith("app-a/")), false);
-    assert.strictEqual(keys.some((k) => k.startsWith("app-b/")), false);
-    assert.ok(keys.some((k) => k.startsWith("app-c/")), "app-c remains");
-    assert.ok(keys.some((k) => k.startsWith("app-d/")), "app-d remains");
+    assert.strictEqual(
+      keys.some((k) => k.startsWith("app-a/")),
+      false,
+    );
+    assert.strictEqual(
+      keys.some((k) => k.startsWith("app-b/")),
+      false,
+    );
+    assert.ok(
+      keys.some((k) => k.startsWith("app-c/")),
+      "app-c remains",
+    );
+    assert.ok(
+      keys.some((k) => k.startsWith("app-d/")),
+      "app-d remains",
+    );
   });
 
   it("no longer resolves files for an evicted module", async () => {
@@ -94,10 +111,7 @@ describe("PluginCacheDB FIFO eviction", () => {
     assert.strictEqual(await db.hasDirectory("app-a"), false);
     assert.strictEqual(await db.getFile("app-a", "index.js"), null);
     assert.ok(await db.hasDirectory("app-b"));
-    assert.strictEqual(
-      await db.getFile("app-b", "index.js"),
-      "{\"bundle\":{\"entry\":\"index.js\"}}",
-    );
+    assert.strictEqual(await db.getFile("app-b", "index.js"), '{"bundle":{"entry":"index.js"}}');
   });
 
   it("persists order across instances so a fresh session keeps evicting the oldest", async () => {
@@ -109,9 +123,19 @@ describe("PluginCacheDB FIFO eviction", () => {
     await db.downloadDirectory("https://x/d", "app-d", {} as never, ["index.js"], manifest);
 
     const keys = await storedKeys();
-    assert.strictEqual(keys.some((k) => k.startsWith("app-b/")), false, "app-b evicted in the new session");
-    assert.ok(keys.some((k) => k.startsWith("app-c/")), "app-c remains");
-    assert.ok(keys.some((k) => k.startsWith("app-d/")), "app-d remains");
+    assert.strictEqual(
+      keys.some((k) => k.startsWith("app-b/")),
+      false,
+      "app-b evicted in the new session",
+    );
+    assert.ok(
+      keys.some((k) => k.startsWith("app-c/")),
+      "app-c remains",
+    );
+    assert.ok(
+      keys.some((k) => k.startsWith("app-d/")),
+      "app-d remains",
+    );
   });
 
   it("moves a re-downloaded module to the back of the FIFO order", async () => {
@@ -122,8 +146,18 @@ describe("PluginCacheDB FIFO eviction", () => {
     await db.downloadDirectory("https://x/d", "app-d", {} as never, ["index.js"], manifest);
 
     const keys = await storedKeys();
-    assert.strictEqual(keys.some((k) => k.startsWith("app-c/")), false, "app-c (oldest) evicted");
-    assert.ok(keys.some((k) => k.startsWith("app-b/")), "re-downloaded app-b kept");
-    assert.ok(keys.some((k) => k.startsWith("app-d/")), "app-d kept");
+    assert.strictEqual(
+      keys.some((k) => k.startsWith("app-c/")),
+      false,
+      "app-c (oldest) evicted",
+    );
+    assert.ok(
+      keys.some((k) => k.startsWith("app-b/")),
+      "re-downloaded app-b kept",
+    );
+    assert.ok(
+      keys.some((k) => k.startsWith("app-d/")),
+      "app-d kept",
+    );
   });
 });

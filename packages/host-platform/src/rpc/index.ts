@@ -1,11 +1,11 @@
 export {
   MethodRegistry,
-  type RpcHandler,
   type RpcContext,
-} from './method-registry';
+  type RpcHandler,
+} from "./method-registry";
 export {
-  RpcServer,
-  createRpcServer,
-  type RpcServerOptions,
   type ConnectedModule,
-} from './rpc-server';
+  createRpcServer,
+  RpcServer,
+  type RpcServerOptions,
+} from "./rpc-server";

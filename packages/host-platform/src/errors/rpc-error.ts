@@ -5,7 +5,7 @@ export class RpcMethodError extends Error {
 
   constructor(code: string, message: string, retryable = false) {
     super(message);
-    this.name = 'RpcMethodError';
+    this.name = "RpcMethodError";
     this.code = code;
     this.retryable = retryable;
   }

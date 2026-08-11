@@ -12,12 +12,12 @@
  * by calling `createHostPlatform({ services, ... })` then `await platform.initialize()`.
  */
 
-import { createEventBus, type EventBus, type EventBusOptions } from '../events';
-import { createRpcServer } from '../rpc';
-
-import type { RpcServer} from '../rpc';
-import type { Transport } from '../transport';
-import type { ShellServiceMap } from '../types';
+import type { EventBus, EventBusOptions } from "../events";
+import { createEventBus } from "../events";
+import type { RpcServer } from "../rpc";
+import { createRpcServer } from "../rpc";
+import type { Transport } from "../transport";
+import type { ShellServiceMap } from "../types";
 
 export interface HostPlatformOptions {
   services: ShellServiceMap;
@@ -50,19 +50,14 @@ export class HostPlatform implements HostPlatformHandle {
   readonly rpc: RpcServer;
   readonly transport: Transport;
 
-  private constructor(
-    eventBus: EventBus,
-    rpc: RpcServer,
-    transport: Transport,
-  ) {
+  private constructor(eventBus: EventBus, rpc: RpcServer, transport: Transport) {
     this.eventBus = eventBus;
     this.rpc = rpc;
     this.transport = transport;
   }
 
   static create(options: HostPlatformOptions): HostPlatform {
-    const eventBus =
-      options.eventBus ?? createEventBus(options.eventBusOptions);
+    const eventBus = options.eventBus ?? createEventBus(options.eventBusOptions);
     const rpc = createRpcServer({
       services: options.services,
       eventBus,

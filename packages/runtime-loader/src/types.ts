@@ -3,8 +3,8 @@
  * Defines all interfaces and types used across the loader, cache, and utility modules.
  */
 
+import type { PluginServices, RemoteLoadResult } from "@sewa/host-platform";
 import type { PluginCacheDB } from "./cache";
-import type { RemoteLoadResult, PluginServices } from "@sewa/host-platform";
 
 /**
  * Specification for a mini-app bundle to be loaded.
@@ -116,20 +116,20 @@ export interface ViteManifestEntry {
 }
 
 export interface ManifestApplication {
-  id:string;
-  name:string;
+  id: string;
+  name: string;
   version: string;
-  type:string;
+  type: string;
 }
 export interface ManifestPlatfrom {
- runtime: string;
- sdk:string;
+  runtime: string;
+  sdk: string;
 }
 
 export interface ManifestBundle {
- entry: string;
- styles:string[];
- files: string[];
+  entry: string;
+  styles: string[];
+  files: string[];
 }
 
 export interface ManifestEntry {
@@ -139,7 +139,7 @@ export interface ManifestEntry {
   schemaVersion: string;
   application: ManifestApplication;
   platform: ManifestPlatfrom;
-  bundle: ManifestBundle
+  bundle: ManifestBundle;
 }
 
 /**

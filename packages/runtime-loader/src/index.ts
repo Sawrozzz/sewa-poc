@@ -28,39 +28,33 @@
  * ```
  */
 
+/** IndexedDB-backed cache for persistent storage of mini-app bundles */
+export { PluginCacheDB } from "./cache";
+/** Core runtime loader that orchestrates the loading lifecycle */
+export { createRuntimeLoader, RuntimeLoader } from "./loader";
 export type {
   BundleSpec,
-  RuntimeLoaderOptions,
-  MiniAppBundle,
-  MiniAppRuntime,
-  MiniAppModuleExports,
-  LoadedModule,
-  ViteManifestEntry,
-  ViteManifest,
   CachedFile,
   CacheOrder,
-} from './types';
-
-/** Core runtime loader that orchestrates the loading lifecycle */
-export { RuntimeLoader, createRuntimeLoader } from './loader';
-
-/** IndexedDB-backed cache for persistent storage of mini-app bundles */
-export { PluginCacheDB } from './cache';
-
+  LoadedModule,
+  MiniAppBundle,
+  MiniAppModuleExports,
+  MiniAppRuntime,
+  RuntimeLoaderOptions,
+  ViteManifest,
+  ViteManifestEntry,
+} from "./types";
 /** Universal mount function that works with any framework */
-export { mountModule } from './utils';
-
 /** Mount inside a Shadow DOM root with scoped styles */
-export { mountWithIsolation } from './utils';
-
 /** Universal unmount function that safely cleans up mini-apps */
-export { unmountModule } from './utils';
-
 /** Create a promise that resolves after a specified delay */
-export { delay } from './utils';
-
 /** Extract file name from a URL path */
-export { getFileName } from './utils';
-
 /** Normalize a base URL by removing trailing slash */
-export { normalizeBaseUrl } from './utils';
+export {
+  delay,
+  getFileName,
+  mountModule,
+  mountWithIsolation,
+  normalizeBaseUrl,
+  unmountModule,
+} from "./utils";

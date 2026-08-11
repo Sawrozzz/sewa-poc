@@ -6,12 +6,9 @@
  * directly call window.postMessage or window.addEventListener.
  */
 
-import type { HostPlatformMessage } from '../protocol';
+import type { HostPlatformMessage } from "../protocol";
 
-export type MessageHandler = (
-  message: HostPlatformMessage,
-  source?: Window | null,
-) => void;
+export type MessageHandler = (message: HostPlatformMessage, source?: Window | null) => void;
 
 /**
  * Transport abstraction — all message passing goes through this interface.

@@ -24,12 +24,12 @@ import type { MiniAppModuleExports, MiniAppRuntime } from "./types";
 export function mountModule(
   moduleExports: MiniAppModuleExports,
   container: HTMLElement,
-  runtime?: MiniAppRuntime
+  runtime?: MiniAppRuntime,
 ) {
-  if (typeof moduleExports.mount !== 'function') {
+  if (typeof moduleExports.mount !== "function") {
     throw new Error(
       `Module must export mount(container, runtime) function. ` +
-      `Received exports: ${Object.keys(moduleExports).join(', ') || '(none)'}`
+        `Received exports: ${Object.keys(moduleExports).join(", ") || "(none)"}`,
     );
   }
   return moduleExports.mount(container, runtime);
@@ -51,11 +51,8 @@ export function mountModule(
  * unmountModule(loadedModule, container);
  * ```
  */
-export function unmountModule(
-  moduleExports: MiniAppModuleExports,
-  container: HTMLElement
-) {
-  if (typeof moduleExports.unmount === 'function') {
+export function unmountModule(moduleExports: MiniAppModuleExports, container: HTMLElement) {
+  if (typeof moduleExports.unmount === "function") {
     moduleExports.unmount(container);
   }
 }
@@ -89,24 +86,24 @@ export function mountWithIsolation(
   moduleExports: MiniAppModuleExports,
   container: HTMLElement,
   runtime?: MiniAppRuntime,
-  styles?: string[]
+  styles?: string[],
 ): { container: HTMLElement; cleanup: () => void } {
   // Reuse existing shadow root or create new one
-  const shadow = container.shadowRoot ?? container.attachShadow({ mode: 'open' });
-  shadow.innerHTML = '';
+  const shadow = container.shadowRoot ?? container.attachShadow({ mode: "open" });
+  shadow.innerHTML = "";
 
   // Inject the mini-app's own styles inside the shadow root so they are
   // scoped to the mini-app and never leak into the host page.
   for (const css of styles ?? []) {
-    const style = document.createElement('style');
-    style.setAttribute('data-mini-app-style', 'true');
+    const style = document.createElement("style");
+    style.setAttribute("data-mini-app-style", "true");
     style.textContent = css;
     shadow.appendChild(style);
   }
 
   // Create inner container inside shadow root
-  const innerContainer = document.createElement('div');
-  innerContainer.setAttribute('data-mini-app-container', 'true');
+  const innerContainer = document.createElement("div");
+  innerContainer.setAttribute("data-mini-app-container", "true");
   shadow.appendChild(innerContainer);
 
   // Mount the mini-app inside the shadow DOM
@@ -116,7 +113,7 @@ export function mountWithIsolation(
     container: innerContainer,
     cleanup: () => {
       unmountModule(moduleExports, innerContainer);
-      shadow.innerHTML = '';
+      shadow.innerHTML = "";
     },
   };
 }
@@ -155,8 +152,8 @@ export function delay(ms: number): Promise<void> {
  * ```
  */
 export function getFileName(url: string): string {
-  const parts = url.split('/');
-  return parts[parts.length - 1] || parts[parts.length - 2] || 'unknown';
+  const parts = url.split("/");
+  return parts[parts.length - 1] || parts[parts.length - 2] || "unknown";
 }
 
 /**
@@ -173,5 +170,5 @@ export function getFileName(url: string): string {
  * ```
  */
 export function normalizeBaseUrl(url: string): string {
-  return url.endsWith('/') ? url.slice(0, -1) : url;
+  return url.endsWith("/") ? url.slice(0, -1) : url;
 }
