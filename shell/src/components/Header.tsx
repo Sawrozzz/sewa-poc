@@ -94,39 +94,31 @@ export function Header() {
         isDark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-2 h-16">
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gov-500 rounded-lg flex items-center justify-center">
-              <span className="text-white text-lg">🏛️</span>
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 bg-gov-500 rounded-lg flex items-center justify-center">
+              <span className="text-white text-base sm:text-lg">🏛️</span>
             </div>
 
-            <div>
+            <div className="min-w-0">
               <h1
-                className={`text-base font-bold leading-tight ${
+                className={`truncate text-sm sm:text-base font-bold leading-tight ${
                   isDark ? "text-white" : "text-gray-900"
                 }`}
               >
-                Citizen Portal
+                Sewa App
               </h1>
-
-              <p
-                className={`text-[10px] leading-tight ${
-                  isDark ? "text-gray-400" : "text-gray-500"
-                }`}
-              >
-                Government of Sri Lanka
-              </p>
             </div>
           </div>
 
           {/* Right: User Menu */}
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-1 sm:gap-4">
             <LocaleSwitcher />
 
             <button
-              className={`rounded-lg px-3 py-1.5 transition ${
+              className={`shrink-0 rounded-lg px-2 py-1.5 sm:px-3 transition ${
                 isDark
                   ? "text-gray-300 hover:text-white hover:bg-gray-800"
                   : "text-gray-500 hover:text-gov-700 hover:bg-gov-50"
@@ -139,13 +131,17 @@ export function Header() {
             </button>
 
             {user && (
-              <div className="flex items-center gap-3">
-                <div className="text-right hidden sm:block">
-                  <p className={`text-sm font-medium ${isDark ? "text-white" : "text-gray-900"}`}>
+              <div className="flex min-w-0 items-center gap-1 sm:gap-3">
+                <div className="min-w-0 max-w-40 text-right hidden sm:block">
+                  <p
+                    className={`truncate text-sm font-medium ${
+                      isDark ? "text-white" : "text-gray-900"
+                    }`}
+                  >
                     {user.fullName}
                   </p>
 
-                  <p className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                  <p className={`truncate text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                     {user.email}
                   </p>
                 </div>
@@ -153,7 +149,7 @@ export function Header() {
                 {!!session?.user?.image && (
                   <Image
                     alt={user.fullName}
-                    className={`w-9 h-9 rounded-full border-2 ${
+                    className={`w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-full border-2 ${
                       isDark ? "border-gray-600" : "border-gray-200"
                     }`}
                     height={36}
@@ -163,9 +159,9 @@ export function Header() {
                   />
                 )}
 
-                <div className="relative flex items-center">
+                <div className="relative flex shrink-0 items-center">
                   <button
-                    className={`rounded-lg px-3 py-1.5 transition disabled:opacity-70 ${
+                    className={`rounded-lg px-2 py-1.5 sm:px-3 transition disabled:opacity-70 ${
                       isDark
                         ? "text-gray-300 hover:text-white hover:bg-gray-800"
                         : "text-gray-500 hover:text-gray-900"
@@ -186,7 +182,7 @@ export function Header() {
                 </div>
 
                 <button
-                  className={`rounded-lg px-3 py-1.5 transition ${
+                  className={`shrink-0 rounded-lg px-2 py-1.5 sm:px-3 transition ${
                     isDark
                       ? "text-gray-300 hover:text-red-400 hover:bg-red-950/40"
                       : "text-gray-500 hover:text-red-600 hover:bg-red-50"

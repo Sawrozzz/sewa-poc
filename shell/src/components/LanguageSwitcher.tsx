@@ -32,8 +32,8 @@ export function LocaleSwitcher() {
   };
 
   return (
-    <div className="relative inline-flex items-center">
-      <Globe className="pointer-events-none absolute left-3 text-gov-700" size={18} />
+    <div className="relative inline-flex shrink-0 items-center">
+      <Globe className="pointer-events-none absolute left-2 sm:left-3 text-gov-700" size={18} />
 
       <select
         aria-label={t("label")}
@@ -47,9 +47,11 @@ export function LocaleSwitcher() {
           transition-all
           duration-200
 
-          pl-10
-          pr-8
+          pl-8
+          pr-6
           py-1
+          sm:pl-10
+          sm:pr-8
 
           text-sm
           font-medium
@@ -64,7 +66,7 @@ export function LocaleSwitcher() {
           disabled:cursor-not-allowed
           disabled:opacity-60
 
-          w-12
+          w-14
           sm:w-auto
           sm:min-w-37.5
         "
@@ -80,7 +82,7 @@ export function LocaleSwitcher() {
       </select>
 
       <svg
-        className="pointer-events-none absolute right-3 h-4 w-4 text-gray-500"
+        className="pointer-events-none absolute right-1.5 sm:right-3 h-4 w-4 text-gray-500"
         fill="none"
         stroke="currentColor"
         strokeWidth={2}
