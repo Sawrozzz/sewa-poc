@@ -11,17 +11,19 @@ import { destroyMiniAppSdk, loadMiniAppSdk } from "@/platform/sdk";
 import { Header } from "./Header";
 import { MiniAppErrorBoundary } from "./MiniAppErrorBoundary";
 import { MiniAppLoader } from "./MiniAppLoader";
+import { ArrowLeftIcon } from "lucide-react";
 
 
 export interface MiniAppContainerProps {
   miniAppId: string;
+  isDark: boolean;
 }
 
-export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
+export function MiniAppContainer({ miniAppId, isDark }: MiniAppContainerProps) {
   const router = useRouter();
 
   const { data: session, isPending: authLoading } = authClient.useSession();
-  const { communicator, appearance } = usePlatform();
+  const { communicator } = usePlatform();
   const loader = useRuntimeLoader();
   const eventBus = useEventBus();
   const {
@@ -33,7 +35,8 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [loadError, setLoadError] = useState("");
-  const [isDark, setIsDark] = useState(() => appearance.getTheme().mode === "dark");
+
+  console.log("ISDARK ", isDark)
 
   const mountCount = useRef(0);
   const cleanupDone = useRef(false);
@@ -173,7 +176,7 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
   if (loadState === "error" || loadError || manifestFailure) {
     const message = loadError || manifestFailure || "";
     return (
-      <div className={`flex items-center justify-center h-screen ${isDark ? "bg-gray-900 border-gray-700": "bg-white border-gray-200"}`}>
+      <div className={`flex items-center justify-center h-screen`}>
         <div className="text-center max-w-md">
           <span className="text-4xl mb-3 block">⚠️</span>
           <h1 className="text-lg font-semibold text-gray-900 mb-2">{message}</h1>
@@ -201,24 +204,13 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
 
   return !manifest ? null : (
     <div className={`h-screen flex flex-col`}>
-      <div className={`flex flex-row col-span-full  ${isDark ? "bg-gray-900 border-gray-700": "bg-white border-gray-200"}`}>
+      <div className={`flex flex-row  ${isDark ? "bg-gray-800": "bg-white"}`}>
         <button
           className="group mr-5 flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gov-800"
           onClick={() => router.push("/")}
           type="button"
         >
-          <svg
-            className="h-5 w-5 transition-transform group-hover:-translate-x-1"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <title>Back</title>
-            <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Back to Portal
+          <ArrowLeftIcon size = {16} />
         </button>
         <div className="flex-1">
           <Header />
