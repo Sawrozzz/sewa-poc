@@ -12,14 +12,16 @@ import { Header } from "./Header";
 import { MiniAppErrorBoundary } from "./MiniAppErrorBoundary";
 import { MiniAppLoader } from "./MiniAppLoader";
 
+
 export interface MiniAppContainerProps {
   miniAppId: string;
 }
 
 export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
   const router = useRouter();
+
   const { data: session, isPending: authLoading } = authClient.useSession();
-  const { communicator } = usePlatform();
+  const { communicator, appearance } = usePlatform();
   const loader = useRuntimeLoader();
   const eventBus = useEventBus();
   const {
@@ -31,6 +33,8 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [loadError, setLoadError] = useState("");
+  const [isDark, setIsDark] = useState(() => appearance.getTheme().mode === "dark");
+
   const mountCount = useRef(0);
   const cleanupDone = useRef(false);
   const sdkLoaded = useRef(false);
@@ -169,7 +173,7 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
   if (loadState === "error" || loadError || manifestFailure) {
     const message = loadError || manifestFailure || "";
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
+      <div className={`flex items-center justify-center h-screen ${isDark ? "bg-gray-900 border-gray-700": "bg-white border-gray-200"}`}>
         <div className="text-center max-w-md">
           <span className="text-4xl mb-3 block">⚠️</span>
           <h1 className="text-lg font-semibold text-gray-900 mb-2">{message}</h1>
@@ -196,8 +200,8 @@ export function MiniAppContainer({ miniAppId }: MiniAppContainerProps) {
   }
 
   return !manifest ? null : (
-    <div className="h-screen flex flex-col">
-      <div className="flex flex-row col-span-full">
+    <div className={`h-screen flex flex-col`}>
+      <div className={`flex flex-row col-span-full  ${isDark ? "bg-gray-900 border-gray-700": "bg-white border-gray-200"}`}>
         <button
           className="group mr-5 flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gov-800"
           onClick={() => router.push("/")}
