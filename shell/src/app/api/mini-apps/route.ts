@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL
+
+
 export async function GET() {
   try {
-    const response = await fetch("http://10.10.30.122:3000/v1/miniapps", {
+    const response = await fetch(`${BASE_URL}/manifest-registry/registry/mini-apps`, {
       cache: "no-store",
     });
 

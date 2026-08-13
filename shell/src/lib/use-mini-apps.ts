@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchMiniApp, fetchMiniApps, getFallbackManifests } from "./modules-api";
+import { fetchOldMiniApp, fetchMiniApps, getFallbackManifests } from "./modules-api";
 
 const MINI_APPS_KEY = ["mini-apps"] as const;
 
@@ -21,7 +21,8 @@ export function useMiniApp(id: string | null) {
   return useQuery({
     queryKey: [...MINI_APPS_KEY, id],
     // biome-ignore lint/style/noNonNullAssertion: <fix this later>
-    queryFn: () => fetchMiniApp(id!),
+    queryFn: () => fetchOldMiniApp(id!),
     enabled: !!id,
   });
 }
+
