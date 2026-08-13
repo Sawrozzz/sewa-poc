@@ -1,5 +1,9 @@
-import type { ModuleManifest, SignedMiniAppManifest } from "@sewa/host-platform";
-import type { ManifestVersion } from "@/types/manifest";
+import type { SignedMiniAppManifest } from "@sewa/host-platform";
+import type {
+  ManifestVersion,
+  PaginatedMiniAppParamsType,
+  PaginatedMiniApps,
+} from "@/types/manifest";
 
 /**
  * Server-side source of the registry's signed mini-app manifest.
@@ -13,8 +17,8 @@ import type { ManifestVersion } from "@/types/manifest";
  */
 const REGISTRY_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const REGISTRY_MANIFEST_PATH = "manifest-registry/registry/manifests/registry";
-const MANIFEST_VERSION_PATH = "manifest-registry/registry/manifests/version"; 
-const MANIFEST_MINI_APPS_PATH = "manifest-registry/registry/mini-apps"; 
+const MANIFEST_VERSION_PATH = "manifest-registry/registry/manifests/version";
+const MANIFEST_MINI_APPS_PATH = "manifest-registry/registry/mini-apps";
 
 /**
  * Build an absolute registry URL.
@@ -54,12 +58,37 @@ export async function getManifestVersion(): Promise<ManifestVersion> {
   return (await response.json()) as ManifestVersion;
 }
 
-export async function getManifestMiniApps(): Promise<ModuleManifest[]> {
-  const response = await fetch(registryUrl(MANIFEST_MINI_APPS_PATH), { cache: "no-store" });
+/**
+ * Read one page of the browsable mini-app catalog.
+ *
+ * Separate from {@link getSignedManifest}: this is the paginated list the
+ * portal renders, and it carries no `bundleUrl` or `bundleHash`. Anything
+ * actually loadable still has to come from the signed manifest.
+ *
+ * @param params - Cursor pagination and search parameters; blank ones are
+ *   omitted so the registry applies its own defaults
+ * @returns The page of mini apps plus its pagination metadata
+ * @throws When the registry URL is unconfigured or the registry does not answer
+ */
+export async function getManifestMiniApps(
+  params: Partial<PaginatedMiniAppParamsType> = {},
+): Promise<PaginatedMiniApps> {
+  const query = new URLSearchParams();
+  if (params.size != null) query.set("size", String(params.size));
+  if (params.orderBy) query.set("orderBy", params.orderBy);
+  if (params.sortBy) query.set("sortBy", params.sortBy);
+  if (params.cursor) query.set("cursor", params.cursor);
+  if (params.searchBy) query.set("searchBy", params.searchBy);
+  if (params.search) query.set("search", params.search);
+
+  const queryString = query.toString();
+  const path = queryString ? `${MANIFEST_MINI_APPS_PATH}?${queryString}` : MANIFEST_MINI_APPS_PATH;
+
+  const response = await fetch(registryUrl(path), { cache: "no-store" });
 
   if (!response.ok) {
     throw new Error(`Manifest mini apps responded with ${response.status}.`);
   }
 
-  return (await response.json()) as ModuleManifest[];
+  return (await response.json()) as PaginatedMiniApps;
 }

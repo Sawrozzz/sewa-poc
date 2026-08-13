@@ -1,9 +1,14 @@
 "use client";
 
 import type { OldModuleManifest } from "@sewa/host-platform";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
-import { useFallbackMiniApps, useMiniApps, useRefreshMiniApps } from "@/lib/use-mini-apps";
+import {
+  useFallbackMiniApps,
+  useMiniAppCatalog,
+  useMiniApps,
+  useRefreshMiniApps,
+} from "@/lib/use-mini-apps";
 import { OldMiniAppCard } from "./MiniAppCard";
 import { NewMiniAppCard } from "./NewMiniAppCard";
 
@@ -76,8 +81,45 @@ export function ModuleGrid() {
   const userPermissions = useMemo(() => user?.permissions ?? [], [user]);
 
   const fallbackModules = useFallbackMiniApps();
-  const { data: newMiniApps, isLoading, isError, error } = useMiniApps();
   const refreshMiniApps = useRefreshMiniApps();
+
+  // The catalog supplies the list; the signed manifest supplies the bundle URL
+  // and hash used when one is opened. Both are loaded here so a card click has
+  // everything it needs already resolved.
+  const {
+    miniApps,
+    isLoading: catalogLoading,
+    isError: catalogFailed,
+    error: catalogError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useMiniAppCatalog();
+  const { isError: manifestFailed, error: manifestError } = useMiniApps();
+
+  // A manifest that cannot be trusted makes every card unopenable, so it takes
+  // priority over a catalog failure.
+  const isLoading = catalogLoading;
+  const isError = manifestFailed || catalogFailed;
+  const error = manifestFailed ? manifestError : catalogError;
+
+  // Infinite scroll: pull the next page once the sentinel below the grid
+  // scrolls into view.
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasNextPage || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) fetchNextPage();
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Process Old Modules with filtering & grouping
   const filteredFallback = useMemo(
@@ -88,26 +130,6 @@ export function ModuleGrid() {
 
   return (
     <div className="space-y-10">
-      {/* Playground / Fallback Section */}
-      {Object.keys(fallbackGroups).length > 0 && (
-        <div>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 bg-gov-100 rounded-lg flex items-center justify-center">
-              <span className="text-amber-600 text-sm">🛠️</span>
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">Playground</h2>
-              <p className="text-xs text-gray-500">Pre-installed services available to you</p>
-            </div>
-          </div>
-          <div className="space-y-8">
-            {Object.entries(fallbackGroups).map(([category, mods]) => (
-              <OldCategorySection category={category} key={category} oldModules={mods} />
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Dynamic Services Section - Unfiltered New Modules */}
       <div>
         <div className="flex items-center gap-3 mb-6">
@@ -149,18 +171,56 @@ export function ModuleGrid() {
               Try Again
             </button>
           </div>
-        ) : newMiniApps && newMiniApps.miniApps.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {newMiniApps.miniApps.map((mod) => (
-              <NewMiniAppCard key={mod.miniAppId} newModule={mod} />
-            ))}
-          </div>
+        ) : miniApps.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {miniApps.map((mod) => (
+                <NewMiniAppCard key={mod.id ?? mod.miniAppId} newModule={mod} />
+              ))}
+            </div>
+
+            {isFetchingNextPage ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-5">
+                {[1, 2, 3].map((i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </div>
+            ) : null}
+
+            {/* Tripping this into view loads the next page */}
+            <div aria-hidden className="h-px" ref={sentinelRef} />
+
+            {hasNextPage ? null : (
+              <p className="text-center text-xs text-gray-400 mt-8">
+                You&apos;ve reached the end of the list.
+              </p>
+            )}
+          </>
         ) : (
           <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
             <p className="text-sm text-gray-500">No services available at this time.</p>
           </div>
         )}
       </div>
+      {/* Playground / Fallback Section */}
+      {Object.keys(fallbackGroups).length > 0 && (
+        <div>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 bg-gov-100 rounded-lg flex items-center justify-center">
+              <span className="text-amber-600 text-sm">🛠️</span>
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Playground</h2>
+              <p className="text-xs text-gray-500">Pre-installed services available to you</p>
+            </div>
+          </div>
+          <div className="space-y-8">
+            {Object.entries(fallbackGroups).map(([category, mods]) => (
+              <OldCategorySection category={category} key={category} oldModules={mods} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

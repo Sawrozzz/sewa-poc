@@ -1,6 +1,10 @@
 import type { ModuleManifest, OldModuleManifest, SignedMiniAppManifest } from "@sewa/host-platform";
 import axios from "axios";
-import type { ManifestVersion } from "@/types/manifest";
+import type {
+  ManifestVersion,
+  PaginatedMiniAppParamsType,
+  PaginatedMiniApps,
+} from "@/types/manifest";
 import { clearMiniAppsManifest, getStoredMiniAppsManifest, saveMiniAppsManifest } from "./index-db";
 import { isSignatureEnforced, verifyManifestSignature } from "./manifest-signature";
 import { FALLBACK_MINI_APPS } from "./mock-mini-apps";
@@ -130,8 +134,44 @@ export async function fetchMiniApps(): Promise<SignedMiniAppManifest> {
   return fetchManifestFromRegistry();
 }
 
+/** Default page size for the mini-app catalog */
+export const MINI_APP_PAGE_SIZE = 10;
+
+/**
+ * Fetch one page of the browsable mini-app catalog.
+ *
+ * This list is what the portal renders. It is *not* signed and carries no
+ * `bundleUrl` or `bundleHash` — those are resolved from the signed manifest at
+ * open time by {@link findMiniApp}, so a mini app cannot be loaded on the
+ * strength of appearing here.
+ *
+ * @param params - Cursor pagination and search parameters
+ * @returns One page of mini apps plus its pagination metadata
+ */
+export async function fetchMiniAppCatalog(
+  params: Partial<PaginatedMiniAppParamsType> = {},
+): Promise<PaginatedMiniApps> {
+  const response = await axios.get<PaginatedMiniApps>("/api/mini-apps", {
+    params: {
+      size: params.size ?? MINI_APP_PAGE_SIZE,
+      orderBy: params.orderBy ?? "DESC",
+      sortBy: params.sortBy ?? "id",
+      cursor: params.cursor,
+      searchBy: params.searchBy,
+      search: params.search,
+    },
+  });
+
+  return response.data;
+}
+
 /**
  * Look up a single mini app in the verified manifest.
+ *
+ * This is the join between the two lists: the catalog says *which* mini apps
+ * exist, the signed manifest says where each one's archive lives and what it
+ * must hash to. Matching on `miniAppId` is what carries a card click over to
+ * the download-and-verify path.
  *
  * @param manifest - A manifest already returned by {@link fetchMiniApps}
  * @param miniAppId - The mini app to find
@@ -141,7 +181,7 @@ export function findMiniApp(
   manifest: SignedMiniAppManifest | undefined,
   miniAppId: string,
 ): ModuleManifest | null {
-  return manifest?.miniApps.find((app: any) => app.miniAppId === miniAppId) ?? null;
+  return manifest?.miniApps.find((app) => app.miniAppId === miniAppId) ?? null;
 }
 
 /**

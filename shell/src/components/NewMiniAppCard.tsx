@@ -1,11 +1,11 @@
 "use client";
 
-import type { ModuleManifest } from "@sewa/host-platform";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { MiniAppListItem } from "@/types/manifest";
 
 interface MiniAppCardProps {
-  newModule: ModuleManifest;
+  newModule: MiniAppListItem;
 }
 
 export function NewMiniAppCard({ newModule }: MiniAppCardProps) {
