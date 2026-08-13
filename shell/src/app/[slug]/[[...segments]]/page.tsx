@@ -1,24 +1,40 @@
 "use client";
 
-import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import type { MiniAppSource } from "@/components/MiniAppContainer";
 import { MiniAppContainer } from "@/components/MiniAppContainer";
 import { usePlatform } from "@/context";
+import Loader from "@/components/ui/Loader";
 
 /**
  * Mini App Loader Page
  *
  * Shell-owned route that loads vendor mini apps via the Runtime Loader.
  * Communication flows through Shell Communicator.
+ *
+ * `?source=registry` opens the mini app through the signed manifest (a
+ * hash-verified `.zip`); without it the pre-installed descriptor is used. The
+ * two lists can carry the same id, so the source has to be explicit.
  */
-export default function MiniAppLoader() {
-
-  const {appearance} = usePlatform();
+function MiniAppRoute() {
+  const { appearance } = usePlatform();
 
   const params = useParams();
+  const searchParams = useSearchParams();
 
-    const [isDark, setIsDark] = useState(() => appearance.getTheme().mode === "dark");
-  
+  const [isDark] = useState(() => appearance.getTheme().mode === "dark");
+
   const slug = params.slug as string;
-  return <MiniAppContainer miniAppId={slug} isDark = {isDark} />;
+  const source: MiniAppSource = searchParams.get("source") === "registry" ? "registry" : "fallback";
+
+  return <MiniAppContainer isDark={isDark} miniAppId={slug} source={source} />;
+}
+
+export default function MiniAppLoader() {
+  return (
+    <Suspense fallback={ <Loader />}>
+      <MiniAppRoute />
+    </Suspense>
+  );
 }

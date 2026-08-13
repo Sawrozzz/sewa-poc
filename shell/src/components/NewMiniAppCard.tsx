@@ -15,8 +15,11 @@ export function NewMiniAppCard({ newModule }: MiniAppCardProps) {
   return (
     <button
       className="group relative flex flex-col text-left w-full h-full bg-white rounded-2xl border border-gray-200/80 p-5 shadow-sm hover:shadow-xl hover:border-gov-400 hover:-translate-y-1 transition-all duration-300 ease-out overflow-hidden focus:outline-none focus:ring-2 focus:ring-gov-500 focus:ring-offset-2"
-      id={newModule.id}
-      onClick={() => router.push(`/${newModule.miniAppId}`)}
+      id={newModule.miniAppId}
+      // `source=registry` picks the signed-manifest loading path. A registry
+      // mini app can share its id with a pre-installed one, and the two are
+      // loaded and cached differently, so the route has to say which is meant.
+      onClick={() => router.push(`/${newModule.miniAppId}?source=registry`)}
       type="button"
     >
       {/* Decorative Gradient Background Accent */}
@@ -27,14 +30,14 @@ export function NewMiniAppCard({ newModule }: MiniAppCardProps) {
         <div className="relative w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden shadow-xs group-hover:scale-105 group-hover:shadow-md transition-all duration-300 shrink-0">
           {newModule.iconUrl && !imgError ? (
             <img
-              alt={`${newModule.displayName} icon`}
+              alt={`${newModule.displayName ?? newModule.miniAppId} icon`}
               className="w-full h-full object-cover rounded-xl"
               onError={() => setImgError(true)}
               src={newModule.iconUrl}
             />
           ) : (
             <span className="text-xl font-bold text-gov-700 select-none">
-              {newModule.displayName?.charAt(0).toUpperCase() || "📦"}
+              {(newModule.displayName ?? newModule.miniAppId).charAt(0).toUpperCase() || "📦"}
             </span>
           )}
         </div>
@@ -49,7 +52,7 @@ export function NewMiniAppCard({ newModule }: MiniAppCardProps) {
       {/* Content: Title & Description */}
       <div className="flex-1 mb-5">
         <h3 className="text-base font-bold text-gray-900 group-hover:text-gov-800 transition-colors duration-200 mb-1.5 line-clamp-1">
-          {newModule.displayName}
+          {newModule.displayName ?? newModule.miniAppId}
         </h3>
         <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">
           {newModule?.description || "No description provided for this service."}

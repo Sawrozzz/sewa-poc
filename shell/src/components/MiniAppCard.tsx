@@ -1,11 +1,11 @@
 "use client";
 
-import type { OldModuleManifest, ModuleManifest } from "@sewa/host-platform";
+import type { ModuleManifest, OldModuleManifest } from "@sewa/host-platform";
 import { useRouter } from "next/navigation";
 
 interface MiniAppCardProps {
   oldModule?: OldModuleManifest;
-  newModule?: ModuleManifest
+  newModule?: ModuleManifest;
 }
 
 export function OldMiniAppCard({ oldModule }: MiniAppCardProps) {
@@ -47,7 +47,9 @@ export function OldMiniAppCard({ oldModule }: MiniAppCardProps) {
           <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
             {oldModule?.vendor}
           </span>
-          {!!oldModule?.category && <span className="text-xs text-gray-400">{oldModule?.category}</span>}
+          {!!oldModule?.category && (
+            <span className="text-xs text-gray-400">{oldModule?.category}</span>
+          )}
         </div>
         <span className="text-sm font-medium text-gov-800 group-hover:text-gov-900 transition flex items-center gap-1">
           Open
@@ -66,4 +68,3 @@ export function OldMiniAppCard({ oldModule }: MiniAppCardProps) {
     </button>
   );
 }
-

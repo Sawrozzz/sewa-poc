@@ -1,42 +1,100 @@
 "use client";
 
 import type { RemoteLoadResult } from "@sewa/host-platform";
+import { ArrowLeftIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEventBus, usePlatform, useRuntimeLoader } from "@/context";
 import { authClient } from "@/lib/auth-client";
-import { useMiniApp } from "@/lib/use-mini-apps";
+import { bundleFetchUrl } from "@/lib/modules-api";
+import { useMiniApp, useRegistryMiniApp } from "@/lib/use-mini-apps";
 import { useMiniAppBackButton } from "@/platform";
 import { destroyMiniAppSdk, loadMiniAppSdk } from "@/platform/sdk";
 import { Header } from "./Header";
 import { MiniAppErrorBoundary } from "./MiniAppErrorBoundary";
 import { MiniAppLoader } from "./MiniAppLoader";
-import { ArrowLeftIcon } from "lucide-react";
 
+/**
+ * Where a mini app's descriptor comes from:
+ *
+ * - `fallback` — the pre-installed list; files are fetched from a base URL
+ * - `registry` — the signed manifest; a hash-verified `.zip` is unpacked locally
+ */
+export type MiniAppSource = "fallback" | "registry";
+
+/** Everything the container needs about a mini app, regardless of its source. */
+interface MiniAppDescriptor {
+  name: string;
+  icon?: string;
+  color?: string;
+  version?: string;
+  bundleUrl: string;
+  /** Present only for registry apps — the archive digest to verify against */
+  bundleHash?: string;
+}
 
 export interface MiniAppContainerProps {
   miniAppId: string;
   isDark: boolean;
+  source?: MiniAppSource;
 }
 
-export function MiniAppContainer({ miniAppId, isDark }: MiniAppContainerProps) {
+export function MiniAppContainer({
+  miniAppId,
+  isDark,
+  source = "fallback",
+}: MiniAppContainerProps) {
   const router = useRouter();
+  const isRegistry = source === "registry";
 
   const { data: session, isPending: authLoading } = authClient.useSession();
   const { communicator } = usePlatform();
   const loader = useRuntimeLoader();
   const eventBus = useEventBus();
+
+  // Only the query matching this route's source runs; the other stays disabled.
   const {
-    data: manifest,
-    isLoading: manifestLoading,
-    error: manifestError,
-  } = useMiniApp(miniAppId);
+    data: fallbackManifest,
+    isLoading: fallbackLoading,
+    error: fallbackError,
+  } = useMiniApp(isRegistry ? null : miniAppId);
+  const {
+    data: registryApp,
+    isLoading: registryLoading,
+    error: registryError,
+  } = useRegistryMiniApp(isRegistry ? miniAppId : null);
+
+  const manifestLoading = isRegistry ? registryLoading : fallbackLoading;
+  const manifestError = isRegistry ? registryError : fallbackError;
+
+  const manifest = useMemo<MiniAppDescriptor | null>(() => {
+    if (isRegistry) {
+      return registryApp
+        ? {
+            name: registryApp.displayName ?? registryApp.miniAppId,
+            version: registryApp.version,
+            // Archives are downloaded through the shell's proxy — the storage
+            // origin serving them sends no CORS headers.
+            bundleUrl: bundleFetchUrl(registryApp.bundleUrl),
+            bundleHash: registryApp.bundleHash,
+          }
+        : null;
+    }
+    return fallbackManifest
+      ? {
+          name: fallbackManifest.name,
+          icon: fallbackManifest.icon,
+          color: fallbackManifest.color,
+          version: fallbackManifest.version,
+          bundleUrl: fallbackManifest.bundleUrl,
+        }
+      : null;
+  }, [isRegistry, registryApp, fallbackManifest]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [loadError, setLoadError] = useState("");
 
-  console.log("ISDARK ", isDark)
 
   const mountCount = useRef(0);
   const cleanupDone = useRef(false);
@@ -63,9 +121,19 @@ export function MiniAppContainer({ miniAppId, isDark }: MiniAppContainerProps) {
 
     let result: RemoteLoadResult;
     try {
-      result = await loader.load(miniAppId, manifest.bundleUrl, manifest.version, {
-        retryAttempts: 3,
-      });
+      // Registry apps arrive as a signed `.zip`: download → hash-check against
+      // the manifest → unpack into IndexedDB. Pre-installed apps keep fetching
+      // their files individually from the bundle base URL.
+      result =
+        manifest.bundleHash !== undefined
+          ? await loader.loadBundle(miniAppId, manifest.bundleUrl, {
+              bundleHash: manifest.bundleHash,
+              version: manifest.version,
+              retryAttempts: 2,
+            })
+          : await loader.load(miniAppId, manifest.bundleUrl, manifest.version, {
+              retryAttempts: 3,
+            });
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Failed to load module");
       setLoadState("error");
@@ -204,13 +272,13 @@ export function MiniAppContainer({ miniAppId, isDark }: MiniAppContainerProps) {
 
   return !manifest ? null : (
     <div className={`h-screen flex flex-col`}>
-      <div className={`flex flex-row  ${isDark ? "bg-gray-800": "bg-white"}`}>
+      <div className={`flex flex-row  ${isDark ? "bg-gray-800" : "bg-white"}`}>
         <button
           className="group mr-5 flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gov-800"
           onClick={() => router.push("/")}
           type="button"
         >
-          <ArrowLeftIcon size = {16} />
+          <ArrowLeftIcon size={16} />
         </button>
         <div className="flex-1">
           <Header />

@@ -25,7 +25,13 @@ function groupByCategory(mods: OldModuleManifest[]) {
 }
 
 // Category Section for Old Modules
-function OldCategorySection({ category, oldModules }: { category: string; oldModules: OldModuleManifest[] }) {
+function OldCategorySection({
+  category,
+  oldModules,
+}: {
+  category: string;
+  oldModules: OldModuleManifest[];
+}) {
   return (
     <section>
       <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 flex items-center gap-2">
@@ -39,6 +45,11 @@ function OldCategorySection({ category, oldModules }: { category: string; oldMod
       </div>
     </section>
   );
+}
+
+/** Whether a manifest query error came from the signature check rather than the network */
+function isSignatureError(error: Error | null): boolean {
+  return !!error?.message?.toLowerCase().includes("signature");
 }
 
 function SkeletonCard() {
@@ -116,10 +127,17 @@ export function ModuleGrid() {
           </div>
         ) : isError ? (
           <div className="text-center py-12 bg-white rounded-xl border border-red-100">
-            <div className="text-5xl mb-4">📡</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Could Not Load Services</h3>
+            {/* A failed signature check is a trust problem, not a network one —
+                say so, because the fix is a new manifest, not a retry. */}
+            <div className="text-5xl mb-4">{isSignatureError(error) ? "🔒" : "📡"}</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {isSignatureError(error)
+                ? "Manifest Could Not Be Trusted"
+                : "Could Not Load Services"}
+            </h3>
             <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
-              {error?.message || "Unable to fetch services from the platform. Please check your connection."}
+              {error?.message ||
+                "Unable to fetch services from the platform. Please check your connection."}
             </p>
             <button
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gov-500 text-gov-950 rounded-lg hover:bg-gov-600 transition text-sm font-medium"
@@ -130,10 +148,10 @@ export function ModuleGrid() {
               Try Again
             </button>
           </div>
-        ) : newMiniApps && newMiniApps.data.length > 0 ? (
+        ) : newMiniApps && newMiniApps.miniApps.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {newMiniApps.data.map((mod) => (
-              <NewMiniAppCard key={mod.id} newModule={mod} />
+            {newMiniApps.miniApps.map((mod) => (
+              <NewMiniAppCard key={mod.miniAppId} newModule={mod} />
             ))}
           </div>
         ) : (
