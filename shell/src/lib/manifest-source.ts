@@ -1,4 +1,4 @@
-import type { SignedMiniAppManifest } from "@sewa/host-platform";
+import type { ModuleManifest, SignedMiniAppManifest } from "@sewa/host-platform";
 import type { ManifestVersion } from "@/types/manifest";
 
 /**
@@ -8,12 +8,13 @@ import type { ManifestVersion } from "@/types/manifest";
  * and refuse to fetch any URL the manifest does not vouch for.
  *
  * This runs on the server, so it must talk to the registry directly — going
- * back through the shell's own `/api/mini-apps` route would need an absolute
+ * back through the shell's own `/api/manifests` route would need an absolute
  * URL and would just make the server call itself.
  */
 const REGISTRY_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const REGISTRY_MANIFEST_PATH = "manifest-registry/registry/manifests/registry";
-const MANIFEST_VERSION_PATH = "manifest-registry/registry/manifests/version";
+const MANIFEST_VERSION_PATH = "manifest-registry/registry/manifests/version"; 
+const MANIFEST_MINI_APPS_PATH = "manifest-registry/registry/mini-apps"; 
 
 /**
  * Build an absolute registry URL.
@@ -33,14 +34,6 @@ function registryUrl(path: string): string {
   return `${REGISTRY_BASE_URL.trim().replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 }
 
-/**
- * Read the current signed manifest from the registry.
- *
- * @returns The manifest exactly as it will be handed to the client, signature
- *   included — the shell verifies it there, not here.
- * @throws When the registry URL is unconfigured or the registry does not answer
- *   with a manifest
- */
 export async function getSignedManifest(): Promise<SignedMiniAppManifest> {
   const response = await fetch(registryUrl(REGISTRY_MANIFEST_PATH), { cache: "no-store" });
 
@@ -51,16 +44,6 @@ export async function getSignedManifest(): Promise<SignedMiniAppManifest> {
   return (await response.json()) as SignedMiniAppManifest;
 }
 
-/**
- * Read the version of the manifest the registry currently publishes.
- *
- * Deliberately much cheaper than {@link getSignedManifest} — it is what lets
- * the client decide whether its stored manifest is stale without downloading
- * the whole thing.
- *
- * @returns The published manifest version
- * @throws When the registry URL is unconfigured or the registry does not answer
- */
 export async function getManifestVersion(): Promise<ManifestVersion> {
   const response = await fetch(registryUrl(MANIFEST_VERSION_PATH), { cache: "no-store" });
 
@@ -69,4 +52,14 @@ export async function getManifestVersion(): Promise<ManifestVersion> {
   }
 
   return (await response.json()) as ManifestVersion;
+}
+
+export async function getManifestMiniApps(): Promise<ModuleManifest[]> {
+  const response = await fetch(registryUrl(MANIFEST_MINI_APPS_PATH), { cache: "no-store" });
+
+  if (!response.ok) {
+    throw new Error(`Manifest mini apps responded with ${response.status}.`);
+  }
+
+  return (await response.json()) as ModuleManifest[];
 }

@@ -127,11 +127,11 @@ export interface SignedMiniAppManifest {
 }
 
 export interface MiniAppMeta {
-  total: number;
-  page: number;
   size: number;
   orderBy: string;
   sortBy: string;
+  nextCursor: string;
+  hasNext: boolean
 }
 
 export interface MiniAppRecord {

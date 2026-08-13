@@ -10,7 +10,7 @@ existing pre-installed (fallback) flow, which is unchanged.
 
 | | Fallback (old) | Registry (new) |
 |---|---|---|
-| Descriptor source | `FALLBACK_MINI_APPS` in `mock-mini-apps.ts` | `/api/mini-apps` signed manifest |
+| Descriptor source | `FALLBACK_MINI_APPS` in `mock-mini-apps.ts` | `/api/manifests` signed manifest |
 | `bundleUrl` points at | a directory (`https://app.vercel.app/`) | a `.zip` archive |
 | Files obtained by | fetching `manifest.json`, then each file over HTTP | downloading one archive and unzipping it in the browser |
 | Integrity | none | SHA-256 of the archive vs `bundleHash` |
@@ -33,7 +33,7 @@ namespaces are separate — neither flow can read or evict the other's files.
 ModuleGrid
   └─ useMiniApps()                       shell/src/lib/use-mini-apps.ts
        └─ fetchMiniApps()                shell/src/lib/modules-api.ts
-            ├─ GET /api/mini-apps        → getSignedManifest()
+            ├─ GET /api/manifests        → getSignedManifest()
             └─ verifyManifestSignature() shell/src/lib/manifest-signature.ts
                  ├─ import RSA public key (SPKI, RSASSA-PKCS1-v1_5 / SHA-256)
                  ├─ try each candidate payload serialization
@@ -55,7 +55,7 @@ console warning (see §5).
        └─ loader.loadBundle(id, bundleFetchUrl(bundleUrl), { bundleHash, version })
 ```
 
-`bundleFetchUrl()` rewrites the archive URL to `/api/mini-apps/bundle?url=…`
+`bundleFetchUrl()` rewrites the archive URL to `/api/manifests/bundle?url=…`
 because the storage origin sends no CORS headers (see §4).
 
 ### 2.3 Inside `loadBundle()` — the download → verify → unpack cycle
@@ -130,7 +130,7 @@ __cache-order__                                     ← shared FIFO order
 | `packages/runtime-loader/src/bundle.load.test.ts` | 6 tests: zip round-trip (stored + deflated), zip dropped after extraction, digest mismatch caches nothing, matching digest skips the download, new digest re-downloads |
 | `shell/src/lib/manifest-signature.ts` | `verifyManifestSignature()` — Web Crypto RSA verify; `isSignatureEnforced()`; the public key + its env override |
 | `shell/src/lib/manifest-source.ts` | `getSignedManifest()` — fetches the live registry (`NEXT_PUBLIC_API_URL` + `/manifest-registry/registry/manifests/registry`) server-side. Shared by the list route and the bundle proxy so both judge the same document. |
-| `shell/src/app/api/mini-apps/bundle/route.ts` | CORS proxy; refuses any URL the manifest does not list |
+| `shell/src/app/api/manifests/bundle/route.ts` | CORS proxy; refuses any URL the manifest does not list |
 
 ### Modified
 
@@ -143,7 +143,7 @@ __cache-order__                                     ← shared FIFO order
 | `packages/runtime-loader/src/index.ts` | exports the above |
 | `shell/src/lib/modules-api.ts` | `fetchMiniApps()` verifies before returning; `findMiniApp()`; `bundleFetchUrl()` |
 | `shell/src/lib/use-mini-apps.ts` | `useRegistryMiniApp()` — same query key as `useMiniApps`, so the signature check is shared |
-| `shell/src/app/api/mini-apps/route.ts` | serves `getSignedManifest()` |
+| `shell/src/app/api/manifests/route.ts` | serves `getSignedManifest()` |
 | `shell/src/app/[slug]/[[...segments]]/page.tsx` | reads `?source=`, wrapped in `<Suspense>` for `useSearchParams` |
 | `shell/src/components/MiniAppContainer.tsx` | `MiniAppSource` prop, `MiniAppDescriptor` normalizing both flows, branches to `loadBundle()` when a `bundleHash` is present |
 | `shell/src/components/NewMiniAppCard.tsx` | navigates with `?source=registry`; tolerates the missing `displayName` |
@@ -165,7 +165,7 @@ Access to fetch at 'https://pub-….r2.dev/dist%206.zip' from origin
 'http://localhost:3000' has been blocked by CORS policy
 ```
 
-`/api/mini-apps/bundle?url=…` streams it through the shell's own origin. It is
+`/api/manifests/bundle?url=…` streams it through the shell's own origin. It is
 **not** an open proxy — the URL must appear verbatim in the current manifest,
 and `proxy.ts` already requires a session for `/api/*`. Integrity is unaffected:
 the client hashes the bytes it receives, so a tampered proxy response fails the

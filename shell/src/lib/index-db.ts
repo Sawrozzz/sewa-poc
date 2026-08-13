@@ -45,7 +45,7 @@ function getDb(): Promise<IDBPDatabase> | null {
 }
 
 /**
- * Persist the signed manifest returned by `/api/mini-apps`.
+ * Persist the signed manifest returned by `/api/manifests`.
  *
  * Only ever called with a manifest whose signature already verified, so what
  * lands in IndexedDB is a document the shell has vouched for.

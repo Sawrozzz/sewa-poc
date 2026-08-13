@@ -1,16 +1,10 @@
-import { NextResponse } from "next/server";
-import { getSignedManifest } from "@/lib/manifest-source";
+import {  NextResponse } from "next/server";
 
-/**
- * Hand the registry's signed manifest to the browser untouched.
- *
- * The signature is verified client-side, so this route must not reshape the
- * document — any re-serialization here would change the bytes the signature
- * was produced over.
- */
+import { getManifestMiniApps } from "@/lib/manifest-source";
+
 export async function GET() {
   try {
-    return NextResponse.json(await getSignedManifest(), { status: 200 });
+    return NextResponse.json(await getManifestMiniApps(), { status: 200 });
   } catch (_error) {
     return NextResponse.json(
       {

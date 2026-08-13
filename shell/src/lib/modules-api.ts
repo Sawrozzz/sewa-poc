@@ -41,7 +41,7 @@ async function assertManifestTrusted(
  *   manifest must not outlive the request that produced it
  */
 async function fetchManifestFromRegistry(): Promise<SignedMiniAppManifest> {
-  const response = await axios.get<SignedMiniAppManifest>("/api/mini-apps");
+  const response = await axios.get<SignedMiniAppManifest>("/api/manifests");
   const manifest = response.data;
 
   await assertManifestTrusted(manifest, "registry");
@@ -159,7 +159,7 @@ export function findMiniApp(
  */
 export function bundleFetchUrl(bundleUrl: string): string {
   if (process.env.NEXT_PUBLIC_BUNDLE_PROXY === "off") return bundleUrl;
-  return `/api/mini-apps/bundle?url=${encodeURIComponent(bundleUrl)}`;
+  return `/api/manifests/bundle?url=${encodeURIComponent(bundleUrl)}`;
 }
 
 export function getFallbackManifests(): OldModuleManifest[] {
