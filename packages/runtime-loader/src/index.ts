@@ -28,18 +28,31 @@
  * ```
  */
 
+/** Helpers for republishing unpacked bundle assets as blob URLs */
+export {
+  isTextAsset,
+  mimeTypeFor,
+  rewriteAssetReferences,
+  splitBundleEntries,
+} from "./bundle-assets";
 /** IndexedDB-backed cache for persistent storage of mini-app bundles */
 export { PluginCacheDB } from "./cache";
+/** Verify a downloaded archive against the manifest's bundleHash */
+export { verifyBundleHash } from "./integrity";
 /** Core runtime loader that orchestrates the loading lifecycle */
 export { createRuntimeLoader, RuntimeLoader } from "./loader";
 export type {
+  BundleContents,
+  BundleLoadOptions,
   BundleSpec,
+  CachedBinaryFile,
   CachedFile,
   CacheOrder,
   LoadedModule,
   MiniAppBundle,
   MiniAppModuleExports,
   MiniAppRuntime,
+  ModuleSourceKind,
   RuntimeLoaderOptions,
   ViteManifest,
   ViteManifestEntry,
@@ -58,3 +71,6 @@ export {
   normalizeBaseUrl,
   unmountModule,
 } from "./utils";
+export type { ZipEntry } from "./zip";
+/** Minimal in-browser ZIP reader for mini-app bundles */
+export { unzip } from "./zip";

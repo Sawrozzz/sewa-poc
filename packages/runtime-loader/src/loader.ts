@@ -13,8 +13,11 @@
  */
 
 import type { PluginLoadOptions, RemoteLoadResult } from "@sewa/host-platform";
+import { mimeTypeFor, rewriteAssetReferences, splitBundleEntries } from "./bundle-assets";
 import { PluginCacheDB } from "./cache";
+import { verifyBundleHash } from "./integrity";
 import type {
+  BundleLoadOptions,
   LoadedModule,
   ManifestEntry,
   MiniAppBundle,
@@ -24,6 +27,22 @@ import type {
   ViteManifest,
 } from "./types";
 import { delay, mountWithIsolation } from "./utils";
+import { unzip } from "./zip";
+
+/**
+ * Cache-key suffix for bundles loaded from a signed-manifest `.zip`.
+ *
+ * Keeps their IndexedDB entries separate from a legacy directory-loaded
+ * mini-app that happens to carry the same id, so the two flows never evict or
+ * read each other's files.
+ */
+const BUNDLE_CACHE_SUFFIX = "@bundle";
+
+/** File name the archive's own build manifest is published under */
+const BUNDLE_MANIFEST_FILE = "manifest.json";
+
+/** Key the downloaded archive is parked under while it is verified */
+const ARCHIVE_CACHE_KEY = "__bundle.zip__";
 
 export class RuntimeLoader {
   /** Map of loaded modules by ID */
@@ -44,6 +63,9 @@ export class RuntimeLoader {
   private db: PluginCacheDB;
   /** Map of module IDs to their blob URLs (revoked on unload) */
   private blobURLs = new Map<string, string>();
+
+  /** Map of module IDs to blob URLs published for their bundle assets */
+  private assetURLs = new Map<string, string[]>();
 
   /** Whether signature validation is required */
   private signatureRequired: boolean;
@@ -107,9 +129,11 @@ export class RuntimeLoader {
     version?: string,
     options: PluginLoadOptions = {},
   ): Promise<RemoteLoadResult> {
-    // Return cached module if already loaded (and version still matches)
+    // Return cached module if already loaded (and version still matches).
+    // A module left behind by the bundle flow is never reused here — the two
+    // flows resolve their files differently even for the same id.
     const cached = this.loadedModules.get(moduleId);
-    if (cached?.bundle && (!version || cached.version === version)) {
+    if (cached?.kind !== "bundle" && cached?.bundle && (!version || cached.version === version)) {
       return {
         moduleId,
         success: true,
@@ -139,6 +163,64 @@ export class RuntimeLoader {
   }
 
   /**
+   * Load a mini-app published as a signed-manifest `.zip` bundle.
+   *
+   * The archive is downloaded, parked in IndexedDB, hashed, and only unpacked
+   * once its digest matches the manifest's `bundleHash`. The archive is then
+   * dropped and its extracted files (JS, CSS, assets) take its place in the
+   * cache. On the next open, a cached digest equal to the manifest's short-
+   * circuits the whole cycle and the files are read straight from IndexedDB.
+   *
+   * `load()` and its directory-based flow are untouched — the two coexist.
+   *
+   * @param moduleId - Unique identifier for the module
+   * @param bundleUrl - URL of the `.zip` archive
+   * @param options - Bundle hash (required), version, and retry config
+   * @returns Result of the load operation
+   *
+   * @example
+   * ```typescript
+   * const result = await loader.loadBundle('test-mini-app', app.bundleUrl, {
+   *   bundleHash: app.bundleHash,
+   *   version: app.version,
+   *   retryAttempts: 2,
+   * });
+   * ```
+   */
+  async loadBundle(
+    moduleId: string,
+    bundleUrl: string,
+    options: BundleLoadOptions,
+  ): Promise<RemoteLoadResult> {
+    // Reuse the evaluated module while it still matches the manifest's digest
+    console.log(moduleId, bundleUrl, options)
+    const cached = this.loadedModules.get(moduleId);
+    if (cached?.kind === "bundle" && cached.bundleHash === options.bundleHash) {
+      return {
+        moduleId,
+        success: true,
+        loadTimeMs: 0,
+        strategy: "plugin",
+        bundle: cached.bundle,
+        version: cached.version,
+      };
+    }
+
+    // Collapse concurrent opens of the same release onto one download
+    const loadKey = `${moduleId}${BUNDLE_CACHE_SUFFIX}@${options.bundleHash}`;
+    const existing = this.loadingPromises.get(loadKey);
+    if (existing) return existing;
+
+    const promise = this.loadBundleInternal(moduleId, bundleUrl, options);
+    this.loadingPromises.set(loadKey, promise);
+    try {
+      return await promise;
+    } finally {
+      this.loadingPromises.delete(loadKey);
+    }
+  }
+
+  /**
    * Unload a module and clean up resources.
    *
    * Revokes the module's blob URL (freeing the evaluated bundle) and clears it
@@ -154,6 +236,12 @@ export class RuntimeLoader {
       URL.revokeObjectURL(blobUrl);
       this.blobURLs.delete(moduleId);
     }
+
+    // Release blob URLs published for the bundle's assets
+    for (const assetUrl of this.assetURLs.get(moduleId) ?? []) {
+      URL.revokeObjectURL(assetUrl);
+    }
+    this.assetURLs.delete(moduleId);
 
     // Remove from loaded modules
     this.loadedModules.delete(moduleId);
@@ -487,6 +575,277 @@ export class RuntimeLoader {
       strategy: "plugin",
       bundle: miniAppBundle,
       version,
+    };
+  }
+
+  /**
+   * Bundle load implementation with retry logic.
+   *
+   * Mirrors {@link loadInternal}: attempts the load up to retryAttempts times
+   * with a linear backoff, reporting through the lifecycle callbacks.
+   *
+   * @param moduleId - Module ID to load
+   * @param bundleUrl - URL of the `.zip` archive
+   * @param options - Bundle hash, version, and retry config
+   * @returns Result of the load operation
+   */
+  private async loadBundleInternal(
+    moduleId: string,
+    bundleUrl: string,
+    options: BundleLoadOptions,
+  ): Promise<RemoteLoadResult> {
+    const startTime = Date.now();
+    this.onLoadStart?.(moduleId);
+    const retryAttempts = options.retryAttempts ?? 2;
+    const retryDelayMs = options.retryDelayMs ?? 1000;
+    let lastError = "";
+
+    for (let attempt = 0; attempt <= retryAttempts; attempt++) {
+      try {
+        const result = await this.loadBundlePlugin(moduleId, bundleUrl, options, startTime);
+        if (result.success) {
+          this.onLoadComplete?.(result);
+          return result;
+        }
+        lastError = result.error ?? "Unknown error";
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+      }
+      if (attempt < retryAttempts) await delay(retryDelayMs * (attempt + 1));
+    }
+
+    const result: RemoteLoadResult = {
+      moduleId,
+      success: false,
+      loadTimeMs: Date.now() - startTime,
+      strategy: "plugin",
+      error: lastError,
+    };
+    this.onLoadError?.(moduleId, lastError);
+    return result;
+  }
+
+  /**
+   * Core bundle loading logic.
+   *
+   * 1. Reuse the cached extraction when its digest matches the manifest
+   * 2. Otherwise download, verify, unpack, and cache the archive
+   * 3. Assemble the entry JS, styles, and asset URLs from the cache
+   * 4. Evaluate the entry and wrap it in a mountable bundle
+   *
+   * @param moduleId - Module ID to load
+   * @param bundleUrl - URL of the `.zip` archive
+   * @param options - Bundle hash, version, and retry config
+   * @param startTime - Timestamp when the load started (for timing)
+   * @returns Result of the load operation
+   */
+  private async loadBundlePlugin(
+    moduleId: string,
+    bundleUrl: string,
+    options: BundleLoadOptions,
+    startTime: number,
+  ): Promise<RemoteLoadResult> {
+    if (!bundleUrl) throw new Error(`Module ${moduleId} missing bundleUrl`);
+    if (!options.bundleHash) throw new Error(`Module ${moduleId} missing bundleHash`);
+
+    const cacheId = `${moduleId}${BUNDLE_CACHE_SUFFIX}`;
+    const cachedHash = await this.db.getBundleHash(cacheId);
+
+    if (cachedHash === options.bundleHash) {
+      console.log("[RuntimeLoader] Bundle cache HIT —", moduleId, "hash:", cachedHash);
+    } else {
+      console.log(
+        "[RuntimeLoader] Bundle cache MISS —",
+        moduleId,
+        "cached:",
+        cachedHash,
+        "manifest:",
+        options.bundleHash,
+      );
+      await this.materializeBundle(cacheId, bundleUrl, options);
+    }
+
+    const { entryFileName, entryCode, styles } = await this.readBundleFromCache(cacheId, moduleId);
+
+    const moduleExports = await this.evaluateModule(moduleId, entryFileName, entryCode);
+    if (typeof moduleExports.mount !== "function") {
+      throw new Error(`Bundle ${entryFileName} must export a mount() function`);
+    }
+
+    const typedExports = moduleExports as MiniAppModuleExports;
+    const miniAppBundle: MiniAppBundle = {
+      mount: (container: HTMLElement, props?: MiniAppRuntime) => {
+        mountWithIsolation(typedExports, container, props, styles);
+      },
+      unmount: (container: HTMLElement) => {
+        const shadow = container.shadowRoot;
+        if (shadow) {
+          const inner = shadow.querySelector("[data-mini-app-container]");
+          if (inner && typeof typedExports.unmount === "function") {
+            typedExports.unmount(inner as HTMLElement);
+          }
+          shadow.innerHTML = "";
+        }
+      },
+      styles,
+    };
+
+    this.loadedModules.set(moduleId, {
+      moduleId,
+      strategy: "plugin",
+      bundle: miniAppBundle,
+      version: options.version,
+      loadedAt: Date.now(),
+      kind: "bundle",
+      bundleHash: options.bundleHash,
+    });
+
+    return {
+      moduleId,
+      success: true,
+      loadTimeMs: Date.now() - startTime,
+      strategy: "plugin",
+      bundle: miniAppBundle,
+      version: options.version,
+    };
+  }
+
+  /**
+   * Download, verify, and unpack a mini-app archive into the cache.
+   *
+   * The archive is written to IndexedDB before it is touched, then read back
+   * and hashed — so the bytes that get verified are the same bytes that were
+   * stored. A digest mismatch discards the archive without unpacking it.
+   *
+   * @param cacheId - Cache-scoped module ID
+   * @param bundleUrl - URL of the `.zip` archive
+   * @param options - Bundle hash and version from the manifest
+   * @throws When the download fails or the digest does not match
+   */
+  private async materializeBundle(
+    cacheId: string,
+    bundleUrl: string,
+    options: BundleLoadOptions,
+  ): Promise<void> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 60000);
+
+    try {
+      console.log("[RuntimeLoader] Downloading bundle:", bundleUrl);
+      const res = await this.fetcher(bundleUrl, {
+        signal: controller.signal,
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        throw new Error(`Bundle download failed — ${res.status} ${res.statusText}`);
+      }
+      const downloaded = new Uint8Array(await res.arrayBuffer());
+
+      // Park the archive in IndexedDB, then verify what was actually stored
+      await this.db.putBinary(
+        cacheId,
+        ARCHIVE_CACHE_KEY,
+        downloaded.slice().buffer as ArrayBuffer,
+        "application/zip",
+      );
+      const stored = await this.db.getBinary(cacheId, ARCHIVE_CACHE_KEY);
+      if (!stored) throw new Error("Bundle archive vanished from cache before verification");
+      const archive = new Uint8Array(stored.bytes);
+
+      const { matches, actual } = await verifyBundleHash(archive, options.bundleHash);
+      if (!matches) {
+        await this.db.deleteFile(cacheId, ARCHIVE_CACHE_KEY);
+        throw new Error(
+          `Bundle hash mismatch — expected ${options.bundleHash}, computed sha256-${actual}`,
+        );
+      }
+      console.log("[RuntimeLoader] Bundle hash verified:", options.bundleHash);
+
+      try {
+        const entries = await unzip(archive);
+        const contents = splitBundleEntries(entries);
+        if (!contents.text[BUNDLE_MANIFEST_FILE]) {
+          throw new Error(`Bundle archive is missing ${BUNDLE_MANIFEST_FILE}`);
+        }
+        await this.db.storeBundle(cacheId, contents, {
+          bundleHash: options.bundleHash,
+          version: options.version,
+        });
+      } finally {
+        // The archive itself is never kept — only what came out of it, and it
+        // goes even when extraction fails so a bad download can't linger.
+        await this.db.deleteFile(cacheId, ARCHIVE_CACHE_KEY);
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  /**
+   * Assemble a bundle's entry code and styles from the cache.
+   *
+   * Assets other than the entry and its stylesheets are republished as blob
+   * URLs and the references to them inside the code are rewritten, since an
+   * unpacked archive has no origin to resolve relative paths against.
+   *
+   * @param cacheId - Cache-scoped module ID
+   * @param moduleId - Module ID the blob URLs are tracked under
+   * @returns Entry file name, rewritten entry code, and rewritten styles
+   */
+  private async readBundleFromCache(
+    cacheId: string,
+    moduleId: string,
+  ): Promise<{ entryFileName: string; entryCode: string; styles: string[] }> {
+    const manifestText = await this.db.getFile(cacheId, BUNDLE_MANIFEST_FILE);
+    if (!manifestText) {
+      throw new Error(`Cached bundle for ${moduleId} is missing ${BUNDLE_MANIFEST_FILE}`);
+    }
+
+    const manifest: ManifestEntry = JSON.parse(manifestText);
+    const entryFileName = manifest.bundle?.entry || "index.js";
+    const styleNames = manifest.bundle?.styles ?? [];
+    const assetNames = (manifest.bundle?.files ?? []).filter(
+      (file) => file !== entryFileName && !styleNames.includes(file),
+    );
+
+    // Release URLs from a previous load of this module before minting new ones
+    for (const stale of this.assetURLs.get(moduleId) ?? []) URL.revokeObjectURL(stale);
+    const published: string[] = [];
+    const assetUrls: Record<string, string> = {};
+
+    for (const asset of assetNames) {
+      const text = await this.db.getFile(cacheId, asset);
+      const blob =
+        text !== null
+          ? new Blob([text], { type: mimeTypeFor(asset) })
+          : await this.db
+              .getBinary(cacheId, asset)
+              .then((bin) => (bin ? new Blob([bin.bytes], { type: bin.mimeType }) : null));
+      if (!blob) {
+        console.warn("[RuntimeLoader] Bundle asset missing from cache:", asset);
+        continue;
+      }
+      const url = URL.createObjectURL(blob);
+      assetUrls[asset] = url;
+      published.push(url);
+    }
+    this.assetURLs.set(moduleId, published);
+
+    const rawEntry = await this.db.getFile(cacheId, entryFileName);
+    if (!rawEntry) {
+      throw new Error(`Cached bundle for ${moduleId} is missing entry ${entryFileName}`);
+    }
+
+    const styles: string[] = [];
+    for (const styleName of styleNames) {
+      const css = await this.db.getFile(cacheId, styleName);
+      if (css) styles.push(rewriteAssetReferences(css, assetUrls));
+    }
+
+    return {
+      entryFileName,
+      entryCode: rewriteAssetReferences(rawEntry, assetUrls),
+      styles,
     };
   }
 

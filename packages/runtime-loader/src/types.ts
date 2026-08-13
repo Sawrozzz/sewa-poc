@@ -3,7 +3,7 @@
  * Defines all interfaces and types used across the loader, cache, and utility modules.
  */
 
-import type { PluginServices, RemoteLoadResult } from "@sewa/host-platform";
+import type { PluginLoadOptions, PluginServices, RemoteLoadResult } from "@sewa/host-platform";
 import type { PluginCacheDB } from "./cache";
 
 /**
@@ -76,6 +76,14 @@ export interface MiniAppBundle {
 }
 
 /**
+ * How a loaded module's files reached the cache.
+ *
+ * - `directory` — legacy flow: files fetched individually from a base URL
+ * - `bundle` — signed-manifest flow: a hash-verified `.zip` unpacked locally
+ */
+export type ModuleSourceKind = "directory" | "bundle";
+
+/**
  * Represents a loaded module in the runtime.
  * Tracks module metadata and lifecycle state.
  */
@@ -90,6 +98,20 @@ export interface LoadedModule {
   version?: string;
   /** Timestamp when the module was loaded */
   loadedAt: number;
+  /** Which loading flow produced this module (default: "directory") */
+  kind?: ModuleSourceKind;
+  /** Archive digest this module was verified against (bundle flow only) */
+  bundleHash?: string;
+}
+
+/**
+ * Options for loading a mini-app from a signed-manifest `.zip` bundle.
+ */
+export interface BundleLoadOptions extends PluginLoadOptions {
+  /** Expected archive digest from the manifest, e.g. "sha256-3193…" */
+  bundleHash: string;
+  /** Version string recorded alongside the cached files */
+  version?: string;
 }
 
 /**
@@ -159,6 +181,35 @@ export interface CachedFile {
   data: string;
   /** Timestamp when the file was cached */
   cachedAt: number;
+}
+
+/**
+ * Cached binary entry in IndexedDB.
+ *
+ * Used for the downloaded `.zip` while it is being verified, and for bundle
+ * assets (images, fonts) that would be corrupted by a text round-trip.
+ */
+export interface CachedBinaryFile {
+  /** Composite key: "moduleId/fileName" */
+  fileKey: string;
+  /** Raw file bytes */
+  data: ArrayBuffer;
+  /** Marks the record as binary so readers decode it correctly */
+  binary: true;
+  /** MIME type inferred from the file extension */
+  mimeType: string;
+  /** Timestamp when the file was cached */
+  cachedAt: number;
+}
+
+/**
+ * Files unpacked from a mini-app `.zip`, split by how they are consumed.
+ */
+export interface BundleContents {
+  /** Text files (JS, CSS, SVG, JSON …) keyed by archive path */
+  text: Record<string, string>;
+  /** Binary files (images, fonts …) keyed by archive path */
+  binary: Record<string, { bytes: ArrayBuffer; mimeType: string }>;
 }
 
 /**

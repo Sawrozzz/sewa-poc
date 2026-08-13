@@ -31,7 +31,7 @@ export type LoadStrategy = "plugin";
 
 export type EntryType = "framework-agnostic";
 
-export interface ModuleManifest {
+export interface OldModuleManifest {
   id: string;
   name: string;
   description: string;
@@ -72,7 +72,72 @@ export interface ModuleCompatibility {
   supportedFrameworks: ("react" | "next" | "vue" | "angular" | "nuxt" | "solid" | "svelte")[];
 }
 
-export type PlatformType = "WEB" | "ANDROID" | "IOS";
+export type PlatformType = "web" | "android" | "ios";
+
+export type MetaDataType = {
+  author: string;
+  environment: string;
+};
+export interface ModuleManifest {
+  /** Registry row id — absent from the signed manifest, which keys on miniAppId */
+  id?: string;
+  miniAppId: string;
+  backingAgencyId?: string;
+  displayName?: string;
+  description?: string;
+  category?: string;
+  /** URL of the mini app's `.zip` bundle (the dist output of its build) */
+  bundleUrl: string;
+  /** Digest of the archive at bundleUrl, e.g. "sha256-3193…" */
+  bundleHash: string;
+  iconUrl?: string;
+  bundleVerifiedAt?: Date | string;
+  ingestionStatus?: string;
+  ingestionError?: string | null;
+  version?: string;
+  sdkVersionRequired: string;
+  loadStrategy?: string;
+  status?: string;
+  platform: PlatformType[];
+  rolloutPercentage?: number;
+  kycRequired: boolean;
+  metaData?: MetaDataType;
+}
+
+/**
+ * The registry's signed mini-app manifest.
+ *
+ * The whole document is signed with the registry's private key; the shell
+ * verifies `signature` against the published public key before it will show —
+ * let alone load — any of the mini apps listed here.
+ */
+export interface SignedMiniAppManifest {
+  /** Manifest revision, bumped on every publish */
+  version: string;
+  /** ISO timestamp of the publish */
+  publishedAt: string;
+  /** Mini apps this manifest vouches for */
+  miniApps: ModuleManifest[];
+  /** Signature algorithm (RS256 today) */
+  algorithm: string;
+  /** Identifier of the signing key, for rotation */
+  keyId: string;
+  /** base64url signature over the manifest payload */
+  signature: string;
+}
+
+export interface MiniAppMeta {
+  total: number;
+  page: number;
+  size: number;
+  orderBy: string;
+  sortBy: string;
+}
+
+export interface MiniAppRecord {
+  data: ModuleManifest[];
+  meta: MiniAppMeta;
+}
 
 /** Result of loading a plugin bundle into the shell */
 export interface RemoteLoadResult {
