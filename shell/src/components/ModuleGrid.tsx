@@ -3,7 +3,7 @@
 import type { OldModuleManifest } from "@sewa/host-platform";
 import { useMemo } from "react";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
-import { useFallbackMiniApps, useMiniApps } from "@/lib/use-mini-apps";
+import { useFallbackMiniApps, useMiniApps, useRefreshMiniApps } from "@/lib/use-mini-apps";
 import { OldMiniAppCard } from "./MiniAppCard";
 import { NewMiniAppCard } from "./NewMiniAppCard";
 
@@ -76,7 +76,8 @@ export function ModuleGrid() {
   const userPermissions = useMemo(() => user?.permissions ?? [], [user]);
 
   const fallbackModules = useFallbackMiniApps();
-  const { data: newMiniApps, isLoading, isError, error, refetch } = useMiniApps();
+  const { data: newMiniApps, isLoading, isError, error } = useMiniApps();
+  const refreshMiniApps = useRefreshMiniApps();
 
   // Process Old Modules with filtering & grouping
   const filteredFallback = useMemo(
@@ -141,7 +142,7 @@ export function ModuleGrid() {
             </p>
             <button
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gov-500 text-gov-950 rounded-lg hover:bg-gov-600 transition text-sm font-medium"
-              onClick={() => refetch()}
+              onClick={() => refreshMiniApps()}
               type="button"
             >
               <span>🔄</span>

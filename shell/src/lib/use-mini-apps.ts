@@ -1,9 +1,29 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
+import { clearMiniAppsManifest } from "./index-db";
 import { fetchMiniApps, fetchOldMiniApp, findMiniApp, getFallbackManifests } from "./modules-api";
 
 const MINI_APPS_KEY = ["mini-apps"] as const;
+
+/**
+ * Drop the stored manifest and pull a fresh one from the registry.
+ *
+ * `fetchMiniApps` answers from IndexedDB whenever a manifest is stored, so a
+ * plain `refetch()` would just re-read the same copy. Clearing first is what
+ * makes the next fetch actually hit the network.
+ *
+ * @returns A callback that refreshes the mini-app list
+ */
+export function useRefreshMiniApps() {
+  const queryClient = useQueryClient();
+
+  return useCallback(async () => {
+    await clearMiniAppsManifest();
+    await queryClient.invalidateQueries({ queryKey: MINI_APPS_KEY });
+  }, [queryClient]);
+}
 
 export function useFallbackMiniApps() {
   return getFallbackManifests();

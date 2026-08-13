@@ -4,8 +4,8 @@ import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import type { MiniAppSource } from "@/components/MiniAppContainer";
 import { MiniAppContainer } from "@/components/MiniAppContainer";
-import { usePlatform } from "@/context";
 import Loader from "@/components/ui/Loader";
+import { usePlatform } from "@/context";
 
 /**
  * Mini App Loader Page
@@ -33,7 +33,7 @@ function MiniAppRoute() {
 
 export default function MiniAppLoader() {
   return (
-    <Suspense fallback={ <Loader />}>
+    <Suspense fallback={<Loader />}>
       <MiniAppRoute />
     </Suspense>
   );

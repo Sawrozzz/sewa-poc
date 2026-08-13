@@ -95,7 +95,6 @@ export function MiniAppContainer({
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [loadError, setLoadError] = useState("");
 
-
   const mountCount = useRef(0);
   const cleanupDone = useRef(false);
   const sdkLoaded = useRef(false);

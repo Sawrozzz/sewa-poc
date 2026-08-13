@@ -335,7 +335,7 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
           );
         }
         return { status: "granted", data: { success: outcome === "verified" } };
-      } catch (error) {
+      } catch (_) {
         // NotAllowedError covers both "user cancelled" and "no matching
         // credential on this device" — neither is recoverable here, and the
         // contract carries no error channel, so both land on success: false.

@@ -1,7 +1,7 @@
+import type { ModuleManifest } from "@sewa/host-platform";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getSignedManifest } from "@/lib/manifest-source";
-import type { ModuleManifest } from "@sewa/host-platform";
 
 /**
  * Bundle download proxy.
@@ -27,7 +27,9 @@ export async function GET(request: NextRequest) {
   try {
     const manifest = await getSignedManifest();
 
-    const isPublished = manifest.miniApps.some((app:ModuleManifest) => app.bundleUrl === bundleUrl);
+    const isPublished = manifest.miniApps.some(
+      (app: ModuleManifest) => app.bundleUrl === bundleUrl,
+    );
     if (!isPublished) {
       return NextResponse.json(
         { success: false, message: "Bundle URL is not published in the manifest." },
