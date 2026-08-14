@@ -17,6 +17,7 @@ import type {
  */
 const REGISTRY_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const REGISTRY_MANIFEST_PATH = "manifest-registry/registry/manifests/registry";
+const POST_TO_GET_REGISTRY_MANIFEST_PATH = "manifest-registry/registry/publish";
 const MANIFEST_VERSION_PATH = "manifest-registry/registry/manifests/version";
 const MANIFEST_MINI_APPS_PATH = "manifest-registry/registry/mini-apps";
 
@@ -47,6 +48,15 @@ export async function getSignedManifest(): Promise<SignedMiniAppManifest> {
 
   return (await response.json()) as SignedMiniAppManifest;
 }
+export async function postTogetSignedManifest(): Promise<SignedMiniAppManifest> {
+  const response = await fetch(registryUrl(POST_TO_GET_REGISTRY_MANIFEST_PATH) , { cache: "no-store", method: "POST" } );
+
+  if (!response.ok) {
+    throw new Error(`Manifest registry responded with ${response.status}.`);
+  }
+
+  return (await response.json()) as SignedMiniAppManifest;
+}
 
 export async function getManifestVersion(): Promise<ManifestVersion> {
   const response = await fetch(registryUrl(MANIFEST_VERSION_PATH), { cache: "no-store" });
@@ -57,6 +67,7 @@ export async function getManifestVersion(): Promise<ManifestVersion> {
 
   return (await response.json()) as ManifestVersion;
 }
+
 
 /**
  * Read one page of the browsable mini-app catalog.
