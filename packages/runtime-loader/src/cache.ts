@@ -7,7 +7,13 @@
  */
 
 import type { PluginLoadOptions } from "@sewa/host-platform";
-import type { CachedFile, CacheOrder, ViteManifest } from "./types";
+import type {
+  BundleContents,
+  CachedBinaryFile,
+  CachedFile,
+  CacheOrder,
+  ViteManifest,
+} from "./types";
 
 /** IndexedDB database name */
 const DB_NAME = "sewa-plugin-cache";
@@ -335,7 +341,13 @@ export class PluginCacheDB {
       const tx = db.transaction(STORE_NAME, "readonly");
       const req = tx.objectStore(STORE_NAME).get(scopedKey);
       req.onsuccess = () => {
-        const result = req.result as CachedFile | undefined;
+        const result = req.result as (CachedFile & { binary?: true }) | undefined;
+        // Binary records are read through getBinary() — returning their bytes
+        // here would poison the in-memory string cache.
+        if (result?.binary) {
+          resolve(null);
+          return;
+        }
         if (result) {
           console.log(
             "[PluginCacheDB] getFile IndexedDB HIT —",
@@ -456,6 +468,172 @@ export class PluginCacheDB {
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });
+  }
+
+  /**
+   * Get the archive digest a cached bundle was verified against.
+   *
+   * Used as the cache key for the signed-manifest flow: when the manifest's
+   * `bundleHash` still matches this value, the whole download → hash → unzip
+   * cycle is skipped and the extracted files are read straight from IndexedDB.
+   *
+   * @param moduleId - Module ID to look up
+   * @returns The stored digest, or null when the module was never cached
+   */
+  async getBundleHash(moduleId: string): Promise<string | null> {
+    return this.getFile(moduleId, "__bundleHash__");
+  }
+
+  /**
+   * Record the archive digest a cached bundle was verified against.
+   *
+   * @param moduleId - Module ID to tag
+   * @param bundleHash - Digest string from the manifest
+   */
+  async setBundleHash(moduleId: string, bundleHash: string): Promise<void> {
+    await this.putText(moduleId, "__bundleHash__", bundleHash);
+  }
+
+  /**
+   * Store a single text file under a module-scoped key.
+   *
+   * @param moduleId - Module ID for cache scoping
+   * @param fileName - File name (archive path) to store under
+   * @param content - File content
+   */
+  async putText(moduleId: string, fileName: string, content: string): Promise<void> {
+    const db = await this.open();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const req = tx.objectStore(STORE_NAME).put({
+        fileKey: `${moduleId}/${fileName}`,
+        data: content,
+        cachedAt: Date.now(),
+      } as CachedFile);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+    if (!this._manifestCache) this._manifestCache = {};
+    this._manifestCache[`${moduleId}/${fileName}`] = content;
+  }
+
+  /**
+   * Store raw bytes under a module-scoped key.
+   *
+   * Binary records never enter the in-memory string cache — they are read back
+   * through {@link getBinary}.
+   *
+   * @param moduleId - Module ID for cache scoping
+   * @param fileName - File name (archive path) to store under
+   * @param bytes - Raw file bytes
+   * @param mimeType - MIME type to serve the bytes with
+   */
+  async putBinary(
+    moduleId: string,
+    fileName: string,
+    bytes: ArrayBuffer,
+    mimeType = "application/octet-stream",
+  ): Promise<void> {
+    const db = await this.open();
+    return new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const req = tx.objectStore(STORE_NAME).put({
+        fileKey: `${moduleId}/${fileName}`,
+        data: bytes,
+        binary: true,
+        mimeType,
+        cachedAt: Date.now(),
+      } as CachedBinaryFile);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  /**
+   * Read raw bytes previously stored by {@link putBinary}.
+   *
+   * @param moduleId - Module ID containing the file
+   * @param fileName - File name (archive path) to retrieve
+   * @returns The bytes and MIME type, or null when absent
+   */
+  async getBinary(
+    moduleId: string,
+    fileName: string,
+  ): Promise<{ bytes: ArrayBuffer; mimeType: string } | null> {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const req = tx.objectStore(STORE_NAME).get(`${moduleId}/${fileName}`);
+      req.onsuccess = () => {
+        const result = req.result as CachedBinaryFile | undefined;
+        if (!result?.data) {
+          resolve(null);
+          return;
+        }
+        resolve({ bytes: result.data, mimeType: result.mimeType ?? "application/octet-stream" });
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  /**
+   * Delete a single cached file.
+   *
+   * Used to drop the downloaded `.zip` once it has been verified and unpacked —
+   * the archive itself is never kept, only its extracted contents.
+   *
+   * @param moduleId - Module ID containing the file
+   * @param fileName - File name (archive path) to delete
+   */
+  async deleteFile(moduleId: string, fileName: string): Promise<void> {
+    const scopedKey = `${moduleId}/${fileName}`;
+    if (this._manifestCache) delete this._manifestCache[scopedKey];
+    const db = await this.open();
+    return new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const req = tx.objectStore(STORE_NAME).delete(scopedKey);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  /**
+   * Persist the full contents of an unpacked mini-app bundle.
+   *
+   * Any previously cached files for the module are cleared first so a new
+   * release never leaves orphaned assets behind, then the extracted text and
+   * binary entries are written and the module joins the FIFO eviction order.
+   *
+   * @param moduleId - Module ID for cache scoping
+   * @param contents - Text and binary entries unpacked from the archive
+   * @param meta - Digest and version markers to store alongside the files
+   */
+  async storeBundle(
+    moduleId: string,
+    contents: BundleContents,
+    meta: { bundleHash: string; version?: string },
+  ): Promise<void> {
+    await this.deleteModule(moduleId);
+
+    for (const [fileName, content] of Object.entries(contents.text)) {
+      await this.putText(moduleId, fileName, content);
+    }
+    for (const [fileName, asset] of Object.entries(contents.binary)) {
+      await this.putBinary(moduleId, fileName, asset.bytes, asset.mimeType);
+    }
+
+    await this.setBundleHash(moduleId, meta.bundleHash);
+    if (meta.version) await this.setVersion(moduleId, meta.version);
+
+    await this.enforceCacheLimit(moduleId);
+    console.log(
+      "[PluginCacheDB] storeBundle COMPLETE — moduleId:",
+      moduleId,
+      "text:",
+      Object.keys(contents.text),
+      "binary:",
+      Object.keys(contents.binary),
+    );
   }
 
   /**

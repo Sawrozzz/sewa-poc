@@ -67,10 +67,8 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
             );
           },
         );
-        console.log("location data in host:", result);
         return result;
       } catch (err) {
-        console.log("Error on host in location:", err);
         return {
           status: "denied",
           data: null,
@@ -337,11 +335,10 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
           );
         }
         return { status: "granted", data: { success: outcome === "verified" } };
-      } catch (error) {
+      } catch (_) {
         // NotAllowedError covers both "user cancelled" and "no matching
         // credential on this device" — neither is recoverable here, and the
         // contract carries no error channel, so both land on success: false.
-        console.log("[biometric] failed:", error instanceof Error ? error.name : error);
         return { status: "denied", data: { success: false } };
       }
     },

@@ -72,6 +72,28 @@ body {
   bottom: calc(1rem + var(--safe-bottom));
 }
 
+/*
+ * Mobile shell (phones + installed PWA). Everything below is scoped under the
+ * `md` breakpoint so the browser layout is byte-for-byte what it was; 47.99rem
+ * is one step under Tailwind's `md` (48rem), matching its `max-md:` variant.
+ */
+@media (max-width: 47.99rem) {
+  /* Clears the fixed bottom tab bar: its 3.75rem body plus the home-indicator
+     inset it already reserves, so the last row of a list is never trapped
+     underneath it. */
+  .tabbar-gap {
+    padding-bottom: calc(3.75rem + var(--safe-bottom) + 1rem);
+  }
+
+  /* The portal paints a light golden gradient, which would sit behind dark-mode
+     mobile cards. Only the phone shell opts into a dark ground for now — the
+     desktop layout keeps its existing appearance in both themes. */
+  :root[data-theme="dark"] .mobile-surface {
+    background-image: none;
+    background-color: #0c0d10;
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

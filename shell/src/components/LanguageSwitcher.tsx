@@ -1,35 +1,18 @@
 "use client";
 
 import { Globe } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
-import { useTransition } from "react";
-import { usePlatform } from "@/context";
-import { setLocale } from "@/i18n/actions";
-import type { Locale } from "@/i18n/config";
+import { useTranslations } from "next-intl";
 import { localeLabels, locales } from "@/i18n/config";
+import { useLocaleSwitch } from "@/lib/use-locale-switch";
 
 export function LocaleSwitcher() {
   const t = useTranslations("LocaleSwitcher");
-  const locale = useLocale() as Locale;
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const { appearance } = usePlatform();
 
-  const onChange = (nextLocale: string) => {
-    if (nextLocale === locale) return;
-
-    // Host-driven switch: the controller writes the cookie, publishes
-    // appearance.locale.changed + a fresh shell.* catalog, and applies
-    // direction/lang to the DOM immediately; the server action + refresh keep
-    // next-intl SSR in sync.
-    appearance.setLocale(nextLocale);
-
-    startTransition(async () => {
-      await setLocale(nextLocale);
-      router.refresh();
-    });
-  };
+  // Host-driven switch: the controller writes the cookie, publishes
+  // appearance.locale.changed + a fresh shell.* catalog, and applies
+  // direction/lang to the DOM immediately; the server action + refresh keep
+  // next-intl SSR in sync. Shared with the mobile menu's language list.
+  const { locale, changeLocale: onChange, isPending } = useLocaleSwitch();
 
   return (
     <div className="relative inline-flex shrink-0 items-center">

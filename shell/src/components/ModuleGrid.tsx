@@ -1,20 +1,27 @@
 "use client";
 
-import type { ModuleManifest } from "@sewa/host-platform";
-import { useMemo } from "react";
+import type { OldModuleManifest } from "@sewa/host-platform";
+import { useEffect, useMemo, useRef } from "react";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
-import { useFallbackMiniApps, useMiniApps } from "@/lib/use-mini-apps";
-import { MiniAppCard } from "./MiniAppCard";
+import {
+  useFallbackMiniApps,
+  useMiniAppCatalog,
+  useMiniApps,
+  useRefreshMiniApps,
+} from "@/lib/use-mini-apps";
+import { OldMiniAppCard } from "./MiniAppCard";
+import { NewMiniAppCard } from "./NewMiniAppCard";
 
-function filterByPermission(mods: ModuleManifest[], permissions: string[]) {
+// Helpers for Old / Fallback Modules
+function filterByPermission(mods: OldModuleManifest[], permissions: string[]) {
   return mods
     .filter((m) => m.isEnabled)
     .filter((m) => m.requiredPermissions?.every((p) => permissions.includes(p)))
     .sort((a, b) => a.order - b.order);
 }
 
-function groupByCategory(mods: ModuleManifest[]) {
-  return mods.reduce<Record<string, ModuleManifest[]>>((acc, m) => {
+function groupByCategory(mods: OldModuleManifest[]) {
+  return mods.reduce<Record<string, OldModuleManifest[]>>((acc, m) => {
     const cat = m.category || "Other";
     acc[cat] = acc[cat] || [];
     acc[cat].push(m);
@@ -22,7 +29,14 @@ function groupByCategory(mods: ModuleManifest[]) {
   }, {});
 }
 
-function CategorySection({ category, modules }: { category: string; modules: ModuleManifest[] }) {
+// Category Section for Old Modules
+function OldCategorySection({
+  category,
+  oldModules,
+}: {
+  category: string;
+  oldModules: OldModuleManifest[];
+}) {
   return (
     <section>
       <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 flex items-center gap-2">
@@ -30,12 +44,17 @@ function CategorySection({ category, modules }: { category: string; modules: Mod
         {category}
       </h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {modules.map((mod) => (
-          <MiniAppCard key={mod.id} module={mod} />
+        {oldModules.map((mod) => (
+          <OldMiniAppCard key={mod.id} oldModule={mod} />
         ))}
       </div>
     </section>
   );
+}
+
+/** Whether a manifest query error came from the signature check rather than the network */
+function isSignatureError(error: Error | null): boolean {
+  return !!error?.message?.toLowerCase().includes("signature");
 }
 
 function SkeletonCard() {
@@ -62,24 +81,128 @@ export function ModuleGrid() {
   const userPermissions = useMemo(() => user?.permissions ?? [], [user]);
 
   const fallbackModules = useFallbackMiniApps();
-  const { data: apiModules, isLoading, isError, error, refetch } = useMiniApps();
+  const refreshMiniApps = useRefreshMiniApps();
 
+  // The catalog supplies the list; the signed manifest supplies the bundle URL
+  // and hash used when one is opened. Both are loaded here so a card click has
+  // everything it needs already resolved.
+  const {
+    miniApps,
+    isLoading: catalogLoading,
+    isError: catalogFailed,
+    error: catalogError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useMiniAppCatalog();
+  const { isError: manifestFailed, error: manifestError } = useMiniApps();
+
+  // A manifest that cannot be trusted makes every card unopenable, so it takes
+  // priority over a catalog failure.
+  const isLoading = catalogLoading;
+  const isError = manifestFailed || catalogFailed;
+  const error = manifestFailed ? manifestError : catalogError;
+
+  // Infinite scroll: pull the next page once the sentinel below the grid
+  // scrolls into view.
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasNextPage || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) fetchNextPage();
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Process Old Modules with filtering & grouping
   const filteredFallback = useMemo(
     () => filterByPermission(fallbackModules, userPermissions),
     [fallbackModules, userPermissions],
   );
-
-  const filteredApi = useMemo(
-    () => (apiModules ? filterByPermission(apiModules, userPermissions) : []),
-    [apiModules, userPermissions],
-  );
-
   const fallbackGroups = useMemo(() => groupByCategory(filteredFallback), [filteredFallback]);
-  const apiGroups = useMemo(() => groupByCategory(filteredApi), [filteredApi]);
-  const hasApiModules = Object.keys(apiGroups).length > 0;
 
   return (
     <div className="space-y-10">
+      {/* Dynamic Services Section - Unfiltered New Modules */}
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-8 h-8 bg-gov-100 rounded-lg flex items-center justify-center">
+            <span className="text-gov-800 text-sm">📦</span>
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Available Services</h2>
+            <p className="text-xs text-gray-500">Dynamically loaded services from the platform</p>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[1, 2, 3].map((i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+        ) : isError ? (
+          <div className="text-center py-12 bg-white rounded-xl border border-red-100">
+            {/* A failed signature check is a trust problem, not a network one —
+                say so, because the fix is a new manifest, not a retry. */}
+            <div className="text-5xl mb-4">{isSignatureError(error) ? "🔒" : "📡"}</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {isSignatureError(error)
+                ? "Manifest Could Not Be Trusted"
+                : "Could Not Load Services"}
+            </h3>
+            <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
+              {error?.message ||
+                "Unable to fetch services from the platform. Please check your connection."}
+            </p>
+            <button
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gov-500 text-gov-950 rounded-lg hover:bg-gov-600 transition text-sm font-medium"
+              onClick={() => refreshMiniApps()}
+              type="button"
+            >
+              <span>🔄</span>
+              Try Again
+            </button>
+          </div>
+        ) : miniApps.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {miniApps.map((mod) => (
+                <NewMiniAppCard key={mod.id ?? mod.miniAppId} newModule={mod} />
+              ))}
+            </div>
+
+            {isFetchingNextPage ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-5">
+                {[1, 2, 3].map((i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </div>
+            ) : null}
+
+            {/* Tripping this into view loads the next page */}
+            <div aria-hidden className="h-px" ref={sentinelRef} />
+
+            {hasNextPage ? null : (
+              <p className="text-center text-xs text-gray-400 mt-8">
+                You&apos;ve reached the end of the list.
+              </p>
+            )}
+          </>
+        ) : (
+          <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
+            <p className="text-sm text-gray-500">No services available at this time.</p>
+          </div>
+        )}
+      </div>
+      {/* Playground / Fallback Section */}
       {Object.keys(fallbackGroups).length > 0 && (
         <div>
           <div className="flex items-center gap-3 mb-6">
@@ -93,65 +216,11 @@ export function ModuleGrid() {
           </div>
           <div className="space-y-8">
             {Object.entries(fallbackGroups).map(([category, mods]) => (
-              <CategorySection category={category} key={category} modules={mods} />
+              <OldCategorySection category={category} key={category} oldModules={mods} />
             ))}
           </div>
         </div>
       )}
-
-      <div>
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-8 h-8 bg-gov-100 rounded-lg flex items-center justify-center">
-            <span className="text-gov-800 text-sm">📦</span>
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">Available Services</h2>
-            <p className="text-xs text-gray-500">Dynamically loaded services from the platform</p>
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {[1, 2, 3].map((i) => (
-                <SkeletonCard key={i} />
-              ))}
-            </div>
-          </div>
-        ) : isError ? (
-          <div className="text-center py-12 bg-white rounded-xl border border-red-100">
-            <div className="text-5xl mb-4">📡</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Could Not Load Services</h3>
-            <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
-              {error?.message ||
-                "Unable to fetch services from the platform. Please check your connection."}
-            </p>
-            <button
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gov-500 text-gov-950 rounded-lg hover:bg-gov-600 transition text-sm font-medium"
-              onClick={() => refetch()}
-              type="button"
-            >
-              <span>🔄</span>
-              Try Again
-            </button>
-          </div>
-        ) : !hasApiModules ? (
-          <div className="text-center py-12 bg-white rounded-xl border border-gray-200 border-dashed">
-            <div className="text-5xl mb-4">📭</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Additional Services</h3>
-            <p className="text-sm text-gray-500 max-w-md mx-auto">
-              No additional services are available from the platform at the moment. Check back
-              later.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {Object.entries(apiGroups).map(([category, mods]) => (
-              <CategorySection category={category} key={category} modules={mods} />
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

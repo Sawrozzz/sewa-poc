@@ -40,7 +40,7 @@ const serwist = new Serwist({
     },
     ...filteredDefaultCache,
     {
-      matcher: ({ request, url }) => request.method === "GET" && url.pathname === "/api/mini-apps",
+      matcher: ({ request, url }) => request.method === "GET" && url.pathname === "/api/manifests",
       handler: new NetworkFirst({
         cacheName: "get-mini-app-api",
         networkTimeoutSeconds: 3,
