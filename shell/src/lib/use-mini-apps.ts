@@ -1,7 +1,8 @@
 "use client";
 
+import type { SignedMiniAppManifest } from "@sewa/host-platform";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import type { MiniAppListItem, PaginatedMiniAppParamsType } from "@/types/manifest";
 import { clearMiniAppsManifest } from "./index-db";
 import {
@@ -61,17 +62,34 @@ export function useMiniApps() {
 /** Options accepted by {@link useMiniAppCatalog} */
 export type MiniAppCatalogOptions = Partial<Omit<PaginatedMiniAppParamsType, "cursor">>;
 
+/** Every `miniAppId` the signed manifest lists, as a set for O(1) lookups. */
+function manifestMiniAppIds(manifest: SignedMiniAppManifest | undefined): Set<string> {
+  return new Set(manifest?.miniApps.map((app) => app.miniAppId) ?? []);
+}
+
 /**
  * The paginated mini-app catalog, as an infinite (cursor) list.
  *
  * Pages are keyed by the query shape, so changing the search or ordering starts
  * a fresh list rather than appending to the old one.
  *
+ * Each page is filtered against the signed manifest: an entry is kept only when
+ * its `miniAppId` also appears in the manifest held in IndexedDB. The two lists
+ * are published independently and drift apart — the catalog gets a new mini app
+ * before the manifest is re-signed, or the manifest still carries one the
+ * catalog has dropped — and an entry present in only one of them cannot be
+ * opened, because {@link findMiniApp} would find no `bundleUrl` for it. Hiding
+ * those keeps the grid to the apps that actually load.
+ *
  * @param options - Page size, ordering and search
- * @returns The infinite query, plus `miniApps` flattened across all loaded pages
+ * @returns The infinite query, plus `miniApps` — the loaded pages flattened and
+ *   narrowed to the manifest
  */
 export function useMiniAppCatalog(options: MiniAppCatalogOptions = {}) {
   const { size = MINI_APP_PAGE_SIZE, orderBy = "DESC", sortBy = "id", search, searchBy } = options;
+
+  const manifestQuery = useMiniApps();
+  const manifestIds = useMemo(() => manifestMiniAppIds(manifestQuery.data), [manifestQuery.data]);
 
   const query = useInfiniteQuery({
     queryKey: [...CATALOG_KEY, { size, orderBy, sortBy, search, searchBy }] as const,
@@ -85,12 +103,50 @@ export function useMiniAppCatalog(options: MiniAppCatalogOptions = {}) {
     retry: 1,
   });
 
-  const miniApps = useMemo<MiniAppListItem[]>(
-    () => query.data?.pages.flatMap((page) => page.data) ?? [],
-    [query.data],
-  );
+  const miniApps = useMemo<MiniAppListItem[]>(() => {
+    const listed = query.data?.pages.flatMap((page) => page.data) ?? [];
 
-  return { ...query, miniApps };
+    // Nothing is shown until the manifest has resolved: rendering the raw page
+    // first would flash cards that are about to disappear, and a manifest that
+    // failed to load leaves nothing openable to show.
+    if (!manifestQuery.data) return [];
+
+    const matched = listed.filter((app) => manifestIds.has(app.miniAppId));
+
+    if (matched.length !== listed.length) {
+      console.log(
+        `[catalog] Hid ${listed.length - matched.length} of ${listed.length} mini app(s) missing from the signed manifest`,
+      );
+    }
+
+    return matched;
+  }, [query.data, manifestQuery.data, manifestIds]);
+
+  // A page can filter down to nothing — the catalog is paginated before it is
+  // matched, so ten unmatched entries come back as an empty screen. Pull the
+  // next page until something matches or the list runs out, otherwise the grid
+  // reads as "no services" while later pages still hold matches.
+  const { fetchNextPage, hasNextPage, isFetching } = query;
+  useEffect(() => {
+    if (!manifestQuery.data) return;
+    if (miniApps.length > 0 || isFetching || !hasNextPage) return;
+
+    fetchNextPage();
+  }, [manifestQuery.data, miniApps.length, isFetching, hasNextPage, fetchNextPage]);
+
+  return {
+    ...query,
+    miniApps,
+    // The manifest is part of loading this list now, not just of opening an app.
+    // Skipping past fully-unmatched pages counts as loading too — otherwise the
+    // empty state shows between those fetches.
+    isLoading:
+      query.isLoading ||
+      manifestQuery.isLoading ||
+      (miniApps.length === 0 && query.isFetchingNextPage),
+    isError: query.isError || manifestQuery.isError,
+    error: manifestQuery.error ?? query.error,
+  };
 }
 
 export function useMiniApp(id: string | null) {
