@@ -29,6 +29,7 @@ export function NewMiniAppCard({ newModule }: MiniAppCardProps) {
       <div className="flex items-start justify-between mb-4 w-full">
         <div className="relative w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden shadow-xs group-hover:scale-105 group-hover:shadow-md transition-all duration-300 shrink-0">
           {newModule.iconUrl && !imgError ? (
+            // biome-ignore lint/performance/noImgElement: <icons come from arbitrary registry origins>
             <img
               alt={`${newModule.displayName ?? newModule.miniAppId} icon`}
               className="w-full h-full object-cover rounded-xl"
@@ -42,7 +43,7 @@ export function NewMiniAppCard({ newModule }: MiniAppCardProps) {
           )}
         </div>
 
-        {newModule?.version && (
+        {!!newModule?.version && (
           <span className="text-[11px] font-mono text-gray-500 bg-gray-100/80 group-hover:bg-gov-50 group-hover:text-gov-700 px-2.5 py-1 rounded-full border border-gray-200/50 transition-colors duration-200">
             v{newModule.version}
           </span>
@@ -62,12 +63,12 @@ export function NewMiniAppCard({ newModule }: MiniAppCardProps) {
       {/* Footer: Metadata & Call to Action */}
       <div className="mt-auto pt-3.5 border-t border-gray-100 flex items-center justify-between w-full">
         <div className="flex items-center gap-2 overflow-hidden mr-2">
-          {newModule.backingAgencyId && (
+          {!!newModule.backingAgencyId && (
             <span className="text-[11px] font-medium text-gray-600 bg-gray-50 border border-gray-200/60 px-2 py-0.5 rounded-md truncate max-w-[120px]">
               {newModule.backingAgencyId}
             </span>
           )}
-          {newModule.category && (
+          {!!newModule.category && (
             <span className="text-[11px] text-gray-400 font-medium truncate">
               • {newModule.category}
             </span>

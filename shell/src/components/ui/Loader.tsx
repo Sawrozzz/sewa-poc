@@ -81,7 +81,7 @@ export const Loader: React.FC<LoaderProps> = ({
       )}
 
       {/* Optional Label */}
-      {label && (
+      {!!label && (
         <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{label}</span>
       )}
     </div>

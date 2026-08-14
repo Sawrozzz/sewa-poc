@@ -3,10 +3,52 @@
   "HomePage": {
     "title": "Hello world!",
     "welcome_text": "Welcome back, Citizen!",
-     "services_description": "Access your government services below. New services are added automatically as they become available."
+    "services_description": "Access your government services below. New services are added automatically as they become available."
   },
   "LocaleSwitcher": {
     "label": "Language"
+  },
+  "MobileNav": {
+    "label": "Main navigation",
+    "app_name": "Sewa",
+    "home": "Home",
+    "services": "Services",
+    "menu": "Menu",
+    "refresh": "Refresh app",
+    "refreshed": "✓ App refreshed"
+  },
+  "MobileHome": {
+    "your_services": "Your services",
+    "see_all": "See all",
+    "browse_all": "Browse the full service catalogue",
+    "secure_note": "All services are secure and encrypted",
+    "no_services": "No services available at this time."
+  },
+  "MobileServices": {
+    "search_placeholder": "Search services",
+    "available": "Available services",
+    "playground": "Playground",
+    "load_more": "Load more",
+    "loading": "Loading...",
+    "try_again": "Try again",
+    "load_failed": "Unable to fetch services. Please check your connection.",
+    "no_results": "No services match \"{term}\".",
+    "empty": "No services available at this time."
+  },
+  "MobileMenu": {
+    "preferences": "Preferences",
+    "language": "Language",
+    "theme": "Appearance",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "theme_system": "System",
+    "app": "App",
+    "refresh": "Refresh app",
+    "refresh_hint": "Clear cached services and reload",
+    "sign_out": "Sign out",
+    "nic": "NIC",
+    "roles": "Roles",
+    "version": "Sewa App v{version}"
   },
   "Welcome": {
     "title": "Welcome",

@@ -10,7 +10,6 @@ import { bundleFetchUrl } from "@/lib/modules-api";
 import { useMiniApp, useRegistryMiniApp } from "@/lib/use-mini-apps";
 import { useMiniAppBackButton } from "@/platform";
 import { destroyMiniAppSdk, loadMiniAppSdk } from "@/platform/sdk";
-import { Header } from "./Header";
 import { MiniAppErrorBoundary } from "./MiniAppErrorBoundary";
 import { MiniAppLoader } from "./MiniAppLoader";
 
@@ -271,17 +270,29 @@ export function MiniAppContainer({
 
   return !manifest ? null : (
     <div className={`h-screen flex flex-col`}>
-      <div className={`flex flex-row  ${isDark ? "bg-gray-800" : "bg-white"}`}>
+      {/*
+        No shell header here on purpose. An open mini app owns the whole
+        viewport — the portal's chrome would duplicate whatever navigation the
+        vendor draws and eat vertical space on a phone. All the shell keeps is
+        the way out.
+      */}
+      <div
+        className={`safe-top flex shrink-0 flex-row items-center px-2 py-2 ${
+          isDark ? "bg-gray-800" : "bg-white"
+        }`}
+      >
         <button
-          className="group mr-5 flex items-center gap-2 text-sm font-medium text-gray-500 transition-colors hover:text-gov-800"
+          aria-label="Back"
+          className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+            isDark
+              ? "text-gray-300 hover:bg-gray-700 hover:text-white"
+              : "text-gray-500 hover:bg-gov-50 hover:text-gov-800"
+          }`}
           onClick={() => router.push("/")}
           type="button"
         >
-          <ArrowLeftIcon size={16} />
+          <ArrowLeftIcon size={20} />
         </button>
-        <div className="flex-1">
-          <Header />
-        </div>
       </div>
 
       <div className="flex-1 overflow-auto">

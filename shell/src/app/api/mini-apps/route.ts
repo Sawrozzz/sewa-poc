@@ -13,7 +13,7 @@ import type { OrderByProps } from "@/types/manifest";
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const size = Number(params.get("size"));
-  console.log("Size", size)
+  console.log("Size", size);
   const orderBy = params.get("orderBy");
 
   try {

@@ -3,90 +3,28 @@
 import { MoonIcon, RefreshCcwIcon, SunIcon } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { usePlatform } from "@/context";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
-import { privileged } from "@/platform/host-privileges";
+import { useAppRefresh } from "@/lib/use-app-refresh";
+import { useTheme } from "@/lib/use-theme";
 import { LocaleSwitcher } from "./LanguageSwitcher";
 
-function subscribeToStorage(onChange: () => void) {
-  window.addEventListener("storage", onChange);
-  return () => window.removeEventListener("storage", onChange);
-}
-
-function getAppRefreshedFlag() {
-  return privileged.sessionStorage?.getItem("app-refreshed") === "true";
-}
-
+/**
+ * The desktop/browser app bar. Unchanged in appearance — it now reads theme and
+ * refresh state from the shared hooks the mobile menu also uses, so a theme
+ * flipped in one place is reflected in the other without a reload.
+ */
 export function Header() {
   const router = useRouter();
-  const { appearance } = usePlatform();
   const { data: session } = authClient.useSession();
   const user = mapSessionUser(session?.user);
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const [isDark, setIsDark] = useState(() => appearance.getTheme().mode === "dark");
-
-  const wasRefreshed = useSyncExternalStore(subscribeToStorage, getAppRefreshedFlag, () => false);
-  const showSuccess = wasRefreshed && !dismissed;
-
-  const handleToggleTheme = () => {
-    appearance.toggleTheme();
-    setIsDark(appearance.getTheme().mode === "dark");
-  };
+  const { isDark, toggle: handleToggleTheme } = useTheme();
+  const { isRefreshing, showSuccess, refresh: handleRefresh } = useAppRefresh();
 
   const handleLogout = async () => {
     await authClient.signOut();
     router.replace("/");
   };
-
-  const handleRefresh = () => {
-    if (isRefreshing) return;
-
-    setIsRefreshing(true);
-
-    const request = privileged.indexedDB?.deleteDatabase("sewa-plugin-cache") ?? null;
-
-    const finish = () => {
-      privileged.sessionStorage?.setItem("app-refreshed", "true");
-      privileged.localStorage?.removeItem("sewa.onboarding.completed");
-      router.replace("/");
-
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
-    };
-
-    if (!request) {
-      finish();
-      return;
-    }
-
-    request.onsuccess = finish;
-
-    request.onerror = () => {
-      console.error("Failed to delete IndexedDB.");
-      finish();
-    };
-
-    request.onblocked = () => {
-      console.warn("Database deletion blocked.");
-      finish();
-    };
-  };
-
-  useEffect(() => {
-    if (!showSuccess) return;
-
-    privileged.sessionStorage?.removeItem("app-refreshed");
-
-    const timer = setTimeout(() => {
-      setDismissed(true);
-    }, 2500);
-
-    return () => clearTimeout(timer);
-  }, [showSuccess]);
 
   return (
     <header

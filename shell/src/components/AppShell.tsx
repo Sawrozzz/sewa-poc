@@ -3,12 +3,32 @@
 import { useTranslations } from "next-intl";
 import { Header } from "./Header";
 import { ModuleGrid } from "./ModuleGrid";
+import { MobileShell, MobileTabsProvider } from "./mobile/MobileShell";
 
+/**
+ * The portal, in two mutually exclusive faces.
+ *
+ * `DesktopShell` is the browser layout exactly as it was; `MobileShell` is a
+ * tabbed, native-feeling shell for phones and the installed PWA. Which one you
+ * see is decided purely by CSS (`max-md:hidden` / `md:hidden`) at the `md`
+ * breakpoint, so neither can affect the other's rendering.
+ */
 export function AppShell() {
+  return (
+    <MobileTabsProvider>
+      <div className="mobile-surface min-h-screen bg-linear-to-br from-gov-50 via-white to-gov-50">
+        <DesktopShell />
+        <MobileShell />
+      </div>
+    </MobileTabsProvider>
+  );
+}
+
+function DesktopShell() {
   const t = useTranslations("HomePage");
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gov-50 via-white to-gov-50">
+    <div className="max-md:hidden">
       <Header />
 
       <div className="below-header sticky z-40">
