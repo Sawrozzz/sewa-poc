@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
     const isPublished = manifest.miniApps.some(
       (app: ModuleManifest) => app.bundleUrl === bundleUrl,
     );
+
     if (!isPublished) {
       return NextResponse.json(
         { success: false, message: "Bundle URL is not published in the manifest." },

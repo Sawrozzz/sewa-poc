@@ -1,18 +1,29 @@
 import { NextResponse } from "next/server";
-import { getSignedManifest } from "@/lib/manifest-source";
+import {
+  getSignedManifest,
+  postTogetSignedManifest,
+} from "@/lib/manifest-source";
 
 export async function GET() {
   try {
-    return NextResponse.json(await getSignedManifest(), { status: 200 });
+    return NextResponse.json(await getSignedManifest(), {
+      status: 200,
+    });
   } catch (_error) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Server error while fetching mmanifests.",
-      },
-      {
-        status: 500,
-      },
-    );
+    try {
+      return NextResponse.json(await postTogetSignedManifest(), {
+        status: 200,
+      });
+    } catch (_postError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Failed to fetch manifests.",
+        },
+        {
+          status: 500,
+        },
+      );
+    }
   }
 }
