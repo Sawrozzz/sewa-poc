@@ -131,7 +131,7 @@ export interface MiniAppMeta {
   orderBy: string;
   sortBy: string;
   nextCursor: string;
-  hasNext: boolean
+  hasNext: boolean;
 }
 
 export interface MiniAppRecord {

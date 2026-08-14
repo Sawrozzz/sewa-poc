@@ -193,7 +193,7 @@ export class RuntimeLoader {
     options: BundleLoadOptions,
   ): Promise<RemoteLoadResult> {
     // Reuse the evaluated module while it still matches the manifest's digest
-    console.log(moduleId, bundleUrl, options)
+    console.log(moduleId, bundleUrl, options);
     const cached = this.loadedModules.get(moduleId);
     if (cached?.kind === "bundle" && cached.bundleHash === options.bundleHash) {
       return {
