@@ -58,7 +58,6 @@ async function honourKillSwitch(): Promise<void> {
 export async function loadSdkScript(spec: SdkSpec): Promise<void> {
   if (!isSdkCacheEnabled()) {
     await honourKillSwitch();
-    console.log("[SdkCache] Disabled — loading", spec.url, "directly");
     await browserEnv.fallback(spec);
     return;
   }

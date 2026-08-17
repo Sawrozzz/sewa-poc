@@ -24,7 +24,6 @@ async function assertManifestTrusted(
   const { valid, reason } = await verifyManifestSignature(manifest);
 
   if (valid) {
-    console.log(`[manifest] Signature verified (${origin}) with key:`, manifest.keyId);
     return true;
   }
 
@@ -87,7 +86,6 @@ async function isStoredVersionCurrent(storedVersion: string): Promise<boolean> {
 
     if (String(version) === String(storedVersion)) return true;
 
-    console.log(`[manifest] Version changed: stored ${storedVersion} → registry ${version}`);
     return false;
   } catch (err) {
     console.warn("[manifest] Version check failed — keeping the stored manifest:", err);
@@ -124,7 +122,6 @@ export async function fetchMiniApps(): Promise<SignedMiniAppManifest> {
     })();
 
     if (usable) {
-      console.log("[manifest] Served from IndexedDB — no registry call");
       return stored.manifest;
     }
 

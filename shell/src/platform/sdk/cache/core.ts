@@ -255,7 +255,6 @@ export async function purgeSdkBundles(env: Pick<SdkCacheEnv, "openStore">): Prom
   try {
     const store = await env.openStore();
     await store.clear();
-    console.log("[SdkCache] Purged");
   } catch (err) {
     console.warn("[SdkCache] Purge failed:", err);
   }

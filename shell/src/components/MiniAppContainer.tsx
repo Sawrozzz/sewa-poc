@@ -101,7 +101,6 @@ export function MiniAppContainer({
   const initMiniAppBridge = useCallback(async () => {
     if (sdkLoaded.current) return;
     const { source, initTimeMs } = await loadMiniAppSdk(miniAppId);
-    console.log(`[mini-app-sdk] initialized (source: ${source}, handshake: ${initTimeMs}ms)`);
     sdkLoaded.current = true;
   }, [miniAppId]);
 
