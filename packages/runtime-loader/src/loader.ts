@@ -193,7 +193,6 @@ export class RuntimeLoader {
     options: BundleLoadOptions,
   ): Promise<RemoteLoadResult> {
     // Reuse the evaluated module while it still matches the manifest's digest
-    console.log(moduleId, bundleUrl, options);
     const cached = this.loadedModules.get(moduleId);
     if (cached?.kind === "bundle" && cached.bundleHash === options.bundleHash) {
       return {
@@ -295,23 +294,15 @@ export class RuntimeLoader {
   ): Promise<{ manifest: ViteManifest; signature: boolean } | null> {
     const baseUrlNoSlash = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
     const manifestUrl = `${baseUrlNoSlash}/manifest.json`;
-    console.log("[RuntimeLoader] fetchViteManifest — URL:", manifestUrl);
     try {
       const res = await this.fetcher(manifestUrl, {
         cache: "no-store",
       });
-      console.log("[RuntimeLoader] fetchViteManifest response status:", res.status, "ok:", res.ok);
       if (!res.ok) return null;
       const raw = (await res.json()) as Record<string, unknown>;
-      console.log("[RuntimeLoader] fetchViteManifest parsed JSON keys:", Object.keys(raw));
       const signature = raw.signature === true;
       const { signature: _sig, ...entries } = raw;
-      console.log(
-        "[RuntimeLoader] fetchViteManifest returning — entries keys:",
-        Object.keys(entries as ViteManifest),
-        "signature:",
-        signature,
-      );
+  
       return { manifest: entries as ViteManifest, signature };
     } catch (err) {
       console.error("[RuntimeLoader] fetchViteManifest FAILED:", err);
@@ -401,15 +392,7 @@ export class RuntimeLoader {
     if (dirCached && version) {
       const cachedVersion = await this.db.getVersion(moduleId);
       if (cachedVersion !== version) {
-        console.log(
-          "[RuntimeLoader] Cache stale for",
-          moduleId,
-          "cached:",
-          cachedVersion,
-          "requested:",
-          version,
-          "— purging",
-        );
+
         await this.db.deleteModule(moduleId);
         dirCached = false;
       }
@@ -654,14 +637,6 @@ export class RuntimeLoader {
     if (cachedHash === options.bundleHash) {
       console.log("[RuntimeLoader] Bundle cache HIT —", moduleId, "hash:", cachedHash);
     } else {
-      console.log(
-        "[RuntimeLoader] Bundle cache MISS —",
-        moduleId,
-        "cached:",
-        cachedHash,
-        "manifest:",
-        options.bundleHash,
-      );
       await this.materializeBundle(cacheId, bundleUrl, options);
     }
 

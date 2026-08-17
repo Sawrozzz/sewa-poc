@@ -219,19 +219,16 @@ export class PluginCacheDB {
         fileNames.length === 0,
       );
       const filesToFetch = fileNames.length > 0 ? fileNames : ["index.js"];
-      console.log("[PluginCacheDB] filesToFetch:", filesToFetch);
 
       // Download each file
       const files: Record<string, string> = {};
       const baseUrlNoSlash = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
       const fetchPromises = filesToFetch.map(async (fileName) => {
         const url = `${baseUrlNoSlash}/${fileName}`;
-        console.log("[PluginCacheDB] Fetching file:", url);
         const fileRes = await this._fetcher(url, {
           signal: controller.signal,
           cache: "no-store",
         });
-        console.log("[PluginCacheDB] Fetched file:", url, "status:", fileRes.status);
         if (!fileRes.ok) {
           console.error(
             "[PluginCacheDB] Failed to fetch file:",
@@ -243,17 +240,9 @@ export class PluginCacheDB {
         }
         const text = await fileRes.text();
         files[fileName] = text;
-        console.log(
-          "[PluginCacheDB] Successfully downloaded:",
-          fileName,
-          "size:",
-          text.length,
-          "bytes",
-        );
       });
 
       await Promise.all(fetchPromises);
-      console.log("[PluginCacheDB] All files downloaded:", Object.keys(files));
 
       // Store each file in IndexedDB
       const db = await this.open();
@@ -293,7 +282,6 @@ export class PluginCacheDB {
       }
 
       await Promise.all(putPromises);
-      console.log("[PluginCacheDB] All files stored in IndexedDB for:", moduleId);
 
       // Update in-memory cache (scoped keys, matching IndexedDB)
       if (!this._manifestCache) this._manifestCache = {};
@@ -303,13 +291,6 @@ export class PluginCacheDB {
 
       // Enforce cache limit using FIFO eviction
       await this.enforceCacheLimit(moduleId);
-
-      console.log(
-        "[PluginCacheDB] downloadDirectory COMPLETE — moduleId:",
-        moduleId,
-        "files:",
-        Object.keys(files),
-      );
       return files;
     } finally {
       clearTimeout(timeout);
@@ -329,11 +310,9 @@ export class PluginCacheDB {
 
     // Check in-memory cache first (fast path)
     if (this._manifestCache && this._manifestCache[scopedKey] !== undefined) {
-      console.log("[PluginCacheDB] getFile CACHE HIT —", scopedKey);
       return this._manifestCache[scopedKey];
     }
 
-    console.log("[PluginCacheDB] getFile cache miss, checking IndexedDB —", scopedKey);
 
     // Fall back to IndexedDB
     const db = await this.open();
@@ -349,18 +328,11 @@ export class PluginCacheDB {
           return;
         }
         if (result) {
-          console.log(
-            "[PluginCacheDB] getFile IndexedDB HIT —",
-            scopedKey,
-            "dataLength:",
-            result.data?.length,
-          );
           // Populate in-memory cache for future access
           if (!this._manifestCache) this._manifestCache = {};
           this._manifestCache[result.fileKey] = result.data;
           resolve(result.data ?? null);
         } else {
-          console.log("[PluginCacheDB] getFile IndexedDB MISS —", scopedKey);
           resolve(null);
         }
       };
@@ -379,18 +351,14 @@ export class PluginCacheDB {
    * @returns True if any files for this module exist in cache
    */
   async hasDirectory(moduleId: string): Promise<boolean> {
-    console.log("[PluginCacheDB] hasDirectory — moduleId:", moduleId);
 
     // Check in-memory cache first
     if (
       this._manifestCache &&
       Object.keys(this._manifestCache).some((k) => k.startsWith(`${moduleId}/`))
     ) {
-      console.log("[PluginCacheDB] hasDirectory — memory cache HIT for:", moduleId);
       return true;
     }
-
-    console.log("[PluginCacheDB] hasDirectory — checking IndexedDB for:", moduleId);
 
     // Check IndexedDB using cursor iteration
     try {
@@ -626,14 +594,6 @@ export class PluginCacheDB {
     if (meta.version) await this.setVersion(moduleId, meta.version);
 
     await this.enforceCacheLimit(moduleId);
-    console.log(
-      "[PluginCacheDB] storeBundle COMPLETE — moduleId:",
-      moduleId,
-      "text:",
-      Object.keys(contents.text),
-      "binary:",
-      Object.keys(contents.binary),
-    );
   }
 
   /**
