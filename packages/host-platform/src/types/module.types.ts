@@ -46,8 +46,14 @@ export interface OldModuleManifest {
   requiredPermissions: string[];
   isEnabled: boolean;
   order: number;
-  /** Features the module is allowed to use (e.g. "ai", "http", "event") */
+  /**
+   * What the module may call through the SDK. An entry is a whole namespace
+   * ("device", "http") or a single method inside one ("device.location").
+   * Anything not listed is refused at the RPC boundary; `"*"` grants all.
+   */
   capabilities?: string[];
+  /** Testing-only: merged on top of `capabilities`. Remove in production. */
+  customCapabilities?: string[];
   /** Base URL where the bundle is served (CDN / origin). The loader fetches bundleUrl from here. */
   bundleUrl: string;
   /** What entry point the bundle exposes — used by the loader to resolve the component factory */
@@ -102,6 +108,14 @@ export interface ModuleManifest {
   rolloutPercentage?: number;
   kycRequired: boolean;
   metaData?: MetaDataType;
+  /**
+   * What the mini app may call through the SDK. An entry is a whole namespace
+   * ("device", "http") or a single method inside one ("device.location").
+   * Anything not listed is refused at the RPC boundary; `"*"` grants all.
+   */
+  capabilities?: string[];
+  /** Testing-only: merged on top of `capabilities`. Remove in production. */
+  customCapabilities?: string[];
 }
 
 /**
@@ -113,7 +127,7 @@ export interface ModuleManifest {
  */
 export interface SignedMiniAppManifest {
   /** Manifest revision, bumped on every publish */
-  version: string;
+  id: string;
   /** ISO timestamp of the publish */
   publishedAt: string;
   /** Mini apps this manifest vouches for */

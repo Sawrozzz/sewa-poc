@@ -60,19 +60,6 @@ const serwist = new Serwist({
       }),
     },
     {
-      matcher: ({ request, url }) => request.method === "GET" && url.pathname === "/api/modules",
-      handler: new StaleWhileRevalidate({
-        cacheName: "modules-list",
-        plugins: [
-          new ExpirationPlugin({
-            maxEntries: 16,
-            maxAgeSeconds: 24 * 60 * 60,
-            maxAgeFrom: "last-used",
-          }),
-        ],
-      }),
-    },
-    {
       matcher: ({ request, url }) => request.method === "GET" && url.pathname === "/api/data",
       handler: new NetworkFirst({
         cacheName: "app-data",

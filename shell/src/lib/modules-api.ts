@@ -62,7 +62,7 @@ async function fetchManifestFromRegistry(): Promise<SignedMiniAppManifest> {
  *
  * @returns The published manifest version
  */
-export async function verifyVersion(): Promise<ManifestVersion> {
+export async function verifyVersionUpdate(): Promise<ManifestVersion> {
   const response = await axios.get<ManifestVersion>("/api/manifest-version");
   return response.data;
 }
@@ -82,7 +82,7 @@ export async function verifyVersion(): Promise<ManifestVersion> {
  */
 async function isStoredVersionCurrent(storedVersion: string): Promise<boolean> {
   try {
-    const { version } = await verifyVersion();
+    const { version } = await verifyVersionUpdate();
 
     if (String(version) === String(storedVersion)) return true;
 
@@ -109,7 +109,6 @@ async function isStoredVersionCurrent(storedVersion: string): Promise<boolean> {
  */
 export async function fetchMiniApps(): Promise<SignedMiniAppManifest> {
   const stored = await getStoredMiniAppsManifest();
-
   if (stored?.manifest) {
     const usable = await (async () => {
       try {
@@ -118,7 +117,7 @@ export async function fetchMiniApps(): Promise<SignedMiniAppManifest> {
         console.warn("[manifest] Stored manifest is untrusted — discarding");
         return false;
       }
-      return isStoredVersionCurrent(stored.manifest.version);
+      return isStoredVersionCurrent(stored.manifest.id);
     })();
 
     if (usable) {

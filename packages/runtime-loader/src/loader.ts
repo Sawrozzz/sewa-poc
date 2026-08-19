@@ -302,7 +302,7 @@ export class RuntimeLoader {
       const raw = (await res.json()) as Record<string, unknown>;
       const signature = raw.signature === true;
       const { signature: _sig, ...entries } = raw;
-  
+
       return { manifest: entries as ViteManifest, signature };
     } catch (err) {
       console.error("[RuntimeLoader] fetchViteManifest FAILED:", err);
@@ -392,7 +392,6 @@ export class RuntimeLoader {
     if (dirCached && version) {
       const cachedVersion = await this.db.getVersion(moduleId);
       if (cachedVersion !== version) {
-
         await this.db.deleteModule(moduleId);
         dirCached = false;
       }

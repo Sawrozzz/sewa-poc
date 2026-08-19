@@ -34,19 +34,22 @@ export function Header() {
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-2 h-16">
-          {/* Logo */}
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 bg-gov-500 rounded-lg flex items-center justify-center">
-              <span className="text-white text-base sm:text-lg">🏛️</span>
-            </div>
+          <div className="flex min-w-0 items-center">
+            <div className="flex items-center gap-2">
+              <Image
+                alt="Sewa"
+                className="h-6 w-auto shrink-0 sm:h-10"
+                height={14}
+                src="/sewa.svg"
+                width={12}
+              />
 
-            <div className="min-w-0">
               <h1
-                className={`truncate text-sm sm:text-base font-bold leading-tight ${
+                className={`truncate text-2xl font-bold leading-none ${
                   isDark ? "text-white" : "text-gray-900"
                 }`}
               >
-                Sewa App
+                Sewa
               </h1>
             </div>
           </div>

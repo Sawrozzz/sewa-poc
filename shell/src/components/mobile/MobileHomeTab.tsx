@@ -7,6 +7,8 @@ import { useMemo, useState } from "react";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
 import { useFallbackMiniApps, useMiniAppCatalog } from "@/lib/use-mini-apps";
 import { useTheme } from "@/lib/use-theme";
+import { getGreeting } from "@/utils";
+import { GlobalSearchBar } from "../GlobalSearchBar";
 import { useMobileTabs } from "./MobileTabsContext";
 
 /** How many apps the launcher shows before deferring to the Services tab. */
@@ -65,22 +67,19 @@ function AppTile({ isDark, tile }: { isDark: boolean; tile: LauncherTile }) {
   );
 }
 
-/**
- * The Home tab — a launcher, not a catalogue. It shows the citizen a greeting
- * and the first {@link LAUNCHER_SIZE} services as tappable icons; browsing the
- * full list is the Services tab's job, so the two never render the same long
- * list twice.
- */
 export function MobileHomeTab() {
   const t = useTranslations("HomePage");
   const tNav = useTranslations("MobileNav");
   const tHome = useTranslations("MobileHome");
+
+  const greeting = t(`greetings.${getGreeting()}`);
 
   const { isDark } = useTheme();
   const { setActiveTab } = useMobileTabs();
 
   const { data: session } = authClient.useSession();
   const user = mapSessionUser(session?.user);
+  const name = user?.fullName ?? "";
   const userPermissions = useMemo(() => user?.permissions ?? [], [user]);
 
   // Same query options as `ModuleGrid` and the Services tab, so all three read
@@ -112,22 +111,10 @@ export function MobileHomeTab() {
   }, [miniApps, fallbackModules, userPermissions]);
 
   return (
-    <div className="space-y-6 px-4 py-4">
-      {/* Greeting */}
-      <section className="relative overflow-hidden rounded-2xl bg-linear-to-br from-gov-800 via-gov-900 to-gov-950 p-5 text-white shadow-lg shadow-gov-300/30">
-        <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-white/5" />
+    <div className="space-y-6 px-6 py-2">
+      <h2 className="text-2xl font-bold tracking-tight">{t("welcome_text", { greeting, name })}</h2>
 
-        <div className="relative">
-          <p className="text-lg font-bold leading-tight">{t("welcome_text")}</p>
-
-          <p className="mt-1 text-xs leading-relaxed text-gov-200">{t("services_description")}</p>
-
-          <div className="mt-4 flex items-center gap-2 text-[11px] text-gov-200">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            {tHome("secure_note")}
-          </div>
-        </div>
-      </section>
+      <GlobalSearchBar />
 
       {/* Launcher */}
       <section>
