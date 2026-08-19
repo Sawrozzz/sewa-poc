@@ -17,9 +17,11 @@ import { DEFAULT_SDK_SOURCE, DEFAULT_SDK_VERSION } from "@/platform/sdk";
  * so the bootstrap's public surface is unchanged, and so the dependency runs
  * in exactly one direction: bootstrap → cache.
  *
- * The local copy at `shell/public/sdk/sewa-sdk.min.js` is byte-identical to
- * the pinned CDN build and stays as an emergency self-hosted source; point
- * `NEXT_PUBLIC_SDK_URL_TEMPLATE` at it if jsDelivr ever has to be cut out.
+ * `shell/public/sdk/sewa-sdk.min.js` is the self-hosted copy: both the
+ * emergency source if jsDelivr ever has to be cut out, and the drop point for
+ * an unpublished build under test. Flip `NEXT_PUBLIC_SDK_LOCAL=on` (or
+ * `localStorage['sewa.sdk.local'] = 'on'`) to load it — it is not kept in sync
+ * with the pinned CDN build, which is why that path is unpinned and uncached.
  */
 export {
   DEFAULT_SDK_SOURCE,

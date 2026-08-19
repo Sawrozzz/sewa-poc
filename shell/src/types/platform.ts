@@ -40,6 +40,13 @@ export interface MiniAppSdkHostOptions {
   capabilities?: readonly string[];
   /** Bundle source to load (overrides `DEFAULT_SDK_SOURCE`). */
   source?: string;
+  /**
+   * Testing escape hatch: load the self-hosted build from
+   * `shell/public/sdk/sewa-sdk.min.js` instead of the CDN, bypassing the
+   * IndexedDB cache. Defaults to the `NEXT_PUBLIC_SDK_LOCAL` /
+   * `localStorage["sewa.sdk.local"]` switch — see `sdk/cache/config.ts`.
+   */
+  local?: boolean;
 }
 
 export interface MiniAppSdkLoadResult {
@@ -80,7 +87,7 @@ export interface CachedSdkBundle {
 }
 
 /** Why a given version is the active one. Diagnostics, mostly. */
-export type SdkPinReason = "host-default" | "remote-config" | "rollback";
+export type SdkPinReason = "host-default" | "remote-config" | "rollback" | "local";
 
 /**
  * Pointer to the version that last executed successfully. Written *after*

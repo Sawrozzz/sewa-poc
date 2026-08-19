@@ -19,7 +19,7 @@ export const TESTING_CAPABILITIES: string[] = [
   "http",
   "api",
   "auth",
-  "device.location",
+  // "device.location",
   "device.camera",
   "device.files",
   "device.contact",
