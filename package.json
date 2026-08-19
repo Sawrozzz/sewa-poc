@@ -15,7 +15,7 @@
     "build:turbo": "turbo run build",
     "build:platform": "pnpm --filter @sewa/host-platform build && pnpm --filter @sewa/runtime-loader build",
     "build": "pnpm build:platform && pnpm --filter @sewa/shell build",
-    "dev": "pnpm link:env && pnpm --filter @sewa/shell dev",
+    "dev": "pnpm --filter @sewa/shell dev",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome check --write .",

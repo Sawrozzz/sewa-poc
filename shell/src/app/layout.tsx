@@ -51,6 +51,10 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
   const messages = await getMessages();
+
+  // const noti = await Notification.requestPermission();
+  //
+  // console.log("notif", noti)
   return (
     <html lang={locale}>
       <head>
