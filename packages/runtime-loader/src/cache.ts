@@ -313,7 +313,6 @@ export class PluginCacheDB {
       return this._manifestCache[scopedKey];
     }
 
-
     // Fall back to IndexedDB
     const db = await this.open();
     return new Promise((resolve, reject) => {
@@ -351,7 +350,6 @@ export class PluginCacheDB {
    * @returns True if any files for this module exist in cache
    */
   async hasDirectory(moduleId: string): Promise<boolean> {
-
     // Check in-memory cache first
     if (
       this._manifestCache &&

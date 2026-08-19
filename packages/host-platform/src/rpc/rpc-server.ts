@@ -9,7 +9,7 @@
  */
 
 import axios from "axios";
-import { ACTIONS, NAMESPACES, PROTOCOL_VERSION, SDK_CAPABILITIES } from "../constants";
+import { ACTIONS, NAMESPACES, PROTOCOL_VERSION } from "../constants";
 import { RpcMethodError } from "../errors";
 import type { EventBus, PlatformEvent } from "../events";
 import { PLATFORM_EVENTS } from "../events";
@@ -19,6 +19,7 @@ import type { Transport } from "../transport";
 import { PostMessageTransport } from "../transport";
 import type { ShellServiceMap } from "../types";
 import type { NavigationTarget } from "../types/sdk.types";
+import { isCapabilityGranted, resolveCapabilities } from "./capabilities";
 import type { RpcContext } from "./method-registry";
 import { MethodRegistry } from "./method-registry";
 
@@ -40,9 +41,6 @@ export interface ConnectedModule {
   origin: string;
   eventSubscriptions: Set<string>;
 }
-
-/** Capabilities the host serves beyond the SDK's built-in set. */
-const HOST_EXTRA_CAPABILITIES = ["event"];
 
 export class RpcServer {
   private services: ShellServiceMap;
@@ -162,13 +160,18 @@ export class RpcServer {
     };
 
     const miniAppId = payload.miniAppId ?? msg.source;
-    const capabilities = Array.from(new Set([...SDK_CAPABILITIES, ...HOST_EXTRA_CAPABILITIES]));
+
+    // The grant comes from the manifest the shell registered for this module —
+    // never from `payload.capabilities`, which is the mini app asking for its
+    // own permissions. An unregistered module resolves to the core set only.
+    const moduleManifest = this.services.moduleManifest?.get?.(miniAppId);
+    const effectiveCapabilities = resolveCapabilities(moduleManifest);
 
     const module: ConnectedModule = {
       moduleId: miniAppId,
       sdkVersion: payload.sdkVersion ?? "0.0.0",
       protocolVersion: payload.protocolVersion ?? PROTOCOL_VERSION,
-      capabilities,
+      capabilities: effectiveCapabilities,
       connectedAt: Date.now(),
       origin,
       eventSubscriptions: new Set(),
@@ -188,7 +191,7 @@ export class RpcServer {
       {
         status: "ok",
         protocolVersion: PROTOCOL_VERSION,
-        capabilities,
+        capabilities: effectiveCapabilities,
       },
       {
         id: msg.requestId,
@@ -211,7 +214,7 @@ export class RpcServer {
       );
     }
 
-    if (!this.isMethodAllowed(msg.namespace, module)) {
+    if (!this.isMethodAllowed(msg.namespace, msg.action, module)) {
       await this.eventBus.emit(
         PLATFORM_EVENTS.PERMISSION_DENIED,
         "shell",
@@ -706,8 +709,8 @@ export class RpcServer {
     return this.allowedOrigins.some((allowed) => origin === allowed || origin.endsWith(allowed));
   }
 
-  private isMethodAllowed(namespace: string, module: ConnectedModule): boolean {
-    return module.capabilities.includes(namespace);
+  private isMethodAllowed(namespace: string, action: string, module: ConnectedModule): boolean {
+    return isCapabilityGranted(module.capabilities, namespace, action);
   }
 
   private authorizeNavigation(moduleId: string, target: NavigationTarget): boolean {

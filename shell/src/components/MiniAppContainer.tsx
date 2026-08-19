@@ -1,15 +1,18 @@
 "use client";
 
 import type { RemoteLoadResult } from "@sewa/host-platform";
+import { resolveCapabilities } from "@sewa/host-platform";
 import { ArrowLeftIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEventBus, usePlatform, useRuntimeLoader } from "@/context";
 import { authClient } from "@/lib/auth-client";
 import { bundleFetchUrl } from "@/lib/modules-api";
+import { withTestingCapabilities } from "@/lib/testing-capabilities";
 import { useMiniApp, useRegistryMiniApp } from "@/lib/use-mini-apps";
 import { useMiniAppBackButton } from "@/platform";
 import { destroyMiniAppSdk, loadMiniAppSdk } from "@/platform/sdk";
+import { setModuleManifestCache } from "@/platform/services";
 import { MiniAppErrorBoundary } from "./MiniAppErrorBoundary";
 import { MiniAppLoader } from "./MiniAppLoader";
 
@@ -90,6 +93,22 @@ export function MiniAppContainer({
       : null;
   }, [isRegistry, registryApp, fallbackManifest]);
 
+  /**
+   * The manifest the host gates RPC calls against. `withTestingCapabilities`
+   * is a stopgap for registry apps, whose manifests still arrive with an empty
+   * `capabilities` — see `lib/testing-capabilities.ts`.
+   */
+  const grantingManifest = useMemo(() => {
+    const source = isRegistry ? registryApp : fallbackManifest;
+    return source ? withTestingCapabilities(source) : null;
+  }, [isRegistry, registryApp, fallbackManifest]);
+
+  // Publish it to the manifest cache the RpcServer reads on handshake — an
+  // unregistered module is granted nothing beyond the core namespaces.
+  useEffect(() => {
+    if (grantingManifest) setModuleManifestCache([grantingManifest]);
+  }, [grantingManifest]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [loadError, setLoadError] = useState("");
@@ -100,9 +119,11 @@ export function MiniAppContainer({
 
   const initMiniAppBridge = useCallback(async () => {
     if (sdkLoaded.current) return;
-    const { source, initTimeMs } = await loadMiniAppSdk(miniAppId);
+    // The host descriptor advertises the same grant the RpcServer enforces, so
+    // the mini app can read what it has instead of discovering it on a denial.
+    await loadMiniAppSdk(miniAppId, { capabilities: resolveCapabilities(grantingManifest) });
     sdkLoaded.current = true;
-  }, [miniAppId]);
+  }, [miniAppId, grantingManifest]);
 
   const loadModule = useCallback(async () => {
     if (!manifest) return;

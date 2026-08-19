@@ -11,6 +11,7 @@
  * additionally serves those namespaces itself via axios.
  */
 
+import type { ModuleManifest, OldModuleManifest } from "./module.types";
 import type {
   ChatMessage,
   DeviceBiometricResult,
@@ -36,6 +37,8 @@ import type {
   ShellStorageService,
   ThemeState,
 } from "./sdk.types";
+
+type MiniAppManifest = ModuleManifest | OldModuleManifest;
 
 /**
  * Shell-side host-driven appearance contract (locale, theme, tokens, host
@@ -98,6 +101,11 @@ export interface ShellHttpService {
   delete<T = unknown>(endpoint?: string, headers?: Record<string, string>): Promise<HttpResult<T>>;
 }
 
+export interface ShellModuleManifestService {
+  get(moduleId: string): MiniAppManifest | undefined;
+  getAll(): Map<string, MiniAppManifest>;
+}
+
 export interface ShellServiceMap {
   auth: ShellAuthService;
   permissions: ShellPermissionsService;
@@ -110,4 +118,5 @@ export interface ShellServiceMap {
   api: ShellApiService;
   http: ShellHttpService;
   appearance: ShellAppearanceService;
+  moduleManifest: ShellModuleManifestService;
 }

@@ -1,9 +1,11 @@
 import type {
   ChatMessage,
   EventBus,
+  ModuleManifest,
   NavigationRouterResult,
   NavigationState,
   NavigationTarget,
+  OldModuleManifest,
   ShellAppearanceService,
 } from "@sewa/host-platform";
 import { PLATFORM_EVENTS } from "@sewa/host-platform";
@@ -13,6 +15,14 @@ import { createDeviceService } from "./device";
 import { createHttpService } from "./http";
 
 export type { PlatformServicesConfig } from "@/types/platform";
+
+type MiniAppManifest = ModuleManifest | OldModuleManifest;
+
+let moduleManifestCache: Map<string, MiniAppManifest> = new Map();
+
+export function setModuleManifestCache(manifests: MiniAppManifest[]): void {
+  moduleManifestCache = new Map(manifests.map((m) => ["miniAppId" in m ? m.miniAppId : m.id, m]));
+}
 
 /**
  * How long the shell holds a back press waiting for the mini app's answer.
@@ -290,6 +300,15 @@ export function createShellServices(
     },
   };
 
+  const getManifestKey = (manifest: MiniAppManifest): string =>
+    "miniAppId" in manifest ? manifest.miniAppId : manifest.id;
+
+  const moduleManifest = {
+    get: (moduleId: string) => moduleManifestCache.get(moduleId),
+    getAll: () => moduleManifestCache,
+    getKey: getManifestKey,
+  };
+
   return {
     auth,
     permissions,
@@ -302,6 +321,7 @@ export function createShellServices(
     api,
     http,
     appearance,
+    moduleManifest,
   };
 }
 
