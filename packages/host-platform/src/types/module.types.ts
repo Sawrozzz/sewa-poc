@@ -113,7 +113,7 @@ export interface ModuleManifest {
  */
 export interface SignedMiniAppManifest {
   /** Manifest revision, bumped on every publish */
-  version: string;
+  id: string;
   /** ISO timestamp of the publish */
   publishedAt: string;
   /** Mini apps this manifest vouches for */
