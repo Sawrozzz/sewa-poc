@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname, ".."),
   },
-  allowedDevOrigins: ["10.10.20.80", "10.10.20.131", "10.10.30.82"],
+  allowedDevOrigins: ["10.10.20.80", "10.10.20.131", "10.10.30.82", "127.0.0.1", "192.168.0.107"],
   async headers() {
     return [
       {

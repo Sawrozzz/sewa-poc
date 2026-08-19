@@ -1,6 +1,8 @@
 "use client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type React from "react";
+import { useFcmToken } from "@/lib/useFcmToken";
+import NotificationListener from "./NotificationListener";
 import PlatformShell from "./PlatformShell";
 
 const queryClient = new QueryClient({
@@ -14,8 +16,14 @@ const queryClient = new QueryClient({
 });
 
 export default function GlobalProvider({ children }: { children: React.ReactNode }) {
+  const { legacyToken, notificationPermission } = useFcmToken();
+
   return (
     <QueryClientProvider client={queryClient}>
+      {notificationPermission === "granted" && legacyToken && (
+        <div style={{ display: "none" }}>FCM Token: {legacyToken}</div>
+      )}
+      <NotificationListener />
       <PlatformShell>{children}</PlatformShell>
     </QueryClientProvider>
   );
