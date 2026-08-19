@@ -203,8 +203,8 @@ export const FALLBACK_MINI_APPS: OldModuleManifest[] = [
     ],
     isEnabled: true,
     order: 1,
-    // bundleUrl: "https://angular-mini-app.vercel.app/",
-    bundleUrl: "http://localhost:4001/",
+    bundleUrl: "https://angular-mini-app.vercel.app/",
+    // bundleUrl: "http://localhost:4001/",
     entryType: "framework-agnostic",
     loadStrategy: "plugin",
     compatibility: {

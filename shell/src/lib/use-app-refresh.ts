@@ -52,34 +52,30 @@ export function useAppRefresh() {
   const wasRefreshed = useSyncExternalStore(subscribeToStorage, getAppRefreshedFlag, () => false);
   const showSuccess = wasRefreshed && !dismissed;
 
-const refresh = useCallback(async () => {
-  if (isRefreshing) return;
+  const refresh = useCallback(async () => {
+    if (isRefreshing) return;
 
-  setIsRefreshing(true);
+    setIsRefreshing(true);
 
-  const databaseNames = [
-    "sewa-plugin-cache",
-    "sewa-sdk-cache",
-    "all-data",
-  ];
+    const databaseNames = ["sewa-plugin-cache", "sewa-sdk-cache", "all-data"];
 
-  const finish = () => {
-    privileged.sessionStorage?.setItem("app-refreshed", "true");
-    privileged.localStorage?.removeItem("sewa.onboarding.completed");
+    const finish = () => {
+      privileged.sessionStorage?.setItem("app-refreshed", "true");
+      privileged.localStorage?.removeItem("sewa.onboarding.completed");
 
-    router.replace("/");
+      router.replace("/");
 
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
-  };
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    };
 
-  try {
-    await deleteIndexedDBs(databaseNames);
-  } finally {
-    finish();
-  }
-}, [isRefreshing, router]);
+    try {
+      await deleteIndexedDBs(databaseNames);
+    } finally {
+      finish();
+    }
+  }, [isRefreshing, router]);
 
   useEffect(() => {
     if (!showSuccess) return;

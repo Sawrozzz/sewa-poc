@@ -49,7 +49,10 @@ export async function getSignedManifest(): Promise<SignedMiniAppManifest> {
   return (await response.json()) as SignedMiniAppManifest;
 }
 export async function postTogetSignedManifest(): Promise<SignedMiniAppManifest> {
-  const response = await fetch(registryUrl(POST_TO_GET_REGISTRY_MANIFEST_PATH) , { cache: "no-store", method: "POST" } );
+  const response = await fetch(registryUrl(POST_TO_GET_REGISTRY_MANIFEST_PATH), {
+    cache: "no-store",
+    method: "POST",
+  });
 
   if (!response.ok) {
     throw new Error(`Manifest registry responded with ${response.status}.`);
@@ -67,7 +70,6 @@ export async function getManifestVersion(): Promise<ManifestVersion> {
 
   return (await response.json()) as ManifestVersion;
 }
-
 
 /**
  * Read one page of the browsable mini-app catalog.

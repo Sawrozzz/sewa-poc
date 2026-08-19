@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  getSignedManifest,
-  postTogetSignedManifest,
-} from "@/lib/manifest-source";
+import { getSignedManifest, postTogetSignedManifest } from "@/lib/manifest-source";
 
 export async function GET() {
   try {
