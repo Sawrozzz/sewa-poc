@@ -67,12 +67,6 @@ function AppTile({ isDark, tile }: { isDark: boolean; tile: LauncherTile }) {
   );
 }
 
-/**
- * The Home tab — a launcher, not a catalogue. It shows the citizen a greeting
- * and the first {@link LAUNCHER_SIZE} services as tappable icons; browsing the
- * full list is the Services tab's job, so the two never render the same long
- * list twice.
- */
 export function MobileHomeTab() {
   const t = useTranslations("HomePage");
   const tNav = useTranslations("MobileNav");
