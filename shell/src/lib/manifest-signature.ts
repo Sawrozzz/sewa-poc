@@ -127,7 +127,7 @@ function sortKeysDeep(value: unknown): unknown {
 function signedPayloadCandidates(manifest: SignedMiniAppManifest): string[] {
   const { signature: _signature, ...withoutSignature } = manifest;
   const payloadOnly = {
-    version: manifest.version,
+    id: manifest.id,
     publishedAt: manifest.publishedAt,
     miniApps: manifest.miniApps,
   };

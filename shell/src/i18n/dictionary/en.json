@@ -2,7 +2,13 @@
   "language": "English",
   "HomePage": {
     "title": "Hello world!",
-    "welcome_text": "Welcome back, Citizen!",
+  "greetings": {
+    "morning": "Good Morning",
+    "afternoon": "Good Afternoon",
+    "evening": "Good Evening",
+    "night": "Good Day"
+  },
+  "welcome_text": "{greeting}, {name}!",
     "services_description": "Access your government services below. New services are added automatically as they become available."
   },
   "LocaleSwitcher": {
@@ -78,5 +84,11 @@
     "confirming": "Verifying...",
     "change_number": "Change number",
     "resend": "Resend code"
+  },
+  "GlobalSearch": {
+    "label": "Global search",
+    "placeholder": "What can we help you with today?",
+    "clear": "Clear search",
+    "hint": "Press ⌘K to focus search from anywhere"
   }
 }

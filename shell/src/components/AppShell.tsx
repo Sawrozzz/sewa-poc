@@ -1,18 +1,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { authClient, mapSessionUser } from "@/lib/auth-client";
+import { getGreeting } from "@/utils";
+import { GlobalSearchBar } from "./GlobalSearchBar";
 import { Header } from "./Header";
 import { ModuleGrid } from "./ModuleGrid";
 import { MobileShell, MobileTabsProvider } from "./mobile/MobileShell";
 
-/**
- * The portal, in two mutually exclusive faces.
- *
- * `DesktopShell` is the browser layout exactly as it was; `MobileShell` is a
- * tabbed, native-feeling shell for phones and the installed PWA. Which one you
- * see is decided purely by CSS (`max-md:hidden` / `md:hidden`) at the `md`
- * breakpoint, so neither can affect the other's rendering.
- */
 export function AppShell() {
   return (
     <MobileTabsProvider>
@@ -27,65 +22,22 @@ export function AppShell() {
 function DesktopShell() {
   const t = useTranslations("HomePage");
 
+  const greeting = t(`greetings.${getGreeting()}`);
+  const { data: session } = authClient.useSession();
+
+  const user = mapSessionUser(session?.user);
+
+  const name = user?.fullName || "Citizen";
+
   return (
     <div className="max-md:hidden">
       <Header />
-
-      <div className="below-header sticky z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <input type="text" />
-        </div>
-      </div>
-
-      <main className="safe-bottom max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-10 bg-linear-to-br from-gov-800 via-gov-900 to-gov-950 rounded-2xl p-8 text-white shadow-xl shadow-gov-300/50 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -mr-32 -mt-32" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full -ml-20 -mb-20" />
-          <div className="absolute top-1/2 right-8 -translate-y-1/2 opacity-10 hidden md:block">
-            <svg fill="none" height="200" viewBox="0 0 200 200" width="200">
-              <title>Search</title>
-              <rect height="140" rx="12" stroke="white" strokeWidth="2" width="160" x="20" y="30" />
-              <rect height="40" rx="6" stroke="white" strokeWidth="1.5" width="60" x="35" y="45" />
-              <rect height="40" rx="6" stroke="white" strokeWidth="1.5" width="60" x="105" y="45" />
-              <rect height="40" rx="6" stroke="white" strokeWidth="1.5" width="60" x="35" y="100" />
-              <rect
-                height="40"
-                rx="6"
-                stroke="white"
-                strokeWidth="1.5"
-                width="60"
-                x="105"
-                y="100"
-              />
-              <circle cx="50" cy="65" r="8" stroke="white" strokeWidth="1.5" />
-              <circle cx="120" cy="65" r="8" stroke="white" strokeWidth="1.5" />
-              <circle cx="50" cy="120" r="8" stroke="white" strokeWidth="1.5" />
-              <circle cx="120" cy="120" r="8" stroke="white" strokeWidth="1.5" />
-            </svg>
-          </div>
-          <div className="relative flex items-center justify-between">
-            <div className="max-w-xl">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                  <span className="text-2xl">🏛️</span>
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold tracking-tight">{t("welcome_text")}</h2>
-                  <p className="text-gov-200 text-sm">{t("services_description")}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 mt-6">
-                <div className="flex items-center gap-2 text-gov-200 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-lg shadow-emerald-400/50" />
-                  All services are secure and encrypted
-                </div>
-                <div className="flex items-center gap-2 text-gov-200 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-gov-400 shadow-lg shadow-gov-400/50" />
-                  Real-time updates
-                </div>
-              </div>
-            </div>
-          </div>
+      <main className="safe-bottom max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <h2 className="text-2xl font-bold tracking-tight pb-2">
+          {t("welcome_text", { greeting, name })}
+        </h2>
+        <div className="below-header sticky z-40 py-4">
+          <GlobalSearchBar />
         </div>
 
         <ModuleGrid />

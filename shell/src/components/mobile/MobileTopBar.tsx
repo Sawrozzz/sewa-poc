@@ -1,6 +1,7 @@
 "use client";
 
-import { RefreshCcwIcon } from "lucide-react";
+import { Bell, RefreshCcwIcon } from "lucide-react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useAppRefresh } from "@/lib/use-app-refresh";
 import { useTheme } from "@/lib/use-theme";
@@ -29,9 +30,13 @@ export function MobileTopBar() {
     >
       <div className="flex h-14 items-center justify-between gap-3 px-4">
         <div className="flex min-w-0 items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gov-500">
-            <span className="text-base">🏛️</span>
-          </div>
+          <Image
+            alt="Sewa"
+            className="h-6 w-auto shrink-0 sm:h-10"
+            height={14}
+            src="/sewa.svg"
+            width={12}
+          />
 
           <h1
             className={`truncate text-base font-bold leading-tight ${
@@ -53,6 +58,15 @@ export function MobileTopBar() {
             type="button"
           >
             <RefreshCcwIcon className={isRefreshing ? "animate-spin" : ""} size={19} />
+          </button>
+          <button
+            className={`flex h-9 w-9 items-center justify-center rounded-full transition disabled:opacity-60 ${
+              isDark ? "text-gray-300 active:bg-gray-800" : "text-gray-500 active:bg-gov-50"
+            }`}
+            onClick={() => alert("No new notifications")}
+            type="button"
+          >
+            <Bell size={19} />
           </button>
 
           {!!showSuccess && (
