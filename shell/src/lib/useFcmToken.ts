@@ -13,8 +13,6 @@ const SW_URL = "/serwist/sw.js";
 export interface FcmTokenResult {
   /** Firebase Installation ID (modern, FID-based registration). Send via the `fid` field of the FCM send API. */
   token: string;
-  /** Legacy registration token. Paste this into the Firebase Console "Send test message". */
-  legacyToken: string;
   notificationPermission: NotificationPermission;
   /** Re-requests notification permission and re-runs FCM registration when granted. */
   requestPermission: () => Promise<void>;
@@ -23,18 +21,18 @@ export interface FcmTokenResult {
 /**
  * Resolves to the service worker that hosts the FCM background-message handler.
  * The Serwist worker is registered at scope "/", so it controls the page and is
- * the registration the push subscription must be attached to. Falls back to
- * `navigator.serviceWorker.ready` when it has not been registered yet.
+ * the registration the push subscription must be attached to.
+ *
  */
 async function getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration> {
+  const ready = await navigator.serviceWorker.ready;
+  console.log("FCM: service worker active", { scope: ready.scope, state: ready.active?.state });
   const existing = await navigator.serviceWorker.getRegistration();
-  if (existing) return existing;
-  return navigator.serviceWorker.ready;
+  return existing ?? ready;
 }
 
 export const useFcmToken = (): FcmTokenResult => {
   const [token, setToken] = useState("");
-  const [legacyToken, setLegacyToken] = useState("");
   const [notificationPermission, setNotificationPermission] =
     useState<NotificationPermission>("default");
   const [retryKey, setRetryKey] = useState(0);
@@ -80,7 +78,6 @@ export const useFcmToken = (): FcmTokenResult => {
     // so reset any previously-obtained identifiers before registering again.
     if (retryKey > 0) {
       setToken("");
-      setLegacyToken("");
     }
 
     const setupMessaging = async (messaging: Messaging) => {
@@ -110,17 +107,14 @@ export const useFcmToken = (): FcmTokenResult => {
         console.error("FCM FID registration failed:", error);
       }
 
-      // Legacy registration token. This is what the Firebase Console
-      // "Send test message" dialog expects, so we obtain it for testing.
+      // TEST ONLY: legacy registration token for the Firebase Console
+      // "Send test message" button. Logged, not rendered.
       try {
         const legacy = await getToken(messaging, {
           vapidKey: VAPID_KEY,
           serviceWorkerRegistration,
         });
-        if (legacy) {
-          console.log("FCM legacy token (paste into Firebase Console):", legacy);
-          if (mounted) setLegacyToken(legacy);
-        }
+        if (legacy) console.log("FCM legacy token (Send test message):", legacy);
       } catch (error) {
         console.error("FCM legacy token retrieval failed:", error);
       }
@@ -130,12 +124,7 @@ export const useFcmToken = (): FcmTokenResult => {
       try {
         if (typeof window === "undefined" || !("Notification" in window)) return;
 
-        // IMPORTANT: Chromium (Chrome/Brave) silently ignores
-        // Notification.requestPermission() when it is NOT called from a user
-        // gesture. Requesting on page load therefore never shows a prompt and
-        // can end up stored as "denied". We only READ the state here; the
-        // actual request must happen from the banner button (a real click).
-        const current = Notification.permission;
+        let current = Notification.permission;
         console.log(
           "FCM: current notification permission for",
           window.location.origin,
@@ -143,6 +132,15 @@ export const useFcmToken = (): FcmTokenResult => {
           current,
         );
         setNotificationPermission(current);
+
+        if (current === "default") {
+          // Prompt on app mount. NOTE: Chromium silently ignores
+          // Notification.requestPermission() without a user gesture (it
+          // resolves "default" and shows nothing) — in that case the banner
+          // button is the fallback that supplies the required gesture.
+          current = await Notification.requestPermission();
+          setNotificationPermission(current);
+        }
 
         if (current !== "granted") {
           console.warn(
@@ -177,5 +175,5 @@ export const useFcmToken = (): FcmTokenResult => {
     };
   }, [retryKey]);
 
-  return { token, legacyToken, notificationPermission, requestPermission };
+  return { token, notificationPermission, requestPermission };
 };

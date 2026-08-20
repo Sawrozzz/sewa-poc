@@ -19,13 +19,8 @@ export default function NotificationListener() {
         if (payload.notification) {
           const title = payload.notification.title ?? "Sewa";
           const body = payload.notification.body ?? "";
-          // Surface the message to the user immediately.
-          window.alert(`${title}\n${body}`);
-          if ("Notification" in window) {
-            new Notification(title, {
-              body,
-              icon: "/icons/icon-192.png",
-            });
+          if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(title, { body, icon: "/icons/icon-192.png" });
           }
         }
       });

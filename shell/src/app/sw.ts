@@ -62,10 +62,18 @@ self.addEventListener("notificationclick", (event) => {
 const fcmMessaging = getMessaging();
 
 onBackgroundMessage(fcmMessaging, (payload: MessagePayload) => {
-  // FCM already auto-displays background notifications when the payload has a
-  // `notification` object, so do NOT call showNotification() here — that would
-  // show a duplicate. This hook is only for side effects (e.g. data handling).
-  console.log("[sw] FCM background message:", payload);
+  // FCM auto-displays a background notification when the payload carries a
+  // `notification` object, so calling showNotification() here would create a
+  // duplicate. Only show one ourselves for data-only messages.
+  if (!payload.notification) {
+    const title = String(payload.data?.title ?? "Sewa");
+    const body = payload.data?.body ? String(payload.data.body) : undefined;
+    self.registration.showNotification(title, {
+      body,
+      icon: "/icons/icon-192.png",
+      data: payload.data,
+    });
+  }
 });
 
 // --- Serwist PWA worker ------------------------------------------------------

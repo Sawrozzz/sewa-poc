@@ -16,13 +16,10 @@ const queryClient = new QueryClient({
 });
 
 export default function GlobalProvider({ children }: { children: React.ReactNode }) {
-  const { legacyToken, notificationPermission } = useFcmToken();
+  useFcmToken();
 
   return (
     <QueryClientProvider client={queryClient}>
-      {notificationPermission === "granted" && legacyToken && (
-        <div style={{ display: "none" }}>FCM Token: {legacyToken}</div>
-      )}
       <NotificationListener />
       <PlatformShell>{children}</PlatformShell>
     </QueryClientProvider>
