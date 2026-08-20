@@ -1,7 +1,7 @@
 "use client";
 
 import type { Messaging } from "firebase/messaging";
-import { onRegistered, onUnregistered, register } from "firebase/messaging";
+import { getToken, onRegistered, onUnregistered, register } from "firebase/messaging";
 import { useCallback, useEffect, useState } from "react";
 import { getFirebaseMessaging } from "./firebase";
 
@@ -23,11 +23,6 @@ export interface FcmTokenResult {
  * The Serwist worker is registered at scope "/", so it controls the page and is
  * the registration the push subscription must be attached to.
  *
- * IMPORTANT: Chromium aborts `pushManager.subscribe()` with "Registration
- * failed - push service error" when it runs against a registration whose
- * worker is still installing/activating (or was just replaced by an update).
- * `navigator.serviceWorker.ready` only resolves once a worker is active and
- * controls the page, so wait for it BEFORE touching `pushManager`.
  */
 async function getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration> {
   const ready = await navigator.serviceWorker.ready;
@@ -110,6 +105,18 @@ export const useFcmToken = (): FcmTokenResult => {
         });
       } catch (error) {
         console.error("FCM FID registration failed:", error);
+      }
+
+      // TEST ONLY: legacy registration token for the Firebase Console
+      // "Send test message" button. Logged, not rendered.
+      try {
+        const legacy = await getToken(messaging, {
+          vapidKey: VAPID_KEY,
+          serviceWorkerRegistration,
+        });
+        if (legacy) console.log("FCM legacy token (Send test message):", legacy);
+      } catch (error) {
+        console.error("FCM legacy token retrieval failed:", error);
       }
     };
 
