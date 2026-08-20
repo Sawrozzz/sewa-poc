@@ -1,32 +1,6 @@
-/**
- * Capability resolution and gating.
- *
- * A mini app's manifest declares what it is allowed to reach through the SDK.
- * An entry is either a whole namespace ("device", "http") or a single method
- * inside one ("device.location"). Anything that is not granted is refused at
- * the RPC boundary with PERMISSION_DENIED — the call never reaches a shell
- * service, so an app that declares nothing can do nothing.
- */
 
 import { NAMESPACES, SDK_CAPABILITIES } from "../constants";
 
-/**
- * Namespaces every connected mini app gets regardless of what it declares.
- *
- * `handshake` is the connect call itself; `sdk.initialize()` then calls
- * `platform.getType` and subscribes to appearance events, and `appearance` /
- * `navigation` carry the shell's own locale-theme and back-button handshakes.
- * `auth` is here because a mini app cannot render anything useful without
- * knowing who is signed in — every one of them asks on mount, and a shell that
- * refused it would break each app on its first call rather than on the one
- * capability it was actually denied.
- *
- * These are granted, not merely default: {@link isCapabilityGranted} lets them
- * through whatever the declared list says, so a mini app cannot opt out of them
- * and the registry cannot revoke them per app. Anything a mini app should be
- * able to be refused — `device`, `http`, `storage`, `api` — belongs in its own
- * declared capabilities instead, never here.
- */
 export const CORE_CAPABILITIES: readonly string[] = [
   NAMESPACES.HANDSHAKE,
   NAMESPACES.PLATFORM,
