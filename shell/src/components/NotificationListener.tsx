@@ -4,6 +4,7 @@ import type { MessagePayload } from "firebase/messaging";
 import { onMessage } from "firebase/messaging";
 import { useEffect } from "react";
 import { getFirebaseMessaging } from "@/lib/firebase";
+import { privileged } from "@/platform/host-privileges";
 
 export default function NotificationListener() {
   useEffect(() => {
@@ -19,7 +20,7 @@ export default function NotificationListener() {
         if (payload.notification) {
           const title = payload.notification.title ?? "Sewa";
           const body = payload.notification.body ?? "";
-          if ("Notification" in window && Notification.permission === "granted") {
+          if ("Notification" in window && privileged.notification?.permission() === "granted") {
             new Notification(title, { body, icon: "/icons/icon-192.png" });
           }
         }

@@ -48,6 +48,22 @@ export const privileged = {
     get: navigator.credentials.get.bind(navigator.credentials),
   })),
 
-  /** Real `window.Notification` (host may surface its own notifications). */
-  Notification: safe<typeof Notification>(() => window.Notification),
+  /**
+   * Real Notification statics for the host's FCM code. The guard replaces
+   * `Notification.permission` / `requestPermission()` on the shared class to
+   * block mini apps, so the host must call these captured copies: the bound
+   * `requestPermission` and the original `permission` getter both read the
+   * browser's real state, bypassing the guard's stubs.
+   */
+  notification: safe<{
+    permission: () => NotificationPermission;
+    requestPermission: () => Promise<NotificationPermission>;
+  }>(() => {
+    const permissionGetter = Object.getOwnPropertyDescriptor(Notification, "permission")?.get;
+    const requestPermission = Notification.requestPermission.bind(Notification);
+    return {
+      permission: () => (permissionGetter ? permissionGetter.call(Notification) : "default"),
+      requestPermission: () => requestPermission(),
+    };
+  }),
 } as const;

@@ -69,11 +69,16 @@ export function installHostApiGuard(): void {
   }
 
   // ── Notifications ──────────────────────────────────────────────
-  // Intentionally NOT blocked: the shell itself needs real Notification API
-  // for FCM push (useFcmToken / NotificationListener), and the Firebase SDK
-  // reads the global `Notification` internally — stubbing it here breaks both
-  // the permission prompt and token registration. Mini apps get their own
-  // surface via the SDK (`sdk.device.notifications()`).
+  // Mini apps may not trigger the Notification permission prompt — use
+  // sdk.device.notifications(). NOTE: only `requestPermission` is stubbed, NOT
+  // the `permission` getter: the Firebase SDK reads the global
+  // `Notification.permission` internally, so overriding it to "denied" makes
+  // every register/getToken call fail with messaging/permission-blocked even
+  // for the host. The host still calls the real requestPermission via
+  // `privileged.notification`.
+  if (window.Notification) {
+    lock(Notification, "requestPermission", () => Promise.resolve("denied"));
+  }
 
   // ── WebAuthn credentials ───────────────────────────────────────
   // if (navigator.credentials) {
