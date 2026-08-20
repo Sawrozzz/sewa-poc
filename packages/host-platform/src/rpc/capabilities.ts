@@ -11,13 +11,21 @@
 import { NAMESPACES, SDK_CAPABILITIES } from "../constants";
 
 /**
- * Namespaces every connected mini app gets regardless of its manifest.
+ * Namespaces every connected mini app gets regardless of what it declares.
  *
  * `handshake` is the connect call itself; `sdk.initialize()` then calls
  * `platform.getType` and subscribes to appearance events, and `appearance` /
  * `navigation` carry the shell's own locale-theme and back-button handshakes.
- * Gating these would make a narrowly-scoped app fail to start instead of
- * failing on the one call it is not allowed to make.
+ * `auth` is here because a mini app cannot render anything useful without
+ * knowing who is signed in — every one of them asks on mount, and a shell that
+ * refused it would break each app on its first call rather than on the one
+ * capability it was actually denied.
+ *
+ * These are granted, not merely default: {@link isCapabilityGranted} lets them
+ * through whatever the declared list says, so a mini app cannot opt out of them
+ * and the registry cannot revoke them per app. Anything a mini app should be
+ * able to be refused — `device`, `http`, `storage`, `api` — belongs in its own
+ * declared capabilities instead, never here.
  */
 export const CORE_CAPABILITIES: readonly string[] = [
   NAMESPACES.HANDSHAKE,
@@ -25,6 +33,7 @@ export const CORE_CAPABILITIES: readonly string[] = [
   NAMESPACES.EVENT,
   NAMESPACES.APPEARANCE,
   NAMESPACES.NAVIGATION,
+  NAMESPACES.AUTH,
 ];
 
 /** Everything the host serves — what a wildcard grant expands to. */
@@ -32,15 +41,10 @@ export const ALL_CAPABILITIES: readonly string[] = Array.from(
   new Set<string>([...SDK_CAPABILITIES, NAMESPACES.EVENT]),
 );
 
-/** Manifest entries that mean "grant everything". Testing convenience only. */
-const WILDCARDS = ["*", "all"];
-
-/** A manifest — or anything else carrying the two capability lists. */
+/** A manifest — or anything else carrying a capability list. */
 export interface CapabilityGrantSource {
-  /** Declared by the mini app and vouched for by the registry. */
+  /** Declared by the mini app and published by the registry. */
   capabilities?: readonly string[] | null;
-  /** Testing-only additions merged on top of `capabilities`. */
-  customCapabilities?: readonly string[] | null;
 }
 
 /** Trims, lower-cases and de-duplicates a raw capability list. */
@@ -56,29 +60,20 @@ export function normalizeCapabilities(input?: readonly string[] | null): string[
 }
 
 /**
- * The effective grant for a module: declared ∪ custom ∪ core, with a wildcard
- * in either list expanding to every namespace the host serves.
+ * The effective grant for a module: declared ∪ core, with a wildcard expanding
+ * to every namespace the host serves.
  *
  * A missing manifest resolves to the core set alone — an unknown module is
  * granted nothing beyond what it needs to connect.
+ *
+ * Idempotent: passing a list this function already produced returns the same
+ * set, so a manifest cached with its resolved grant can be re-resolved safely.
  */
 export function resolveCapabilities(source?: CapabilityGrantSource | null): string[] {
-  const granted = [
-    ...normalizeCapabilities(source?.capabilities),
-    ...normalizeCapabilities(source?.customCapabilities),
-  ];
-  const base = granted.some((entry) => WILDCARDS.includes(entry)) ? ALL_CAPABILITIES : granted;
-  return Array.from(new Set<string>([...base, ...CORE_CAPABILITIES]));
+  const granted = normalizeCapabilities(source?.capabilities);
+  return Array.from(new Set<string>([...granted, ...CORE_CAPABILITIES]));
 }
 
-/**
- * Is `namespace.action` covered by `granted`?
- *
- * Matches, in order of breadth: a wildcard, the bare namespace ("device"), an
- * explicit namespace wildcard ("device.*"), or the exact method
- * ("device.location"). So a manifest granting only `device.location` gets
- * `sdk.device.location()` and is refused `sdk.device.camera()`.
- */
 export function isCapabilityGranted(
   granted: readonly string[],
   namespace: string,
@@ -89,7 +84,6 @@ export function isCapabilityGranted(
 
   const act = action?.trim().toLowerCase();
   return granted.some((entry) => {
-    if (WILDCARDS.includes(entry)) return true;
     if (entry === ns || entry === `${ns}.*`) return true;
     return Boolean(act) && entry === `${ns}.${act}`;
   });

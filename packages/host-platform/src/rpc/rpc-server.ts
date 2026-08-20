@@ -165,6 +165,7 @@ export class RpcServer {
     // never from `payload.capabilities`, which is the mini app asking for its
     // own permissions. An unregistered module resolves to the core set only.
     const moduleManifest = this.services.moduleManifest?.get?.(miniAppId);
+    console.log("CUREENT MODULE ", moduleManifest);
     const effectiveCapabilities = resolveCapabilities(moduleManifest);
 
     const module: ConnectedModule = {

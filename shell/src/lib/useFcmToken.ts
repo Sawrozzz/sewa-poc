@@ -3,12 +3,22 @@
 import type { Messaging } from "firebase/messaging";
 import { getToken, onRegistered, onUnregistered, register } from "firebase/messaging";
 import { useCallback, useEffect, useState } from "react";
+import { privileged } from "@/platform/host-privileges";
 import { getFirebaseMessaging } from "./firebase";
 
-const VAPID_KEY =
-  "BP3sLmCB0CMSCBcBy5GSXTdx1s98umq1pCKR4gQXX24JWvdmuT59RcP-gjKf8hsyAIBlvtrdDwrxXVnGSpRDlsQ";
+const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 
 const SW_URL = "/serwist/sw.js";
+
+// The host-guard stubs the shared `Notification` to block mini apps, so the
+// shell reads the real statics captured in `privileged.notification` instead.
+const notificationApi = privileged.notification;
+
+const getNotificationPermission = (): NotificationPermission =>
+  notificationApi?.permission() ?? "default";
+
+const requestNotificationPermission = (): Promise<NotificationPermission> =>
+  notificationApi?.requestPermission() ?? Promise.resolve("default");
 
 export interface FcmTokenResult {
   /** Firebase Installation ID (modern, FID-based registration). Send via the `fid` field of the FCM send API. */
@@ -44,7 +54,7 @@ export const useFcmToken = (): FcmTokenResult => {
   const requestPermission = useCallback(async () => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
 
-    const current = Notification.permission;
+    const current = getNotificationPermission();
     if (current === "granted") {
       // Already allowed — just (re)run FCM registration.
       setRetryKey((key) => key + 1);
@@ -64,7 +74,7 @@ export const useFcmToken = (): FcmTokenResult => {
     }
 
     // "default" — inside a user gesture the browser will now show the prompt.
-    const permission = await Notification.requestPermission();
+    const permission = await requestNotificationPermission();
     setNotificationPermission(permission);
     // Re-run the effect so registration happens once permission is granted.
     setRetryKey((key) => key + 1);
@@ -124,7 +134,7 @@ export const useFcmToken = (): FcmTokenResult => {
       try {
         if (typeof window === "undefined" || !("Notification" in window)) return;
 
-        let current = Notification.permission;
+        let current = getNotificationPermission();
         console.log(
           "FCM: current notification permission for",
           window.location.origin,
@@ -138,7 +148,7 @@ export const useFcmToken = (): FcmTokenResult => {
           // Notification.requestPermission() without a user gesture (it
           // resolves "default" and shows nothing) — in that case the banner
           // button is the fallback that supplies the required gesture.
-          current = await Notification.requestPermission();
+          current = await requestNotificationPermission();
           setNotificationPermission(current);
         }
 
