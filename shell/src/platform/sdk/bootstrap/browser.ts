@@ -39,6 +39,7 @@ export function loadMiniAppSdk(
   const spec = resolveSdkSpec({
     source: options.source,
     sdkVersion: options.sdkVersion,
+    local: options.local,
   });
 
   return bootstrapMiniAppSdk(

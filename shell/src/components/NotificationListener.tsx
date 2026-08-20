@@ -23,6 +23,12 @@ export default function NotificationListener() {
           if ("Notification" in window && privileged.notification?.permission() === "granted") {
             new Notification(title, { body, icon: "/icons/icon-192.png" });
           }
+          const notificationAudio = new Audio("/notification.mp3");
+          notificationAudio.volume = 1;
+          notificationAudio.play().catch((error) => {
+            console.warn("Could not play notification sound", error);
+            
+          })
         }
       });
     };

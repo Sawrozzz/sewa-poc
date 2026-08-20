@@ -37,14 +37,17 @@ const browserEnv: SdkCacheEnv = {
 };
 
 /**
- * Honours the kill switch exactly once per page. Flipping the switch should
- * not just bypass the cache but also reclaim what it already stored, so a
- * browser that was serving a bad build stops holding it.
+ * Drops everything the cache holds, at most once per page.
+ *
+ * Both switches want this: bypassing the cache should not just stop reading it
+ * but also reclaim what it already stored, so a browser that was serving a bad
+ * build — or a CDN build the developer has stopped caring about — stops
+ * holding it.
  */
-let purgedForKillSwitch = false;
-async function honourKillSwitch(): Promise<void> {
-  if (purgedForKillSwitch) return;
-  purgedForKillSwitch = true;
+let purgedOnce = false;
+async function purgeOnBypass(): Promise<void> {
+  if (purgedOnce) return;
+  purgedOnce = true;
   await purgeSdkBundles({ openStore });
 }
 
@@ -56,8 +59,21 @@ async function honourKillSwitch(): Promise<void> {
  * returned, to keep `sdk/bootstrap/core.ts` untouched.
  */
 export async function loadSdkScript(spec: SdkSpec): Promise<void> {
+  // Local build under test: never cached, never pinned, and cache-busted so a
+  // rebuilt file lands on the next reload instead of the previous bytes the
+  // browser is still holding.
+  if (spec.pinnedBy === "local") {
+    // Nothing downloaded, nothing stored: any CDN bundle already in IndexedDB
+    // is dropped so it cannot come back the moment the switch is flipped off.
+    await purgeOnBypass().catch(() => {});
+    const src = `${spec.url}${spec.url.includes("?") ? "&" : "?"}t=${Date.now()}`;
+    console.log(`[SdkCache] local — serving ${src} (no download, no cache)`);
+    await injectScript({ src });
+    return;
+  }
+
   if (!isSdkCacheEnabled()) {
-    await honourKillSwitch();
+    await purgeOnBypass();
     await browserEnv.fallback(spec);
     return;
   }
@@ -81,6 +97,9 @@ export async function warmSdkCache(overrides: SdkSpecOverrides = {}): Promise<vo
   if (typeof window === "undefined" || !isSdkCacheEnabled()) return;
 
   const spec = resolveSdkSpec(overrides);
+  // Nothing to prefetch in local mode — the file is same-origin and the point
+  // of the switch is to read whatever is on disk right now.
+  if (spec.pinnedBy === "local") return;
   const outcome = await warmSdkBundle(spec, browserEnv);
   if (outcome !== "skipped") {
     console.log(`[SdkCache] Warm: ${outcome} — ${spec.name}@${spec.version}`);
