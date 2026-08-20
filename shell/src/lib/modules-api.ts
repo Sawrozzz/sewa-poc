@@ -43,13 +43,29 @@ export async function verifyVersionUpdate(): Promise<ManifestVersion> {
   return response.data;
 }
 
-async function isStoredVersionCurrent(storedVersion: string): Promise<boolean> {
+async function isStoredVersionCurrent(storedId: string): Promise<boolean> {
   try {
-    const { version } = await verifyVersionUpdate();
+    const published = await verifyVersionUpdate();
 
-    if (String(version) === String(storedVersion)) return true;
+    // The endpoint answers `{ "id": "<uuid>" }` — the id of the manifest the
+    // registry currently publishes, which is the same value the stored
+    // manifest carries as `manifest.id`. `version` is only read as a fallback,
+    // for a registry that later starts naming the field that way.
+    const current = published.id ?? published.version;
 
-    return false;
+    if (current === undefined) {
+      // Nothing comparable came back, so every check counts as a miss: the
+      // stored manifest is dropped and re-downloaded on each call and the
+      // IndexedDB copy is never reused. Loud on purpose — that is a broken
+      // version endpoint, not a manifest that keeps changing.
+      console.warn(
+        "[manifest] Version endpoint returned neither `id` nor `version` — the stored manifest cannot be reused:",
+        published,
+      );
+      return false;
+    }
+
+    return String(current) === String(storedId);
   } catch (err) {
     console.warn("[manifest] Version check failed — keeping the stored manifest:", err);
     return true;

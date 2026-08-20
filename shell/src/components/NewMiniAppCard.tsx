@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { ResolvedMiniApp } from "@/lib/merge-mini-app";
+import type { MiniAppListItem } from "@/types/manifest";
 
 interface MiniAppCardProps {
-  newModule: ResolvedMiniApp;
+  newModule: MiniAppListItem;
 }
 
 export function NewMiniAppCard({ newModule }: MiniAppCardProps) {
@@ -16,9 +16,6 @@ export function NewMiniAppCard({ newModule }: MiniAppCardProps) {
     <button
       className="group relative flex flex-col text-left w-full h-full bg-white rounded-2xl border border-gray-200/80 p-5 shadow-sm hover:shadow-xl hover:border-gov-400 hover:-translate-y-1 transition-all duration-300 ease-out overflow-hidden focus:outline-none focus:ring-2 focus:ring-gov-500 focus:ring-offset-2"
       id={newModule.miniAppId}
-      // `source=registry` picks the signed-manifest loading path. A registry
-      // mini app can share its id with a pre-installed one, and the two are
-      // loaded and cached differently, so the route has to say which is meant.
       onClick={() => router.push(`/${newModule.miniAppId}?source=registry`)}
       type="button"
     >
