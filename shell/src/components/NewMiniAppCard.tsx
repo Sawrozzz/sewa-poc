@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { MiniAppListItem } from "@/types/manifest";
+import type { ResolvedMiniApp } from "@/lib/merge-mini-app";
 
 interface MiniAppCardProps {
-  newModule: MiniAppListItem;
+  newModule: ResolvedMiniApp;
 }
 
 export function NewMiniAppCard({ newModule }: MiniAppCardProps) {

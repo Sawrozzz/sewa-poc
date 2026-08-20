@@ -52,8 +52,6 @@ export interface OldModuleManifest {
    * Anything not listed is refused at the RPC boundary; `"*"` grants all.
    */
   capabilities?: string[];
-  /** Testing-only: merged on top of `capabilities`. Remove in production. */
-  customCapabilities?: string[];
   /** Base URL where the bundle is served (CDN / origin). The loader fetches bundleUrl from here. */
   bundleUrl: string;
   /** What entry point the bundle exposes — used by the loader to resolve the component factory */
@@ -93,9 +91,9 @@ export interface ModuleManifest {
   description?: string;
   category?: string;
   /** URL of the mini app's `.zip` bundle (the dist output of its build) */
-  bundleUrl: string;
+  bundleUrl?: string;
   /** Digest of the archive at bundleUrl, e.g. "sha256-3193…" */
-  bundleHash: string;
+  bundleHash?: string;
   iconUrl?: string;
   bundleVerifiedAt?: Date | string;
   ingestionStatus?: string;
@@ -114,8 +112,6 @@ export interface ModuleManifest {
    * Anything not listed is refused at the RPC boundary; `"*"` grants all.
    */
   capabilities?: string[];
-  /** Testing-only: merged on top of `capabilities`. Remove in production. */
-  customCapabilities?: string[];
 }
 
 /**

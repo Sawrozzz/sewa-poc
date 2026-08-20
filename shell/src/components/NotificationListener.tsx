@@ -27,8 +27,7 @@ export default function NotificationListener() {
           notificationAudio.volume = 1;
           notificationAudio.play().catch((error) => {
             console.warn("Could not play notification sound", error);
-            
-          })
+          });
         }
       });
     };

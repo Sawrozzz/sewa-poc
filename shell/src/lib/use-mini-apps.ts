@@ -1,11 +1,19 @@
 "use client";
 
-import type { SignedMiniAppManifest } from "@sewa/host-platform";
+import type { ModuleManifest } from "@sewa/host-platform";
+import type { InfiniteData, QueryClient } from "@tanstack/react-query";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo } from "react";
-import type { MiniAppListItem, PaginatedMiniAppParamsType } from "@/types/manifest";
+import type {
+  MiniAppListItem,
+  PaginatedMiniAppParamsType,
+  PaginatedMiniApps,
+} from "@/types/manifest";
 import { clearMiniAppsManifest } from "./index-db";
+import type { ResolvedMiniApp } from "./merge-mini-app";
+import { indexManifestMiniApps, mergeMiniApp } from "./merge-mini-app";
 import {
+  fetchCatalogRow,
   fetchMiniAppCatalog,
   fetchMiniApps,
   fetchOldMiniApp,
@@ -14,21 +22,9 @@ import {
   MINI_APP_PAGE_SIZE,
 } from "./modules-api";
 
-/** The signed manifest — the trust anchor, and the only source of bundle URLs */
 const MANIFEST_KEY = ["mini-apps", "manifest"] as const;
-/** The browsable, paginated catalog */
 const CATALOG_KEY = ["mini-apps", "catalog"] as const;
 
-/**
- * Drop the stored manifest and pull a fresh one from the registry.
- *
- * `fetchMiniApps` answers from IndexedDB whenever a manifest is stored, so a
- * plain `refetch()` would just re-read the same copy. Clearing first is what
- * makes the next fetch actually hit the network. The catalog is invalidated
- * alongside it so the list and the manifest are refreshed together.
- *
- * @returns A callback that refreshes the mini-app list
- */
 export function useRefreshMiniApps() {
   const queryClient = useQueryClient();
 
@@ -59,37 +55,16 @@ export function useMiniApps() {
   });
 }
 
-/** Options accepted by {@link useMiniAppCatalog} */
 export type MiniAppCatalogOptions = Partial<Omit<PaginatedMiniAppParamsType, "cursor">>;
 
-/** Every `miniAppId` the signed manifest lists, as a set for O(1) lookups. */
-function manifestMiniAppIds(manifest: SignedMiniAppManifest | undefined): Set<string> {
-  return new Set(manifest?.miniApps.map((app) => app.miniAppId) ?? []);
-}
-
-/**
- * The paginated mini-app catalog, as an infinite (cursor) list.
- *
- * Pages are keyed by the query shape, so changing the search or ordering starts
- * a fresh list rather than appending to the old one.
- *
- * Each page is filtered against the signed manifest: an entry is kept only when
- * its `miniAppId` also appears in the manifest held in IndexedDB. The two lists
- * are published independently and drift apart — the catalog gets a new mini app
- * before the manifest is re-signed, or the manifest still carries one the
- * catalog has dropped — and an entry present in only one of them cannot be
- * opened, because {@link findMiniApp} would find no `bundleUrl` for it. Hiding
- * those keeps the grid to the apps that actually load.
- *
- * @param options - Page size, ordering and search
- * @returns The infinite query, plus `miniApps` — the loaded pages flattened and
- *   narrowed to the manifest
- */
 export function useMiniAppCatalog(options: MiniAppCatalogOptions = {}) {
   const { size = MINI_APP_PAGE_SIZE, orderBy = "DESC", sortBy = "id", search, searchBy } = options;
 
   const manifestQuery = useMiniApps();
-  const manifestIds = useMemo(() => manifestMiniAppIds(manifestQuery.data), [manifestQuery.data]);
+  const manifestEntries = useMemo(
+    () => indexManifestMiniApps(manifestQuery.data?.miniApps),
+    [manifestQuery.data],
+  );
 
   const query = useInfiniteQuery({
     queryKey: [...CATALOG_KEY, { size, orderBy, sortBy, search, searchBy }] as const,
@@ -100,10 +75,14 @@ export function useMiniAppCatalog(options: MiniAppCatalogOptions = {}) {
     // `hasNextPage` is what decides whether to ask for more.
     getNextPageParam: (lastPage) =>
       lastPage.meta.hasNextPage ? (lastPage.meta.nextCursor ?? undefined) : undefined,
+    // The catalog is unusable without the manifest — every row is dropped, and
+    // nothing here can be opened — so it is not worth fetching before the
+    // manifest is in hand.
+    enabled: !!manifestQuery.data,
     retry: 1,
   });
 
-  const miniApps = useMemo<MiniAppListItem[]>(() => {
+  const miniApps = useMemo<ResolvedMiniApp[]>(() => {
     const listed = query.data?.pages.flatMap((page) => page.data) ?? [];
 
     // Nothing is shown until the manifest has resolved: rendering the raw page
@@ -111,16 +90,20 @@ export function useMiniAppCatalog(options: MiniAppCatalogOptions = {}) {
     // failed to load leaves nothing openable to show.
     if (!manifestQuery.data) return [];
 
-    const matched = listed.filter((app) => manifestIds.has(app.miniAppId));
+    const merged = listed.reduce<ResolvedMiniApp[]>((acc, app) => {
+      const entry = manifestEntries.get(app.miniAppId);
+      if (entry) acc.push(mergeMiniApp(app, entry));
+      return acc;
+    }, []);
 
-    if (matched.length !== listed.length) {
+    if (merged.length !== listed.length) {
       console.log(
-        `[catalog] Hid ${listed.length - matched.length} of ${listed.length} mini app(s) missing from the signed manifest`,
+        `[catalog] Hid ${listed.length - merged.length} of ${listed.length} mini app(s) missing from the signed manifest`,
       );
     }
 
-    return matched;
-  }, [query.data, manifestQuery.data, manifestIds]);
+    return merged;
+  }, [query.data, manifestQuery.data, manifestEntries]);
 
   // A page can filter down to nothing — the catalog is paginated before it is
   // matched, so ten unmatched entries come back as an empty screen. Pull the
@@ -134,17 +117,25 @@ export function useMiniAppCatalog(options: MiniAppCatalogOptions = {}) {
     fetchNextPage();
   }, [manifestQuery.data, miniApps.length, isFetching, hasNextPage, fetchNextPage]);
 
+  const isError = query.isError || manifestQuery.isError;
+
   return {
     ...query,
     miniApps,
     // The manifest is part of loading this list now, not just of opening an app.
     // Skipping past fully-unmatched pages counts as loading too — otherwise the
     // empty state shows between those fetches.
+    //
+    // A failure ends the loading state even though the catalog query is still
+    // `pending`: it stays disabled until the manifest resolves, so a manifest
+    // that errored would otherwise leave the callers — which check `isLoading`
+    // before `isError` — showing skeletons over an error that never clears.
     isLoading:
-      query.isLoading ||
-      manifestQuery.isLoading ||
-      (miniApps.length === 0 && query.isFetchingNextPage),
-    isError: query.isError || manifestQuery.isError,
+      !isError &&
+      (query.isLoading ||
+        manifestQuery.isLoading ||
+        (miniApps.length === 0 && query.isFetchingNextPage)),
+    isError,
     error: manifestQuery.error ?? query.error,
   };
 }
@@ -159,19 +150,82 @@ export function useMiniApp(id: string | null) {
 }
 
 /**
- * Resolve one mini app out of the registry's signed manifest.
+ * Find a mini app's catalog row in whatever catalog pages are already cached.
  *
- * This is how a card click becomes a load: the catalog gives the `miniAppId`,
- * and the entry matched here supplies the `bundleUrl` and `bundleHash` that the
- * download-verify-unzip path needs. Shares the manifest query — and therefore
- * its signature check and IndexedDB copy — with {@link useMiniApps}.
+ * Read from the cache rather than fetched: the catalog is cursor-paginated, so
+ * looking a single `miniAppId` up would mean paging through the list, and the
+ * row carries nothing the mini app needs in order to load.
+ *
+ * @param queryClient - The client holding the catalog pages
+ * @param miniAppId - The mini app to look for
+ * @returns The cached row, or undefined when no loaded page holds it
+ */
+function cachedCatalogRow(
+  queryClient: QueryClient,
+  miniAppId: string,
+): MiniAppListItem | undefined {
+  const cached = queryClient.getQueriesData<InfiniteData<PaginatedMiniApps>>({
+    queryKey: CATALOG_KEY,
+  });
+
+  for (const [, data] of cached) {
+    const row = data?.pages.flatMap((page) => page.data).find((app) => app.miniAppId === miniAppId);
+
+    if (row) return row;
+  }
+
+  return undefined;
+}
+
+/**
+ * Resolve one mini app out of the registry's signed manifest, merged with its
+ * catalog row.
+ *
+ * This is how a card click becomes a load: the signed manifest supplies the
+ * `bundleUrl` and `bundleHash` that the download-verify-unzip path needs, and
+ * the catalog row supplies the display fields and — until the registry signs
+ * them — `capabilities`. Shares the manifest query, and therefore its signature
+ * check and IndexedDB copy, with {@link useMiniApps}.
+ *
+ * The row is read from whatever catalog pages are cached and only fetched when
+ * none of them hold it, which is the deep-link case: opening `/some-app` in a
+ * fresh tab never renders the grid, so nothing would have loaded it.
+ *
+ * `isLoading` stays true until the row resolves, even though the bundle does
+ * not depend on it. The container hands `capabilities` to the SDK handshake as
+ * it loads, and a grant that arrived a moment later would be a grant the mini
+ * app never got.
  */
 export function useRegistryMiniApp(id: string | null) {
-  return useQuery({
+  const queryClient = useQueryClient();
+
+  const manifestQuery = useQuery({
     queryKey: MANIFEST_KEY,
     queryFn: fetchMiniApps,
     enabled: !!id,
     retry: 1,
     select: (manifest) => findMiniApp(manifest, id ?? ""),
   });
+
+  const entry = manifestQuery.data ?? null;
+
+  const rowQuery = useQuery({
+    queryKey: [...CATALOG_KEY, "row", id] as const,
+    // `fetchCatalogRow` answers null rather than throwing, so a catalog that is
+    // down degrades to the manifest entry instead of failing the load.
+    queryFn: () => cachedCatalogRow(queryClient, id ?? "") ?? fetchCatalogRow(id ?? ""),
+    enabled: !!id && !!entry,
+    retry: 1,
+  });
+
+  const data = useMemo<ResolvedMiniApp | ModuleManifest | null>(() => {
+    if (!entry) return null;
+    return rowQuery.data ? mergeMiniApp(rowQuery.data, entry) : entry;
+  }, [entry, rowQuery.data]);
+
+  return {
+    ...manifestQuery,
+    data,
+    isLoading: manifestQuery.isLoading || (!!entry && rowQuery.isPending),
+  };
 }

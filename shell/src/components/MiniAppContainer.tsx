@@ -1,6 +1,5 @@
 "use client";
 
-import type { RemoteLoadResult } from "@sewa/host-platform";
 import { resolveCapabilities } from "@sewa/host-platform";
 import { ArrowLeftIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -8,7 +7,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEventBus, usePlatform, useRuntimeLoader } from "@/context";
 import { authClient } from "@/lib/auth-client";
 import { bundleFetchUrl } from "@/lib/modules-api";
-import { withTestingCapabilities } from "@/lib/testing-capabilities";
 import { useMiniApp, useRegistryMiniApp } from "@/lib/use-mini-apps";
 import { useMiniAppBackButton } from "@/platform";
 import { destroyMiniAppSdk, loadMiniAppSdk } from "@/platform/sdk";
@@ -16,22 +14,14 @@ import { setModuleManifestCache } from "@/platform/services";
 import { MiniAppErrorBoundary } from "./MiniAppErrorBoundary";
 import { MiniAppLoader } from "./MiniAppLoader";
 
-/**
- * Where a mini app's descriptor comes from:
- *
- * - `fallback` — the pre-installed list; files are fetched from a base URL
- * - `registry` — the signed manifest; a hash-verified `.zip` is unpacked locally
- */
 export type MiniAppSource = "fallback" | "registry";
 
-/** Everything the container needs about a mini app, regardless of its source. */
 interface MiniAppDescriptor {
   name: string;
   icon?: string;
   color?: string;
   version?: string;
   bundleUrl: string;
-  /** Present only for registry apps — the archive digest to verify against */
   bundleHash?: string;
 }
 
@@ -41,10 +31,23 @@ export interface MiniAppContainerProps {
   source?: MiniAppSource;
 }
 
+export interface RemoteLoadResult {
+  moduleId: string;
+  success: boolean;
+  loadTimeMs: number;
+  strategy: "plugin";
+  bundle?: {
+    mount: (container: HTMLElement, props?: Record<string, unknown>) => void;
+    unmount: (container: HTMLElement) => void;
+  };
+  error?: string;
+  version?: string;
+}
+
 export function MiniAppContainer({
   miniAppId,
   isDark,
-  source = "fallback",
+  source = "registry",
 }: MiniAppContainerProps) {
   const router = useRouter();
   const isRegistry = source === "registry";
@@ -54,7 +57,6 @@ export function MiniAppContainer({
   const loader = useRuntimeLoader();
   const eventBus = useEventBus();
 
-  // Only the query matching this route's source runs; the other stays disabled.
   const {
     data: fallbackManifest,
     isLoading: fallbackLoading,
@@ -71,7 +73,9 @@ export function MiniAppContainer({
 
   const manifest = useMemo<MiniAppDescriptor | null>(() => {
     if (isRegistry) {
-      return registryApp
+      // A manifest entry with no `bundleUrl` is not loadable, so it is treated
+      // as no entry at all rather than failing later inside the loader.
+      return registryApp?.bundleUrl
         ? {
             name: registryApp.displayName ?? registryApp.miniAppId,
             version: registryApp.version,
@@ -94,20 +98,31 @@ export function MiniAppContainer({
   }, [isRegistry, registryApp, fallbackManifest]);
 
   /**
-   * The manifest the host gates RPC calls against. `withTestingCapabilities`
-   * is a stopgap for registry apps, whose manifests still arrive with an empty
-   * `capabilities` — see `lib/testing-capabilities.ts`.
+   * What this mini app may call: whatever it declares, plus the core namespaces
+   * every app needs in order to connect.
+   *
+   * `resolveCapabilities` is the single definition of that union — the RPC
+   * server runs it again over the cached manifest and lands on the same list,
+   * so what the SDK is told it has and what the gate enforces cannot drift.
+   * For a registry app this is exactly the merge's `mergedCapabilities`.
    */
-  const grantingManifest = useMemo(() => {
-    const source = isRegistry ? registryApp : fallbackManifest;
-    return source ? withTestingCapabilities(source) : null;
-  }, [isRegistry, registryApp, fallbackManifest]);
+  const grantedCapabilities = useMemo(
+    () => resolveCapabilities(isRegistry ? registryApp : fallbackManifest),
+    [isRegistry, registryApp, fallbackManifest],
+  );
 
-  // Publish it to the manifest cache the RpcServer reads on handshake — an
+  // Publish the manifest to the cache the RpcServer reads on handshake — an
   // unregistered module is granted nothing beyond the core namespaces.
+  //
+  // Stored exactly as published, declared `capabilities` and all: the server
+  // resolves it itself, and overwriting the field here would throw away the
+  // difference between what the mini app asked for and what it was granted.
   useEffect(() => {
-    if (grantingManifest) setModuleManifestCache([grantingManifest]);
-  }, [grantingManifest]);
+    const source = isRegistry ? registryApp : fallbackManifest;
+    if (!source) return;
+
+    setModuleManifestCache([source]);
+  }, [isRegistry, registryApp, fallbackManifest]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -119,11 +134,9 @@ export function MiniAppContainer({
 
   const initMiniAppBridge = useCallback(async () => {
     if (sdkLoaded.current) return;
-    // The host descriptor advertises the same grant the RpcServer enforces, so
-    // the mini app can read what it has instead of discovering it on a denial.
-    await loadMiniAppSdk(miniAppId, { capabilities: resolveCapabilities(grantingManifest) });
+    await loadMiniAppSdk(miniAppId, { capabilities: grantedCapabilities });
     sdkLoaded.current = true;
-  }, [miniAppId, grantingManifest]);
+  }, [miniAppId, grantedCapabilities]);
 
   const loadModule = useCallback(async () => {
     if (!manifest) return;
@@ -229,9 +242,6 @@ export function MiniAppContainer({
     communicator,
   ]);
 
-  // Give the mini app first refusal on the browser back button: it pops its
-  // own route while it has one, and only when it says it's at its root does
-  // the shell close the container.
   const exitToPortal = useCallback(() => router.push("/"), [router]);
   useMiniAppBackButton({ onExit: exitToPortal, enabled: loadState === "ready" });
 
@@ -290,12 +300,6 @@ export function MiniAppContainer({
 
   return !manifest ? null : (
     <div className={`h-screen flex flex-col`}>
-      {/*
-        No shell header here on purpose. An open mini app owns the whole
-        viewport — the portal's chrome would duplicate whatever navigation the
-        vendor draws and eat vertical space on a phone. All the shell keeps is
-        the way out.
-      */}
       <div
         className={`safe-top flex shrink-0 flex-row items-center px-2 py-2 ${
           isDark ? "bg-gray-800" : "bg-white"

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
+import type { ResolvedMiniApp } from "@/lib/merge-mini-app";
 import {
   useFallbackMiniApps,
   useMiniAppCatalog,
@@ -13,7 +14,6 @@ import {
   useRefreshMiniApps,
 } from "@/lib/use-mini-apps";
 import { useTheme } from "@/lib/use-theme";
-import type { MiniAppListItem } from "@/types/manifest";
 
 /** One row in the list — the phone equivalent of a card in `ModuleGrid`. */
 interface ServiceRow {
@@ -28,7 +28,7 @@ interface ServiceRow {
   href: string;
 }
 
-function toRegistryRow(app: MiniAppListItem): ServiceRow {
+function toRegistryRow(app: ResolvedMiniApp): ServiceRow {
   return {
     key: `registry:${app.id ?? app.miniAppId}`,
     name: app.displayName ?? app.miniAppId,

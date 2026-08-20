@@ -1,7 +1,15 @@
 import type { PlatformType } from "@sewa/host-platform";
 
+/**
+ * What `/manifest-registry/registry/manifests/version` answers with.
+ *
+ * Both fields are optional because the registry currently returns only `id`,
+ * while this type originally declared only `version` — see
+ * `isStoredVersionCurrent`, which has to cope with either.
+ */
 export interface ManifestVersion {
-  version: string;
+  id?: string;
+  version?: string;
 }
 
 export type OrderByProps = "ASC" | "DESC";
