@@ -37,6 +37,17 @@ const PINNED_INTEGRITY: Readonly<Record<string, string>> = {
 /** localStorage key for the field kill switch. `"off"` bypasses + purges. */
 export const SDK_CACHE_SWITCH_KEY = "sewa.sdk.cache";
 
+/**
+ * localStorage key for the local-build switch. `"on"` serves the SDK straight
+ * from `shell/public/sdk/sewa-sdk.min.js`. Runtime twin of
+ * `NEXT_PUBLIC_SDK_LOCAL`, so a build under test can be flipped in one browser
+ * without a rebuild.
+ */
+export const SDK_LOCAL_SWITCH_KEY = "sewa.sdk.local";
+
+/** Path the self-hosted build is served from (`shell/public/sdk/…`). */
+export const SDK_LOCAL_SOURCE = process.env.NEXT_PUBLIC_SDK_LOCAL_SOURCE || "/sdk/sewa-sdk.min.js";
+
 export const SDK_NAME = process.env.NEXT_PUBLIC_SDK_NAME || DEFAULT_SDK_NAME;
 export const SDK_VERSION = process.env.NEXT_PUBLIC_SDK_VERSION || DEFAULT_SDK_VERSION;
 
@@ -57,16 +68,39 @@ export interface SdkSpecOverrides {
   source?: string;
   /** Version override; still resolves a pinned digest if one exists. */
   sdkVersion?: string;
+  /**
+   * Force the self-hosted build on (`true`) or off (`false`) for this call.
+   * Omitted, the `NEXT_PUBLIC_SDK_LOCAL` / localStorage switch decides.
+   */
+  local?: boolean;
 }
 
 /**
  * Resolves the build to load. An explicit `source` wins over the configured
- * template but forfeits the pinned digest unless one happens to be registered
- * for that exact name+version.
+ * template but forfeits the pinned digest — the bytes behind a hand-supplied
+ * URL are not the bytes the pin was taken from.
+ *
+ * Local mode is a third case: same package identity, but the version carries a
+ * `-local` suffix so the self-hosted bytes can never collide with the CDN
+ * build in the IndexedDB cache, and `pinnedBy: "local"` tells `loadSdkScript`
+ * to skip the cache altogether.
  */
 export function resolveSdkSpec(overrides: SdkSpecOverrides = {}): SdkSpec {
   const name = SDK_NAME;
   const version = overrides.sdkVersion || SDK_VERSION;
+
+  if (overrides.local ?? isLocalSdk()) {
+    return {
+      name,
+      version: `${version}-local`,
+      url: overrides.source || SDK_LOCAL_SOURCE,
+      // A build under test is unpinnable by definition — it changes every time
+      // the SDK is rebuilt.
+      integrity: undefined,
+      pinnedBy: "local",
+    };
+  }
+
   const key = bundleKey(name, version);
   const pinned = PINNED_INTEGRITY[key] || process.env.NEXT_PUBLIC_SDK_INTEGRITY || undefined;
 
@@ -74,22 +108,35 @@ export function resolveSdkSpec(overrides: SdkSpecOverrides = {}): SdkSpec {
     name,
     version,
     url: overrides.source || buildUrl(name, version),
-    // A hand-supplied source may point anywhere; only trust a digest that was
-    // pinned for this exact name@version.
-    integrity: overrides.source && !PINNED_INTEGRITY[key] ? undefined : pinned,
+    integrity: overrides.source ? undefined : pinned,
     pinnedBy: "host-default",
   };
 }
 
-/** Reads the localStorage kill switch. Absent/unreadable → null. */
-function readSwitch(): "on" | "off" | null {
+/** Reads a localStorage on/off switch. Absent/unreadable → null. */
+function readSwitch(key: string): "on" | "off" | null {
   try {
-    const raw = globalThis.localStorage?.getItem(SDK_CACHE_SWITCH_KEY);
+    const raw = globalThis.localStorage?.getItem(key);
     return raw === "on" || raw === "off" ? raw : null;
   } catch {
     // Storage can throw outright under some privacy settings.
     return null;
   }
+}
+
+/**
+ * Whether to serve the SDK from `public/sdk/` instead of the CDN.
+ *
+ * For testing an SDK build before it is published: drop the freshly built
+ * `sewa-sdk.min.js` into `shell/public/sdk/`, then either set
+ * `NEXT_PUBLIC_SDK_LOCAL=on` for the whole build, or run
+ * `localStorage.setItem('sewa.sdk.local', 'on')` in one browser. Off by
+ * default, so the normal CDN + cache path is untouched.
+ */
+export function isLocalSdk(): boolean {
+  const override = readSwitch(SDK_LOCAL_SWITCH_KEY);
+  if (override) return override === "on";
+  return process.env.NEXT_PUBLIC_SDK_LOCAL === "on";
 }
 
 /**
@@ -103,7 +150,7 @@ function readSwitch(): "on" | "off" | null {
  * kill switch and also triggers a purge on next load.
  */
 export function isSdkCacheEnabled(): boolean {
-  const override = readSwitch();
+  const override = readSwitch(SDK_CACHE_SWITCH_KEY);
   if (override) return override === "on";
   return process.env.NEXT_PUBLIC_SDK_CACHE !== "off";
 }

@@ -24,9 +24,12 @@ export {
   bundleKey,
   DEFAULT_SDK_SOURCE,
   DEFAULT_SDK_VERSION,
+  isLocalSdk,
   isSdkCacheEnabled,
   resolveSdkSpec,
   SDK_CACHE_SWITCH_KEY,
+  SDK_LOCAL_SOURCE,
+  SDK_LOCAL_SWITCH_KEY,
   SDK_NAME,
   SDK_VERSION,
 } from "./config";
