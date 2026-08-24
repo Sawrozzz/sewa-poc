@@ -1,6 +1,7 @@
 "use client";
 
 import { AppShell } from "@/components/AppShell";
+import { AppLockGate } from "@/components/applock/AppLockGate";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { authClient } from "@/lib/auth-client";
 
@@ -19,5 +20,9 @@ export default function HomePage() {
     return <OnboardingFlow onAuthenticatedAction={refetch} />;
   }
 
-  return <AppShell />;
+  return (
+    <AppLockGate>
+      <AppShell />
+    </AppLockGate>
+  );
 }

@@ -54,7 +54,10 @@
     "sign_out": "Sign out",
     "nic": "NIC",
     "roles": "Roles",
-    "version": "Sewa App v{version}"
+    "version": "Sewa App v{version}",
+    "security": "Security",
+    "app_lock": "App Lock",
+    "app_lock_hint": "Require a 4-digit PIN when opening the app"
   },
   "Welcome": {
     "title": "Welcome",
@@ -90,5 +93,25 @@
     "placeholder": "What can we help you with today?",
     "clear": "Clear search",
     "hint": "Press ⌘K to focus search from anywhere"
+  },
+  "AppLock": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "create_heading": "Create App Lock PIN",
+    "create_description": "Choose a 4-digit PIN to lock the app.",
+    "confirm_heading": "Confirm your PIN",
+    "confirm_description": "Enter the same 4-digit PIN again.",
+    "mismatch": "PINs didn't match. Try again.",
+    "unlock_heading": "Enter your PIN",
+    "unlock_description": "Enter your 4-digit PIN to continue.",
+    "incorrect": "Incorrect PIN. Try again.",
+    "checking": "Checking...",
+    "forgot": "Forgot your PIN? Sign out",
+    "prompt_title": "Lock this app?",
+    "prompt_description": "Add a 4-digit PIN so only you can open Sewa on this device.",
+    "prompt_enable": "Set up App Lock",
+    "prompt_skip": "Not now",
+    "disable_heading": "Confirm your PIN",
+    "disable_description": "Enter your current PIN to turn off App Lock."
   }
 }
