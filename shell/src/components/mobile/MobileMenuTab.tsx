@@ -339,7 +339,7 @@ export function MobileMenuTab() {
               <button
                 aria-checked={appLockEnabled}
                 aria-label={t("app_lock")}
-                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
                   appLockEnabled ? "bg-gov-500" : isDark ? "bg-gray-700" : "bg-gray-300"
                 }`}
                 onClick={() => setLockOverlay(appLockEnabled ? "disable" : "setup")}
@@ -347,8 +347,8 @@ export function MobileMenuTab() {
                 type="button"
               >
                 <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                    appLockEnabled ? "translate-x-5" : "translate-x-0.5"
+                  className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                    appLockEnabled ? "translate-x-6" : "translate-x-1"
                   }`}
                 />
               </button>
@@ -394,7 +394,7 @@ export function MobileMenuTab() {
       </p>
 
       {lockOverlay === "setup" && (
-        <div className="fixed inset-0 z-[100]">
+        <div className="fixed inset-0 z-100">
           <AppLockSetupScreen
             onBackAction={() => setLockOverlay(null)}
             onCreatedAction={async (pin) => {
@@ -408,7 +408,7 @@ export function MobileMenuTab() {
       )}
 
       {lockOverlay === "disable" && (
-        <div className="fixed inset-0 z-[100]">
+        <div className="fixed inset-0 z-100">
           <AppLockUnlockScreen
             description={tAppLock("disable_description")}
             heading={tAppLock("disable_heading")}
