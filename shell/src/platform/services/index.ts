@@ -220,6 +220,7 @@ export function createShellServices(
       return answered;
     },
 
+    hasPendingBack: () => pendingBack !== null,
     canGoBack: () => miniAppCanGoBack,
     setCanGoBack,
     onCanGoBackChange: (handler: (canGoBack: boolean) => void) => {

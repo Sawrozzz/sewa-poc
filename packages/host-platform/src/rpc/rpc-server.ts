@@ -279,19 +279,15 @@ export class RpcServer {
       this.services.permissions.list(),
     );
 
-    r.register(NAMESPACES.FLAGS, ACTIONS.FLAGS.IS_ENABLED, (payload, ctx) =>
-      this.services.flags.isEnabled((payload as { flag?: string })?.flag ?? "", ctx.moduleId),
+    r.register(NAMESPACES.FLAGS, ACTIONS.FLAGS.IS_ENABLED, (payload) =>
+      this.services.flags.isEnabled((payload as { flag?: string })?.flag ?? ""),
     );
-    r.register(NAMESPACES.FLAGS, ACTIONS.FLAGS.GET_ALL, (_, ctx) =>
-      this.services.flags.getAll(ctx.moduleId),
-    );
+    r.register(NAMESPACES.FLAGS, ACTIONS.FLAGS.GET_ALL, () => this.services.flags.getAll());
 
-    r.register(NAMESPACES.CONFIG, ACTIONS.CONFIG.GET, (payload, ctx) =>
-      this.services.config.get((payload as { key?: string })?.key ?? "", ctx.moduleId),
+    r.register(NAMESPACES.CONFIG, ACTIONS.CONFIG.GET, (payload) =>
+      this.services.config.get((payload as { key?: string })?.key ?? ""),
     );
-    r.register(NAMESPACES.CONFIG, ACTIONS.CONFIG.GET_ALL, (_, ctx) =>
-      this.services.config.getAll(ctx.moduleId),
-    );
+    r.register(NAMESPACES.CONFIG, ACTIONS.CONFIG.GET_ALL, () => this.services.config.getAll());
 
     r.register(NAMESPACES.NAVIGATION, ACTIONS.NAVIGATION.NAVIGATE, async (payload, ctx) => {
       const target = payload as unknown as NavigationTarget;
@@ -313,12 +309,18 @@ export class RpcServer {
     // has a route of its own to pop, so the next back press is worth asking
     // about. Both carry a single boolean and default to `true` — an older
     // mini app that sends no payload is saying "I handled it".
-    r.register(NAMESPACES.NAVIGATION, ACTIONS.NAVIGATION.BACK, (payload, ctx) =>
-      this.services.navigation.back(readConsumed(payload), ctx.moduleId),
-    );
-    r.register(NAMESPACES.NAVIGATION, ACTIONS.NAVIGATION.PUSH, (payload, ctx) =>
-      this.services.navigation.push(readConsumed(payload), ctx.moduleId),
-    );
+    //
+    // Both go out over the SAME `navigation.router` RPC call with the SAME
+    // `{ consumed }` payload — the wire never says which one this is. The
+    // one thing that does tell them apart: `back` only ever arrives as a
+    // direct reply to a `navigation.back.requested` the shell just sent, so
+    // whether a back press is currently held is what decides the dispatch.
+    r.register(NAMESPACES.NAVIGATION, ACTIONS.NAVIGATION.ROUTER, (payload, ctx) => {
+      const consumed = readConsumed(payload);
+      return this.services.navigation.hasPendingBack()
+        ? this.services.navigation.back(consumed, ctx.moduleId)
+        : this.services.navigation.push(consumed, ctx.moduleId);
+    });
 
     // platform.getType returns `{ type, appearance }`. `type` MUST be a
     // PlatformTypeLiteral ("web" / "flutter"), not the whole device.info()
@@ -487,7 +489,7 @@ export class RpcServer {
 
     // Chat — streams model responses back to the mini app as `stream`
     // messages. Requires `services.chat` on the ShellServiceMap.
-    r.register(NAMESPACES.AI, ACTIONS.AI.CHAT, async (payload, ctx) => {
+    r.register(NAMESPACES.HTTP, ACTIONS.HTTP.STREAM, async (payload, ctx) => {
       const chatPayload = payload as {
         messages?: { role: string; content: string }[];
         options?: Record<string, unknown>;
@@ -500,19 +502,32 @@ export class RpcServer {
         ...m,
         role: m.role as "user" | "system",
       }));
-      this.streamChatChunks(
-        ctx,
-        this.services.chat.chat(chatMessages, chatPayload.options ?? {}),
-      ).catch((err) => {
+      // `ChatSdkModule.chat()` is typed to return an `AsyncIterator`, but the
+      // shell implements it as an async generator function — which is always
+      // also an `AsyncIterable` (it returns itself from `[Symbol.asyncIterator]`).
+      // `streamChatChunks` needs the iterable form for its `for await` loop.
+      const streamIterable = (await this.services.chat.chat(
+        chatMessages,
+        chatPayload.options,
+      )) as unknown as AsyncIterable<string | Uint8Array>;
+      this.streamChatChunks(ctx, streamIterable).catch((err) => {
         ctx.send(
-          createMessage("response", "ai", "chat", "shell", ctx.moduleId, undefined, {
-            id: ctx.requestId,
-            traceId: ctx.traceId,
-            error: {
-              code: "CHAT_ERROR",
-              message: err instanceof Error ? err.message : String(err),
+          createMessage(
+            "response",
+            NAMESPACES.HTTP,
+            ACTIONS.HTTP.STREAM,
+            "shell",
+            ctx.moduleId,
+            undefined,
+            {
+              id: ctx.requestId,
+              traceId: ctx.traceId,
+              error: {
+                code: "CHAT_ERROR",
+                message: err instanceof Error ? err.message : String(err),
+              },
             },
-          }),
+          ),
           ctx.source,
         );
       });
@@ -628,14 +643,17 @@ export class RpcServer {
   // Chat streaming
   // ---------------------------------------------------------------------------
 
-  private async streamChatChunks(ctx: RpcContext, iter: AsyncIterable<string>): Promise<void> {
+  private async streamChatChunks(
+    ctx: RpcContext,
+    iter: AsyncIterable<string | Uint8Array>,
+  ): Promise<void> {
     let index = 1;
 
     for await (const chunk of iter) {
       const text = typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk);
 
       ctx.send(
-        createMessage("stream", "ai", "chat", "shell", ctx.moduleId, text, {
+        createMessage("stream", NAMESPACES.HTTP, ACTIONS.HTTP.STREAM, "shell", ctx.moduleId, text, {
           id: ctx.requestId,
           traceId: ctx.traceId,
           streamIndex: index,
@@ -647,7 +665,7 @@ export class RpcServer {
     }
 
     ctx.send(
-      createMessage("stream", "ai", "chat", "shell", ctx.moduleId, "", {
+      createMessage("stream", NAMESPACES.HTTP, ACTIONS.HTTP.STREAM, "shell", ctx.moduleId, "", {
         id: ctx.requestId,
         traceId: ctx.traceId,
         streamIndex: index,

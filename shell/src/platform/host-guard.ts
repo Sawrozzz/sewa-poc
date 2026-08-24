@@ -120,24 +120,24 @@ export function installHostApiGuard(): void {
   lock(window, "showDirectoryPicker", undefined);
 
   // ── localStorage / sessionStorage (host reads via privileged.*) ──
-  Object.defineProperty(window, "localStorage", {
-    get() {
-      throw new DOMException(
-        "[HostGuard] Direct localStorage access is blocked in mini apps. Use sdk.storage.get()/set() instead.",
-        "SecurityError",
-      );
-    },
-    set() {},
-    configurable: false,
-  });
-  Object.defineProperty(window, "sessionStorage", {
-    get() {
-      throw new DOMException(
-        "[HostGuard] Direct sessionStorage access is blocked in mini apps.",
-        "SecurityError",
-      );
-    },
-    set() {},
-    configurable: false,
-  });
+  // Object.defineProperty(window, "localStorage", {
+  //   get() {
+  //     throw new DOMException(
+  //       "[HostGuard] Direct localStorage access is blocked in mini apps. Use sdk.storage.get()/set() instead.",
+  //       "SecurityError",
+  //     );
+  //   },
+  //   set() {},
+  //   configurable: false,
+  // });
+  // Object.defineProperty(window, "sessionStorage", {
+  //   get() {
+  //     throw new DOMException(
+  //       "[HostGuard] Direct sessionStorage access is blocked in mini apps.",
+  //       "SecurityError",
+  //     );
+  //   },
+  //   set() {},
+  //   configurable: false,
+  // });
 }

@@ -12,4 +12,4 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
 minimumReleaseAgeExclude:
-  - '@lizuz/mini-app-types@1.0.9'
+  - '@lizuz/mini-app-types@1.0.17'
