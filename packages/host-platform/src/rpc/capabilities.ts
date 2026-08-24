@@ -1,4 +1,3 @@
-
 import { NAMESPACES, SDK_CAPABILITIES } from "../constants";
 
 export const CORE_CAPABILITIES: readonly string[] = [
