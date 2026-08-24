@@ -5,6 +5,7 @@ import {
   CheckIcon,
   ChevronDownIcon,
   GlobeIcon,
+  LockIcon,
   LogOutIcon,
   MonitorIcon,
   MoonIcon,
@@ -15,12 +16,21 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AppLockSetupScreen } from "@/components/applock/AppLockSetupScreen";
+import { AppLockUnlockScreen } from "@/components/applock/AppLockUnlockScreen";
 import { localeLabels, locales } from "@/i18n/config";
+import {
+  disableAppLock,
+  isAppLockEnabled,
+  markAppUnlockedThisSession,
+  setAppLockPin,
+} from "@/lib/app-lock";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
 import { useAppRefresh } from "@/lib/use-app-refresh";
 import { useLocaleSwitch } from "@/lib/use-locale-switch";
 import { useTheme } from "@/lib/use-theme";
+import { isInstalledPwa } from "@/platform/services/biometric";
 
 const THEME_OPTIONS: { value: ThemePreference; Icon: typeof SunIcon; labelKey: string }[] = [
   { value: "light", Icon: SunIcon, labelKey: "theme_light" },
@@ -128,9 +138,21 @@ function DropdownRow({
  */
 export function MobileMenuTab() {
   const t = useTranslations("MobileMenu");
+  const tAppLock = useTranslations("AppLock");
   const router = useRouter();
 
   const [openDropdown, setOpenDropdown] = useState<OpenDropdown>(null);
+
+  // Read after mount only — both reach real browser state that isn't available
+  // during SSR, so starting from `false` here keeps hydration in sync.
+  const [appLockEnabled, setAppLockEnabledState] = useState(false);
+  const [isPwa, setIsPwa] = useState(false);
+  const [lockOverlay, setLockOverlay] = useState<"setup" | "disable" | null>(null);
+
+  useEffect(() => {
+    setAppLockEnabledState(isAppLockEnabled());
+    setIsPwa(isInstalledPwa());
+  }, []);
 
   const { isDark, preference, setPreference } = useTheme();
   const { locale, changeLocale, isPending: localePending } = useLocaleSwitch();
@@ -140,6 +162,14 @@ export function MobileMenuTab() {
   const user = mapSessionUser(session?.user);
 
   const handleLogout = async () => {
+    await authClient.signOut();
+    router.replace("/");
+  };
+
+  const handleForgotPinFromMenu = async () => {
+    disableAppLock();
+    setAppLockEnabledState(false);
+    setLockOverlay(null);
     await authClient.signOut();
     router.replace("/");
   };
@@ -294,6 +324,39 @@ export function MobileMenuTab() {
         </ul>
       </Section>
 
+      {/* Security — only meaningful once the app has its own window to guard */}
+      {!!isPwa && (
+        <Section isDark={isDark} title={t("security")}>
+          <ul className={`divide-y ${dividerClass}`}>
+            <li className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm">
+              <LockIcon className={mutedClass} size={18} />
+
+              <span className="flex-1">
+                <span className={`block font-medium ${labelClass}`}>{t("app_lock")}</span>
+                <span className={`block text-xs ${mutedClass}`}>{t("app_lock_hint")}</span>
+              </span>
+
+              <button
+                aria-checked={appLockEnabled}
+                aria-label={t("app_lock")}
+                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                  appLockEnabled ? "bg-gov-500" : isDark ? "bg-gray-700" : "bg-gray-300"
+                }`}
+                onClick={() => setLockOverlay(appLockEnabled ? "disable" : "setup")}
+                role="switch"
+                type="button"
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                    appLockEnabled ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </li>
+          </ul>
+        </Section>
+      )}
+
       {/* Actions */}
       <Section isDark={isDark} title={t("app")}>
         <ul className={`divide-y ${dividerClass}`}>
@@ -329,6 +392,36 @@ export function MobileMenuTab() {
       <p className={`pb-2 text-center text-xs ${mutedClass}`}>
         {t("version", { version: "1.0.0" })}
       </p>
+
+      {lockOverlay === "setup" && (
+        <div className="fixed inset-0 z-[100]">
+          <AppLockSetupScreen
+            onBackAction={() => setLockOverlay(null)}
+            onCreatedAction={async (pin) => {
+              await setAppLockPin(pin);
+              markAppUnlockedThisSession();
+              setAppLockEnabledState(true);
+              setLockOverlay(null);
+            }}
+          />
+        </div>
+      )}
+
+      {lockOverlay === "disable" && (
+        <div className="fixed inset-0 z-[100]">
+          <AppLockUnlockScreen
+            description={tAppLock("disable_description")}
+            heading={tAppLock("disable_heading")}
+            onCancelAction={() => setLockOverlay(null)}
+            onForgotAction={handleForgotPinFromMenu}
+            onUnlockedAction={() => {
+              disableAppLock();
+              setAppLockEnabledState(false);
+              setLockOverlay(null);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

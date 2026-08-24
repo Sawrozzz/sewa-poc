@@ -54,7 +54,10 @@
     "sign_out": "வெளியேறு",
     "nic": "தே.அ.அட்டை",
     "roles": "பங்குகள்",
-    "version": "சேவா செயலி v{version}"
+    "version": "சேவா செயலி v{version}",
+    "security": "பாதுகாப்பு",
+    "app_lock": "App Lock",
+    "app_lock_hint": "பயன்பாட்டைத் திறக்கும்போது 4 இலக்க PIN தேவை"
   },
   "Welcome": {
     "title": "வணக்கம்",
@@ -90,5 +93,25 @@
     "placeholder": "சேவைகள், ஆவணங்கள் மற்றும் இன்னும் அநேகவற்றைத் தேடுங்கள்...",
     "clear": "தேடலை அழிக்கவும்",
     "hint": "எங்கிருந்து(search) தேடலை udal하려면 ⌘K அழுத்தவும்"
+  },
+  "AppLock": {
+    "back": "பின்",
+    "cancel": "ரத்துசெய்",
+    "create_heading": "App Lock PIN ஐ உருவாக்கவும்",
+    "create_description": "பயன்பாட்டைப் பூட்ட 4 இலக்க PIN ஐத் தேர்ந்தெடுக்கவும்.",
+    "confirm_heading": "உங்கள் PIN ஐ உறுதிப்படுத்தவும்",
+    "confirm_description": "அதே 4 இலக்க PIN ஐ மீண்டும் உள்ளிடவும்.",
+    "mismatch": "PIN பொருந்தவில்லை. மீண்டும் முயற்சிக்கவும்.",
+    "unlock_heading": "உங்கள் PIN ஐ உள்ளிடவும்",
+    "unlock_description": "தொடர உங்கள் 4 இலக்க PIN ஐ உள்ளிடவும்.",
+    "incorrect": "தவறான PIN. மீண்டும் முயற்சிக்கவும்.",
+    "checking": "சரிபார்க்கிறது...",
+    "forgot": "PIN மறந்துவிட்டதா? வெளியேறு",
+    "prompt_title": "இந்த பயன்பாட்டைப் பூட்டவா?",
+    "prompt_description": "இந்த சாதனத்தில் Sewa ஐ உங்களால் மட்டுமே திறக்க 4 இலக்க PIN ஐ சேர்க்கவும்.",
+    "prompt_enable": "App Lock ஐ அமைக்கவும்",
+    "prompt_skip": "இப்போது வேண்டாம்",
+    "disable_heading": "உங்கள் PIN ஐ உறுதிப்படுத்தவும்",
+    "disable_description": "App Lock ஐ முடக்க உங்கள் தற்போதைய PIN ஐ உள்ளிடவும்."
   }
 }

@@ -54,7 +54,10 @@
     "sign_out": "පිටවෙන්න",
     "nic": "ජා.හැ.අංකය",
     "roles": "භූමිකා",
-    "version": "සේවා යෙදුම v{version}"
+    "version": "සේවා යෙදුම v{version}",
+    "security": "ආරක්ෂාව",
+    "app_lock": "App Lock",
+    "app_lock_hint": "යෙදුම විවෘත කිරීමේදී අංක 4 PIN එකක් අවශ්‍ය කරන්න"
   },
   "Welcome": {
     "title": "ආයුබෝවන්",
@@ -90,5 +93,25 @@
     "placeholder": "සේවා, ලේඛන සහ වෙනත් දේවල් සොයන්න...",
     "clear": "සොයීම ඉවත් කරන්න",
     "hint": "ක්‍රෙම්කර කොහිදෙනෙකුටම සොයීමට යොදා ගත හැකි ⌘K ඔබන්න"
+  },
+  "AppLock": {
+    "back": "ආපසු",
+    "cancel": "අවලංගු කරන්න",
+    "create_heading": "App Lock PIN සාදන්න",
+    "create_description": "යෙදුම අගුළු දැමීමට අංක 4 PIN එකක් තෝරන්න.",
+    "confirm_heading": "ඔබේ PIN තහවුරු කරන්න",
+    "confirm_description": "එම අංක 4 PIN එක නැවත ඇතුළත් කරන්න.",
+    "mismatch": "PIN නොගැලපේ. නැවත උත්සාහ කරන්න.",
+    "unlock_heading": "ඔබේ PIN ඇතුළත් කරන්න",
+    "unlock_description": "ඉදිරියට යාමට ඔබේ අංක 4 PIN එක ඇතුළත් කරන්න.",
+    "incorrect": "වැරදි PIN. නැවත උත්සාහ කරන්න.",
+    "checking": "පරීක්ෂා කරමින්...",
+    "forgot": "PIN අමතකද? ඉවත් වන්න",
+    "prompt_title": "මෙම යෙදුම අගුළු දමන්නද?",
+    "prompt_description": "මෙම උපාංගයේ Sewa විවෘත කළ හැක්කේ ඔබට පමණක් වන පරිදි අංක 4 PIN එකක් එක් කරන්න.",
+    "prompt_enable": "App Lock සකසන්න",
+    "prompt_skip": "දැන් නොවේ",
+    "disable_heading": "ඔබේ PIN තහවුරු කරන්න",
+    "disable_description": "App Lock අක්‍රිය කිරීමට ඔබේ වත්මන් PIN එක ඇතුළත් කරන්න."
   }
 }
