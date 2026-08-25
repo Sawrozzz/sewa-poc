@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
+import { useApplicationPlatform } from "@/lib/use-platform";
 import { getGreeting } from "@/utils";
 import { GlobalSearchBar } from "./GlobalSearchBar";
 import { Header } from "./Header";
@@ -9,10 +10,11 @@ import { ModuleGrid } from "./ModuleGrid";
 import { MobileShell, MobileTabsProvider } from "./mobile/MobileShell";
 
 export function AppShell() {
+  const platform = useApplicationPlatform();
   return (
     <MobileTabsProvider>
       <div className="mobile-surface min-h-screen bg-linear-to-br from-gov-50 via-white to-gov-50">
-        <div>Platform: {window.navigator.platform}</div>
+        <div>Platform: {platform}</div>
         <DesktopShell />
         <MobileShell />
       </div>
