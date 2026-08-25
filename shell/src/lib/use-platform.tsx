@@ -13,14 +13,14 @@ export function useApplicationPlatform(): Platform {
 
     // Normal browser → always Web
     if (!isStandalone) {
-      setPlatform("Web");
+      setPlatform("WEB");
       return;
     }
 
     const ua = navigator.userAgent.toLowerCase();
 
     if (/android/.test(ua)) {
-      setPlatform("Android");
+      setPlatform("ANDROID");
       return;
     }
 
