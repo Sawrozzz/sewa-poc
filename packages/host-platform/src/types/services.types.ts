@@ -11,9 +11,17 @@
  * additionally serves those namespaces itself via axios.
  */
 
+import type {
+  ApiSdkModule,
+  AuthSdkModule,
+  ConfigSdkModule,
+  FlagsSdkModule,
+  PermissionsSdkModule,
+  StorageSdkModule,
+} from "@lizuz/mini-app-types";
 import type { ModuleManifest, OldModuleManifest } from "./module.types";
 import type {
-  ChatMessage,
+  ChatSdkModule,
   DeviceBiometricResult,
   DeviceCameraResult,
   DeviceContactResult,
@@ -26,15 +34,9 @@ import type {
   DeviceNotificationResult,
   DevicePermissionResponse,
   FileOptions,
-  HttpResult,
+  HttpSdkModule,
   LocaleState,
-  ShellApiService,
-  ShellAuthService,
-  ShellConfigService,
-  ShellFlagsService,
   ShellNavigationService,
-  ShellPermissionsService,
-  ShellStorageService,
   ThemeState,
 } from "./sdk.types";
 
@@ -50,10 +52,6 @@ type MiniAppManifest = ModuleManifest | OldModuleManifest;
 export interface ShellAppearanceService {
   getLocale(): Promise<LocaleState>;
   getTheme(): Promise<ThemeState>;
-}
-
-export interface ShellChatService {
-  chat(messages: ChatMessage[], options?: Record<string, unknown>): AsyncIterable<string>;
 }
 
 export interface ShellDeviceService {
@@ -80,43 +78,22 @@ export interface ShellDeviceService {
   network(): Promise<DeviceNetworkResult>;
   info(): Promise<DeviceInfoResult>;
 }
-
-export interface ShellHttpService {
-  get<T = unknown>(endpoint?: string, query?: Record<string, string>): Promise<HttpResult<T>>;
-  post<T = unknown>(
-    endpoint?: string,
-    body?: unknown,
-    headers?: Record<string, string>,
-  ): Promise<HttpResult<T>>;
-  put<T = unknown>(
-    endpoint?: string,
-    body?: unknown,
-    headers?: Record<string, string>,
-  ): Promise<HttpResult<T>>;
-  patch<T = unknown>(
-    endpoint?: string,
-    body?: unknown,
-    headers?: Record<string, string>,
-  ): Promise<HttpResult<T>>;
-  delete<T = unknown>(endpoint?: string, headers?: Record<string, string>): Promise<HttpResult<T>>;
-}
-
 export interface ShellModuleManifestService {
   get(moduleId: string): MiniAppManifest | undefined;
   getAll(): Map<string, MiniAppManifest>;
 }
 
 export interface ShellServiceMap {
-  auth: ShellAuthService;
-  permissions: ShellPermissionsService;
-  flags: ShellFlagsService;
-  config: ShellConfigService;
+  auth: AuthSdkModule;
+  permissions: PermissionsSdkModule;
+  flags: FlagsSdkModule;
+  config: ConfigSdkModule;
   navigation: ShellNavigationService;
-  chat: ShellChatService;
+  chat: ChatSdkModule;
   device: ShellDeviceService;
-  storage: ShellStorageService;
-  api: ShellApiService;
-  http: ShellHttpService;
+  storage: StorageSdkModule;
+  api: ApiSdkModule;
+  http: HttpSdkModule;
   appearance: ShellAppearanceService;
   moduleManifest: ShellModuleManifestService;
 }

@@ -8,11 +8,13 @@
 
 import type {
   ApiResult,
+  ChatSdkModule,
   DeviceGalleryResult,
   DevicePermissionStatus,
   FileModule,
   HttpMethod,
   HttpResult,
+  HttpSdkModule,
   NavigationTarget,
 } from "@lizuz/mini-app-types";
 
@@ -27,10 +29,12 @@ export type {
 } from "@lizuz/mini-app-types";
 export type {
   ApiResult,
+  ChatSdkModule,
   DeviceGalleryResult,
   FileModule,
   HttpMethod,
   HttpResult,
+  HttpSdkModule,
   NavigationTarget,
 };
 
@@ -219,6 +223,15 @@ export interface ShellNavigationService {
    * that doesn't implement the handshake.
    */
   requestBack(): Promise<boolean>;
+  /**
+   * True while a `requestBack()` call is still waiting on the mini app's
+   * answer. The wire-level `navigation.router` RPC call carries only
+   * `{ consumed }` — nothing marks it as a `back()` reply versus a `push()`
+   * report — so the RPC server uses this to tell the two apart: a reply
+   * arriving while a back press is held is the answer to it, anything else
+   * is the mini app reporting its own forward step.
+   */
+  hasPendingBack(): boolean;
   /** Whether the mounted mini app currently has history of its own to pop. */
   canGoBack(): boolean;
   /** Records what the mini app last reported about its own history. */
@@ -226,20 +239,4 @@ export interface ShellNavigationService {
   onCanGoBackChange(handler: (canGoBack: boolean) => void): () => void;
   /** Clears router state when a mini app unmounts. */
   resetRouter(): void;
-}
-
-export interface ChatMessage {
-  role: "user" | "system" | "ai";
-  content: string;
-}
-
-export interface ModelCompletionOptions {
-  model?: string;
-  temperature?: number;
-  maxTokens?: number;
-  [key: string]: unknown;
-}
-
-export interface ChatSdkModule {
-  chat(messages: ChatMessage[], options?: ModelCompletionOptions): AsyncIterable<string>;
 }

@@ -42,7 +42,11 @@ export const ACTIONS = {
   PERMISSIONS: { HAS: "has", LIST: "list" },
   FLAGS: { IS_ENABLED: "isEnabled", GET_ALL: "getAll" },
   CONFIG: { GET: "get", GET_ALL: "getAll" },
-  NAVIGATION: { NAVIGATE: "navigate", GET_CURRENT: "getCurrent", BACK: "back", PUSH: "push" },
+  NAVIGATION: {
+    NAVIGATE: "navigate",
+    GET_CURRENT: "getCurrent",
+    ROUTER: "router",
+  },
   PLATFORM: { GET_TYPE: "getType" },
   DEVICE: {
     LOCATION: "location",
@@ -55,7 +59,14 @@ export const ACTIONS = {
     INFO: "info",
     CONTACT: "contact",
   },
-  HTTP: { GET: "get", POST: "post", PUT: "put", PATCH: "patch", DELETE: "delete" },
+  HTTP: {
+    GET: "get",
+    POST: "post",
+    PUT: "put",
+    PATCH: "patch",
+    DELETE: "delete",
+    STREAM: "stream",
+  },
   STORAGE: { GET: "get", SET: "set", REMOVE: "remove" },
   API: { REQUEST: "request" },
   APPEARANCE: {

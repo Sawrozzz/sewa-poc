@@ -5,6 +5,7 @@ import { getToken, onRegistered, onUnregistered, register } from "firebase/messa
 import { useCallback, useEffect, useState } from "react";
 import { privileged } from "@/platform/host-privileges";
 import { getFirebaseMessaging } from "./firebase";
+import { registerFcmDevice } from "./register-fcm-device";
 
 const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 
@@ -117,16 +118,21 @@ export const useFcmToken = (): FcmTokenResult => {
         console.error("FCM FID registration failed:", error);
       }
 
-      // TEST ONLY: legacy registration token for the Firebase Console
-      // "Send test message" button. Logged, not rendered.
+      // Registration token — what the backend stores as the push target (and
+      // what the Firebase Console "Send test message" button accepts).
       try {
-        const legacy = await getToken(messaging, {
+        const registrationToken = await getToken(messaging, {
           vapidKey: VAPID_KEY,
           serviceWorkerRegistration,
         });
-        if (legacy) console.log("FCM legacy token (Send test message):", legacy);
+        if (registrationToken) {
+          console.log("FCM registration token:", registrationToken);
+          await registerFcmDevice(registrationToken);
+        } else {
+          console.warn("FCM: no registration token returned, device not registered.");
+        }
       } catch (error) {
-        console.error("FCM legacy token retrieval failed:", error);
+        console.error("FCM registration token retrieval failed:", error);
       }
     };
 

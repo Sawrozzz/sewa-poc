@@ -12,6 +12,9 @@ export function AppShell() {
   return (
     <MobileTabsProvider>
       <div className="mobile-surface min-h-screen bg-linear-to-br from-gov-50 via-white to-gov-50">
+        <div>
+          Platform: {window.navigator.platform}
+        </div>
         <DesktopShell />
         <MobileShell />
       </div>
