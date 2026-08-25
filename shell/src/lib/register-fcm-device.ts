@@ -38,18 +38,11 @@ export async function registerFcmDevice(token: string): Promise<void> {
     });
 
     if (!response.ok) {
-      console.error(
-        "FCM: device registration failed",
-        response.status,
-        await response.text(),
-      );
+      console.error("FCM: device registration failed", response.status, await response.text());
       return;
     }
 
-    console.log(
-      "FCM: device registered with backend.",
-      await response.json(),
-    );
+    console.log("FCM: device registered with backend.", await response.json());
   } catch (error) {
     console.error("FCM: device registration request failed:", error);
   }
