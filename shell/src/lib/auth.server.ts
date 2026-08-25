@@ -76,14 +76,19 @@ const phoneOtpPlugin = {
             phoneNumber: phoneE164,
           } as never);
         } else {
-          const newUser = await ctx.context.internalAdapter.createUser({
-            email: MOCK_CITIZEN.email,
-            name: MOCK_CITIZEN.fullName,
-            emailVerified: MOCK_CITIZEN.emailVerified,
-            phoneNumber: phoneE164,
-            phoneVerified: MOCK_CITIZEN.phoneVerified,
-            nationalId: MOCK_CITIZEN.nationalId,
-          } as never);
+          const newUser = await ctx.context.internalAdapter.createUser(
+            {
+              email: MOCK_CITIZEN.email,
+              name: MOCK_CITIZEN.fullName,
+              emailVerified: MOCK_CITIZEN.emailVerified,
+              phoneNumber: phoneE164,
+              phoneVerified: MOCK_CITIZEN.phoneVerified,
+              nationalId: MOCK_CITIZEN.nationalId,
+            } as never,
+            {
+              method: "oauth"
+            },
+          );
           userId = newUser.id;
         }
 
