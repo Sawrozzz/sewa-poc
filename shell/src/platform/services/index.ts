@@ -1,5 +1,5 @@
+import type { ChatMessage } from "@lizuz/mini-app-types";
 import type {
-  ChatMessage,
   EventBus,
   ModuleManifest,
   NavigationRouterResult,
