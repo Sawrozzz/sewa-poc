@@ -10,4 +10,10 @@ export type {
   StreamMessageFields,
 } from "./message.types";
 export { createMessage } from "./message-factory";
-export { isPlatformMessage, isStreamMessage, splitEventType } from "./message-validator";
+export {
+  hasCompatibleMajorVersion,
+  isPlatformMessage,
+  isStreamMessage,
+  majorVersionsMatch,
+  splitEventType,
+} from "./message-validator";

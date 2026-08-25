@@ -1,4 +1,4 @@
-import { MESSAGE_CHANNEL } from "../constants";
+import { MESSAGE_CHANNEL, PROTOCOL_VERSION } from "../constants";
 import type { HostPlatformMessage, PlatformMessage } from "./message.types";
 
 /** Lightweight structural check for inbound platform traffic. */
@@ -27,6 +27,29 @@ export function isStreamMessage(data: unknown): data is HostPlatformMessage & { 
     typeof msg.namespace === "string" &&
     typeof msg.action === "string"
   );
+}
+
+/**
+ * Compares two protocol version strings by their major component only —
+ * `"3.1.0"` and `"3.4.2"` are compatible, `"3.0.0"` and `"4.0.0"` are not.
+ * Mirrors the SDK's `majorVersionsMatch`; only a major bump signals a
+ * breaking wire-format change.
+ */
+export function majorVersionsMatch(a: string, b: string): boolean {
+  return a.split(".")[0] === b.split(".")[0];
+}
+
+/**
+ * Compares the protocol version stamped on an inbound message against this
+ * host's `PROTOCOL_VERSION` (or an explicit `expected` value). Used to drop
+ * traffic from a mini app shaped for a wire format this host doesn't speak.
+ */
+export function hasCompatibleMajorVersion(
+  message: HostPlatformMessage,
+  expected: string = PROTOCOL_VERSION,
+): boolean {
+  if (typeof message.gsaProtocolVersion !== "string") return false;
+  return majorVersionsMatch(message.gsaProtocolVersion, expected);
 }
 
 /**

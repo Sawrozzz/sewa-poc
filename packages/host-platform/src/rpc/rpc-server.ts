@@ -14,7 +14,13 @@ import { RpcMethodError } from "../errors";
 import type { EventBus, PlatformEvent } from "../events";
 import { PLATFORM_EVENTS } from "../events";
 import type { HostPlatformMessage } from "../protocol";
-import { createMessage, isPlatformMessage, splitEventType } from "../protocol";
+import {
+  createMessage,
+  hasCompatibleMajorVersion,
+  isPlatformMessage,
+  majorVersionsMatch,
+  splitEventType,
+} from "../protocol";
 import type { Transport } from "../transport";
 import { PostMessageTransport } from "../transport";
 import type { ShellServiceMap } from "../types";
@@ -126,6 +132,17 @@ export class RpcServer {
       return;
     }
 
+    if (!hasCompatibleMajorVersion(msg)) {
+      console.warn("[RpcServer] Dropping message with incompatible protocol major version", {
+        received: msg.gsaProtocolVersion,
+        expected: PROTOCOL_VERSION,
+        namespace: msg.namespace,
+        action: msg.action,
+        source: msg.source,
+      });
+      return;
+    }
+
     try {
       const response =
         msg.type === "handshake"
@@ -169,6 +186,30 @@ export class RpcServer {
     const effectiveDataCapabilities = resolveDataCapabilities(moduleManifest);
 
     const effectiveMiniAppCapabilties = resolveMiniAppCapabilities(moduleManifest)
+
+    const clientProtocolVersion = payload.protocolVersion ?? PROTOCOL_VERSION;
+    if (!majorVersionsMatch(clientProtocolVersion, PROTOCOL_VERSION)) {
+      console.warn("[RpcServer] Rejecting handshake: incompatible mini app protocol version", {
+        miniAppId,
+        received: clientProtocolVersion,
+        expected: PROTOCOL_VERSION,
+      });
+      return createMessage(
+        "response",
+        NAMESPACES.HANDSHAKE,
+        msg.action,
+        "shell",
+        miniAppId,
+        {
+          status: "rejected",
+          reason: `Mini app protocol version "${clientProtocolVersion}" is incompatible with host protocol version "${PROTOCOL_VERSION}" (major version mismatch)`,
+        },
+        {
+          id: msg.requestId,
+          traceId: msg.traceId,
+        },
+      );
+    }
 
     const module: ConnectedModule = {
       moduleId: miniAppId,
