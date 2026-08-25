@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getManifestVersion } from "@/lib/manifest-source";
+import { getManifestVersion } from "@/core/manifest/manifest-source";
 
 export async function GET() {
   try {

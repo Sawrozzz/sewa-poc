@@ -1,3 +1,4 @@
+export { createMessage } from "./message-factory";
 export type {
   CreateMessageOptions,
   HandshakeAckPayload,
@@ -8,8 +9,7 @@ export type {
   PlatformError,
   PlatformMessage,
   StreamMessageFields,
-} from "./message.types";
-export { createMessage } from "./message-factory";
+} from "./message-types";
 export {
   hasCompatibleMajorVersion,
   isPlatformMessage,

@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getManifestMiniApps } from "@/lib/manifest-source";
+import { getManifestMiniApps } from "@/core/manifest/manifest-source";
 import type { OrderByProps } from "@/types/manifest";
 
 /**

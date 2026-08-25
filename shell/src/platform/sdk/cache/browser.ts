@@ -8,8 +8,8 @@
  * before the cache existed.
  */
 
+import { digest, resolveKeepVersions } from "@/shared/lib";
 import type { SdkCacheEnv, SdkCacheResult, SdkSpec, SdkStore } from "@/types/platform";
-import { digest, resolveKeepVersions } from "@/utils";
 import type { SdkSpecOverrides } from "./config";
 import { isSdkCacheEnabled, resolveSdkSpec } from "./config";
 import { loadSdkBundle, purgeSdkBundles, warmSdkBundle } from "./core";

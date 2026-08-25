@@ -1,7 +1,7 @@
 "use client";
 
-import type { Platform } from "./PlatformDetector";
-import { getApplicationPlatform } from "./PlatformDetector";
+import type { Platform } from "./platform-detector";
+import { getApplicationPlatform } from "./platform-detector";
 
 const APP_VERSION = "1.0.0";
 

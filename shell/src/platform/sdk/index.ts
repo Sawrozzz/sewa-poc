@@ -13,6 +13,7 @@
  * own shims that re-export from here, so nothing outside this folder changed.
  */
 
+export { digest, SdkIntegrityError, verify } from "@/shared/lib/sdk-utils";
 export type {
   CachedSdkBundle,
   SdkCacheEnv,
@@ -23,7 +24,6 @@ export type {
   SdkSpec,
   SdkStore,
 } from "@/types/platform";
-export { digest, SdkIntegrityError, verify } from "@/utils/sdk-utils";
 export {
   bootstrapMiniAppSdk,
   DEFAULT_HOST_CAPABILITIES,

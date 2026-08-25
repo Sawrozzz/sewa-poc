@@ -10,6 +10,7 @@
  * than quietly re-fetching bytes that already failed verification.
  */
 
+import { SdkIntegrityError } from "@/shared/lib";
 import type {
   CachedSdkBundle,
   SdkCacheEnv,
@@ -17,7 +18,6 @@ import type {
   SdkSpec,
   SdkStore,
 } from "@/types/platform";
-import { SdkIntegrityError } from "@/utils";
 import { bundleKey } from "./config";
 import { downloadBundle } from "./fetch";
 

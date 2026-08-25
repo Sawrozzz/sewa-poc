@@ -8,7 +8,7 @@
 
 import { MESSAGE_CHANNEL, PROTOCOL_VERSION } from "../constants";
 import { generateId } from "../utils";
-import type { CreateMessageOptions, HostMessageType, HostPlatformMessage } from "./message.types";
+import type { CreateMessageOptions, HostMessageType, HostPlatformMessage } from "./message-types";
 
 export function createMessage<T>(
   type: HostMessageType,

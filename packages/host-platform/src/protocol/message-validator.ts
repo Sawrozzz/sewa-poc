@@ -1,5 +1,5 @@
 import { MESSAGE_CHANNEL, PROTOCOL_VERSION } from "../constants";
-import type { HostPlatformMessage, PlatformMessage } from "./message.types";
+import type { HostPlatformMessage, PlatformMessage } from "./message-types";
 
 /** Lightweight structural check for inbound platform traffic. */
 export function isPlatformMessage(data: unknown): data is PlatformMessage {

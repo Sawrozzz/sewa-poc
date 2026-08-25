@@ -1,7 +1,7 @@
 import type { ModuleManifest } from "@sewa/host-platform";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getSignedManifest } from "@/lib/manifest-source";
+import { getSignedManifest } from "@/core/manifest/manifest-source";
 
 /**
  * Bundle download proxy.

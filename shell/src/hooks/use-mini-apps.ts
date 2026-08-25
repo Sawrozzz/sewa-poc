@@ -4,9 +4,8 @@ import type { ModuleManifest } from "@sewa/host-platform";
 import type { InfiniteData, QueryClient } from "@tanstack/react-query";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo } from "react";
-import { clearMiniAppsManifest } from "@/lib/index-db";
-import type { ResolvedMiniApp } from "@/lib/merge-mini-app";
-import { indexManifestMiniApps, mergeMiniApp } from "@/lib/merge-mini-app";
+import type { ResolvedMiniApp } from "@/core/manifest/merge-mini-app";
+import { indexManifestMiniApps, mergeMiniApp } from "@/core/manifest/merge-mini-app";
 import {
   fetchCatalogRow,
   fetchMiniAppCatalog,
@@ -15,7 +14,8 @@ import {
   findMiniApp,
   getFallbackManifests,
   MINI_APP_PAGE_SIZE,
-} from "@/lib/modules-api";
+} from "@/core/manifest/modules-api";
+import { clearMiniAppsManifest } from "@/core/storage/index-db";
 import type {
   MiniAppListItem,
   PaginatedMiniAppParamsType,

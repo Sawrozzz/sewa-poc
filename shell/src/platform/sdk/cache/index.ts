@@ -7,6 +7,7 @@
  * to the CDN `<script>` that shipped before this module existed.
  */
 
+export { digest, SdkIntegrityError, verify } from "@/shared/lib/sdk-utils";
 export type {
   CachedSdkBundle,
   SdkCacheEnv,
@@ -17,7 +18,6 @@ export type {
   SdkSpec,
   SdkStore,
 } from "@/types/platform";
-export { digest, SdkIntegrityError, verify } from "@/utils/sdk-utils";
 export { loadSdkScript, purgeSdkCache, scheduleSdkWarm, warmSdkCache } from "./browser";
 export type { SdkSpecOverrides } from "./config";
 export {

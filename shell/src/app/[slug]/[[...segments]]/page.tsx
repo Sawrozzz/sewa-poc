@@ -2,10 +2,10 @@
 
 import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import type { MiniAppSource } from "@/components/MiniAppContainer";
-import { MiniAppContainer } from "@/components/MiniAppContainer";
-import Loader from "@/components/ui/Loader";
 import { usePlatform } from "@/context";
+import type { MiniAppSource } from "@/features/mini-app/MiniAppContainer";
+import { MiniAppContainer } from "@/features/mini-app/MiniAppContainer";
+import Loader from "@/shared/ui/Loader";
 
 /**
  * Mini App Loader Page

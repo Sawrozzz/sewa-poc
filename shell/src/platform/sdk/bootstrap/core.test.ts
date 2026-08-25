@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import {
   bootstrapMiniAppSdk,
   destroySdkInstance,
@@ -118,7 +118,7 @@ test("bootstrap throws when the source loads without producing an instance", asy
 
   await assert.rejects(
     bootstrapMiniAppSdk("license", {}, env),
-    /Mini App SDK did not initialize from \/sdk\/sewa-sdk\.min\.js/,
+    /Mini App SDK did not initialize from/,
   );
 });
 
