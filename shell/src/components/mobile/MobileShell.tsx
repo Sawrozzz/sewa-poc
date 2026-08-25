@@ -1,6 +1,7 @@
 "use client";
 
 import { BottomTabBar } from "./BottomTabBar";
+import { FloatingMiniApp } from "./FloatingMiniApp";
 import { MobileHomeTab } from "./MobileHomeTab";
 import { MobileMenuTab } from "./MobileMenuTab";
 import { MobileServicesTab } from "./MobileServicesTab";
@@ -34,6 +35,10 @@ export function MobileShell() {
       </main>
 
       <BottomTabBar />
+
+      {/* Floating chat bubble. Inside this `md:hidden` subtree, so it exists on
+          the phone shell only — the browser layout never renders it. */}
+      <FloatingMiniApp />
     </>
   );
 }

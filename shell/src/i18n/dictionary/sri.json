@@ -41,6 +41,13 @@
     "no_results": "\"{term}\" හා ගැළපෙන සේවාවක් නොමැත.",
     "empty": "මේ මොහොතේ සේවාවන් නොමැත."
   },
+  "FloatingChat": {
+    "open": "{name} විවෘත කරන්න",
+    "close": "කතාබහ වසන්න",
+    "loading": "කතාබහ ආරම්භ වෙමින්…",
+    "load_failed": "කතාබහ පූරණය කළ නොහැකි විය.",
+    "try_again": "නැවත උත්සාහ කරන්න"
+  },
   "MobileMenu": {
     "preferences": "අභිරුචි",
     "language": "භාෂාව",

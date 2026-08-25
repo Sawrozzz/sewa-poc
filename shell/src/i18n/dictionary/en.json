@@ -41,6 +41,13 @@
     "no_results": "No services match \"{term}\".",
     "empty": "No services available at this time."
   },
+  "FloatingChat": {
+    "open": "Open {name}",
+    "close": "Close chat",
+    "loading": "Starting chat…",
+    "load_failed": "Chat could not be loaded.",
+    "try_again": "Try again"
+  },
   "MobileMenu": {
     "preferences": "Preferences",
     "language": "Language",

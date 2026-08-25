@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
+import { isFloatingMiniApp } from "@/lib/floating-mini-app";
 import { useFallbackMiniApps, useMiniAppCatalog } from "@/lib/use-mini-apps";
 import { useTheme } from "@/lib/use-theme";
 import { getGreeting } from "@/utils";
@@ -88,12 +89,16 @@ export function MobileHomeTab() {
   const fallbackModules = useFallbackMiniApps();
 
   const tiles = useMemo<LauncherTile[]>(() => {
-    const registry = miniApps.map((app) => ({
-      key: `registry:${app.id ?? app.miniAppId}`,
-      name: app.displayName ?? app.miniAppId,
-      iconUrl: app.iconUrl ?? undefined,
-      href: `/${app.miniAppId}?source=registry`,
-    }));
+    // The chat app is reachable from the floating bubble on this shell, so it
+    // is not also given a launcher tile.
+    const registry = miniApps
+      .filter((app) => !isFloatingMiniApp(app.miniAppId))
+      .map((app) => ({
+        key: `registry:${app.id ?? app.miniAppId}`,
+        name: app.displayName ?? app.miniAppId,
+        iconUrl: app.iconUrl ?? undefined,
+        href: `/${app.miniAppId}?source=registry`,
+      }));
 
     const fallback = fallbackModules
       .filter((m) => m.isEnabled)
