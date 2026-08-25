@@ -31,8 +31,8 @@ export const FALLBACK_MINI_APPS: OldModuleManifest[] = [
     ],
     isEnabled: true,
     order: 1,
-    // bundleUrl: "https://test-mini-app-orcin.vercel.app/",
-    bundleUrl: "http://localhost:3002/",
+    bundleUrl: "https://test-mini-app-orcin.vercel.app/",
+    // bundleUrl: "http://localhost:3002/",
     entryType: "framework-agnostic",
     loadStrategy: "plugin",
     compatibility: {
@@ -74,8 +74,8 @@ export const FALLBACK_MINI_APPS: OldModuleManifest[] = [
     ],
     isEnabled: true,
     order: 1,
-    // bundleUrl: "https://chat-mini-app-ten.vercel.app/",
-    bundleUrl: "http://localhost:3009/",
+    bundleUrl: "https://chat-mini-app-ten.vercel.app/",
+    // bundleUrl: "http://localhost:3009/",
     entryType: "framework-agnostic",
     loadStrategy: "plugin",
     compatibility: {

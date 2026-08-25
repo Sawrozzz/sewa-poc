@@ -6,7 +6,7 @@
     "morning": "Good Morning",
     "afternoon": "Good Afternoon",
     "evening": "Good Evening",
-    "night": "Good Day"
+    "day": "Good Day"
   },
   "welcome_text": "{greeting}, {name}!",
     "services_description": "Access your government services below. New services are added automatically as they become available."
