@@ -72,6 +72,13 @@ body {
   bottom: calc(1rem + var(--safe-bottom));
 }
 
+/* Floats clear of the fixed bottom tab bar: its 3.75rem body, the
+   home-indicator inset that bar already reserves, plus a 1rem gap. Same
+   arithmetic as `.tabbar-gap`, which keeps list content off it. */
+.above-tabbar {
+  bottom: calc(3.75rem + var(--safe-bottom) + 1rem);
+}
+
 /*
  * Mobile shell (phones + installed PWA). Everything below is scoped under the
  * `md` breakpoint so the browser layout is byte-for-byte what it was; 47.99rem

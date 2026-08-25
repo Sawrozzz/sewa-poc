@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
+import { isFloatingMiniApp } from "@/lib/floating-mini-app";
 import type { ResolvedMiniApp } from "@/lib/merge-mini-app";
 import {
   useFallbackMiniApps,
@@ -159,8 +160,14 @@ export function MobileServicesTab() {
 
   const search = term.trim().toLowerCase();
 
+  // The chat app is reachable from the floating bubble on this shell, so it is
+  // not also listed here.
   const registryRows = useMemo(
-    () => miniApps.map(toRegistryRow).filter((row) => matches(row, search)),
+    () =>
+      miniApps
+        .filter((app) => !isFloatingMiniApp(app.miniAppId))
+        .map(toRegistryRow)
+        .filter((row) => matches(row, search)),
     [miniApps, search],
   );
 
