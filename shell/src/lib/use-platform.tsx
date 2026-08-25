@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
-export type Platform = "IOS" | "Android" | "Web";
+export type Platform = "WEB" | "ANDROID" | "IOS";
 
 export function useApplicationPlatform(): Platform {
-  const [platform, setPlatform] = useState<Platform>("Web");
+  const [platform, setPlatform] = useState<Platform>("WEB");
 
   useEffect(() => {
     const isStandalone =
@@ -33,7 +33,12 @@ export function useApplicationPlatform(): Platform {
       return;
     }
 
-    setPlatform("Web");
+    if (/android/.test(ua)) {
+      setPlatform("ANDROID");
+      return;
+    }
+
+    setPlatform("WEB");
   }, []);
 
   return platform;
