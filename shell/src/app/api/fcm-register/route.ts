@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   try {
     const { ...reqBody } = await request.json();
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/citizen/v1/devices/tokens`, {
       method: "POST",
       headers: {

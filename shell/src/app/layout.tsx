@@ -3,11 +3,11 @@ import { SerwistProvider } from "@serwist/turbopack/react";
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
+import GlobalProvider from "@/components/shell-chrome/GlobalProvider";
+import { InstallPrompt } from "@/components/shell-chrome/InstallPrompt";
+import { OfflineBanner } from "@/components/shell-chrome/OfflineBanner";
+import SplashScreen from "@/components/shell-chrome/SplashScreen";
 import { OfflineProvider } from "@/core/storage/OfflineContext";
-import GlobalProvider from "@/features/shell-chrome/GlobalProvider";
-import { InstallPrompt } from "@/features/shell-chrome/InstallPrompt";
-import { OfflineBanner } from "@/features/shell-chrome/OfflineBanner";
-import SplashScreen from "@/features/shell-chrome/SplashScreen";
 
 const APP_NAME = "Sewa App";
 const APP_DEFAULT_TITLE = "Sewa App";

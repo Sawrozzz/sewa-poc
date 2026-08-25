@@ -2,8 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { LocaleSwitcher } from "@/components/shell-chrome/LanguageSwitcher";
 import { SRI_LANKA_DIAL_CODE } from "@/core/mocks/mock-user";
-import { LocaleSwitcher } from "@/features/shell-chrome/LanguageSwitcher";
 import { SriLankaFlag } from "./SriLankaFlag";
 
 /** Groups a bare national number as "71 234 5678" while typing. */

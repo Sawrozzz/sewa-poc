@@ -1,9 +1,9 @@
 "use client";
 
-import { AppLockGate } from "@/features/auth/applock/AppLockGate";
+import { AppLockGate } from "@/components/applock/AppLockGate";
+import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
+import { AppShell } from "@/components/shell-chrome/AppShell";
 import { authClient } from "@/features/auth/auth-client";
-import { OnboardingFlow } from "@/features/auth/onboarding/OnboardingFlow";
-import { AppShell } from "@/features/shell-chrome/AppShell";
 
 export default function HomePage() {
   const { data: session, isPending, refetch } = authClient.useSession();

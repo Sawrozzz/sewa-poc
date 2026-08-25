@@ -17,14 +17,14 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { AppLockSetupScreen } from "@/components/applock/AppLockSetupScreen";
+import { AppLockUnlockScreen } from "@/components/applock/AppLockUnlockScreen";
 import {
   disableAppLock,
   isAppLockEnabled,
   markAppUnlockedThisSession,
   setAppLockPin,
 } from "@/features/auth/app-lock";
-import { AppLockSetupScreen } from "@/features/auth/applock/AppLockSetupScreen";
-import { AppLockUnlockScreen } from "@/features/auth/applock/AppLockUnlockScreen";
 import { authClient, mapSessionUser } from "@/features/auth/auth-client";
 import { useAppRefresh } from "@/hooks/use-app-refresh";
 import { useLocaleSwitch } from "@/hooks/use-locale-switch";
