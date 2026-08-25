@@ -1,44 +1,12 @@
 import { useEffect, useState } from "react";
-
-export type Platform = "WEB" | "ANDROID" | "IOS";
+import type { Platform } from "./PlatformDetector";
+import { getApplicationPlatform } from "./PlatformDetector";
 
 export function useApplicationPlatform(): Platform {
   const [platform, setPlatform] = useState<Platform>("WEB");
 
   useEffect(() => {
-    const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      // iOS Safari legacy PWA detection
-      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-
-    // Normal browser → always Web
-    if (!isStandalone) {
-      setPlatform("WEB");
-      return;
-    }
-
-    const ua = navigator.userAgent.toLowerCase();
-
-    if (/android/.test(ua)) {
-      setPlatform("ANDROID");
-      return;
-    }
-
-    const isIOS =
-      /iphone|ipad|ipod/.test(ua) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-    if (isIOS) {
-      setPlatform("IOS");
-      return;
-    }
-
-    if (/android/.test(ua)) {
-      setPlatform("ANDROID");
-      return;
-    }
-
-    setPlatform("WEB");
+    setPlatform(getApplicationPlatform());
   }, []);
 
   return platform;

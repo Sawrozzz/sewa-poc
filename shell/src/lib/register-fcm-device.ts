@@ -1,14 +1,9 @@
 "use client";
 
-import { isInstalledPwa } from "@/platform/services/biometric";
+import type { Platform } from "./PlatformDetector";
+import { getApplicationPlatform } from "./PlatformDetector";
 
 const APP_VERSION = "1.0.0";
-
-type FcmPlatform = "WEB" | "ANDROID";
-
-function findPlatform(): FcmPlatform {
-  return isInstalledPwa() ? "ANDROID" : "WEB";
-}
 
 /**
  * Sends the FCM registration token to the backend so this device is a valid
@@ -18,7 +13,7 @@ function findPlatform(): FcmPlatform {
 export async function registerFcmDevice(token: string): Promise<void> {
   if (typeof window === "undefined" || !token) return;
 
-  const platform = findPlatform();
+  const platform: Platform = getApplicationPlatform();
 
   const payload = {
     platform,

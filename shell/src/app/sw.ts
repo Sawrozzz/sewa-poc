@@ -14,6 +14,8 @@ import {
   Serwist,
   StaleWhileRevalidate,
 } from "serwist";
+import type { NotificationResult } from "@/lib/notification-action";
+import { handleNotification, parseNotificationPayload } from "@/lib/notification-action";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -62,18 +64,29 @@ self.addEventListener("notificationclick", (event) => {
 const fcmMessaging = getMessaging();
 
 onBackgroundMessage(fcmMessaging, (payload: MessagePayload) => {
+  const notification = parseNotificationPayload(payload);
+  if (!notification) return;
+
   // FCM auto-displays a background notification when the payload carries a
   // `notification` object, so calling showNotification() here would create a
-  // duplicate. Only show one ourselves for data-only messages.
-  if (!payload.notification) {
-    const title = String(payload.data?.title ?? "Sewa");
-    const body = payload.data?.body ? String(payload.data.body) : undefined;
-    self.registration.showNotification(title, {
-      body,
-      icon: "/icons/icon-192.png",
-      data: payload.data,
-    });
-  }
+  // duplicate. Only supply a presenter for data-only messages — which also
+  // means a SILENT_PUSH must be sent data-only, otherwise FCM renders it
+  // before this handler ever runs.
+  const presenter = payload.notification
+    ? undefined
+    : {
+        show: ({ title, body }: NotificationResult) =>
+          self.registration.showNotification(title ?? "Sewa", {
+            body,
+            icon: "/icons/icon-192.png",
+            data: payload.data,
+          }),
+      };
+
+  // `onBackgroundMessage` exposes no ExtendableEvent, so there is nothing to
+  // pass to waitUntil() — the action is fired and the worker stays alive for
+  // as long as the browser keeps it around.
+  void handleNotification(notification, presenter);
 });
 
 // --- Serwist PWA worker ------------------------------------------------------

@@ -4,6 +4,7 @@ import type { MessagePayload } from "firebase/messaging";
 import { onMessage } from "firebase/messaging";
 import { useEffect } from "react";
 import { getFirebaseMessaging } from "@/lib/firebase";
+import { handleNotification, parseNotificationPayload } from "@/lib/notification-action";
 import { privileged } from "@/platform/host-privileges";
 
 export default function NotificationListener() {
@@ -17,18 +18,27 @@ export default function NotificationListener() {
 
       unsubscribe = onMessage(messaging, (payload: MessagePayload) => {
         console.log("Foreground message received:", payload);
-        if (payload.notification) {
-          const title = payload.notification.title ?? "Sewa";
-          const body = payload.notification.body ?? "";
-          if ("Notification" in window && privileged.notification?.permission() === "granted") {
-            new Notification(title, { body, icon: "/icons/icon-192.png" });
-          }
-          const notificationAudio = new Audio("/notification.mp3");
-          notificationAudio.volume = 1;
-          notificationAudio.play().catch((error) => {
-            console.warn("Could not play notification sound", error);
-          });
-        }
+
+        const notification = parseNotificationPayload(payload);
+        if (!notification) return;
+
+        // The presenter only runs for notification types marked `display`, so
+        // a SILENT_PUSH performs its action without any visible or audible cue.
+        void handleNotification(notification, {
+          show: ({ title, body }) => {
+            if ("Notification" in window && privileged.notification?.permission() === "granted") {
+              new Notification(title ?? "Sewa", {
+                body: body ?? "",
+                icon: "/icons/icon-192.png",
+              });
+            }
+            const notificationAudio = new Audio("/notification.mp3");
+            notificationAudio.volume = 1;
+            notificationAudio.play().catch((error) => {
+              console.warn("Could not play notification sound", error);
+            });
+          },
+        });
       });
     };
 

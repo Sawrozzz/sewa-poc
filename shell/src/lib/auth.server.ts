@@ -86,7 +86,7 @@ const phoneOtpPlugin = {
               nationalId: MOCK_CITIZEN.nationalId,
             } as never,
             {
-              method: "oauth"
+              method: "oauth",
             },
           );
           userId = newUser.id;
