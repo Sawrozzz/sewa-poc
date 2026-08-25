@@ -77,16 +77,16 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
       const loader = createRuntimeLoader({
         maxModules: resolveMaxCachedMiniApps(),
         onLoadStart: (moduleId) => {
-          eventBus.emit("module.lifecycle.loading", "shell", {
+          void eventBus.emit("module.lifecycle.loading", "shell", {
             moduleId,
             version: "",
           });
         },
         onLoadComplete: (result) => {
-          console.log("Successfully load", result.success);
+          console.log("[Platform] load complete:", result.moduleId, result.success);
         },
         onLoadError: (moduleId, error) => {
-          eventBus.emit("module.lifecycle.failed", "shell", {
+          void eventBus.emit("module.lifecycle.failed", "shell", {
             moduleId,
             version: "",
             error,
@@ -100,17 +100,16 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
         transport: new PostMessageTransport(),
         allowedOrigins: ["*"],
         onModuleConnected: (moduleId) => {
-          eventBus.emit("module.lifecycle.loaded", moduleId, {
+          void eventBus.emit("module.lifecycle.loaded", moduleId, {
             moduleId,
             version: "",
           });
         },
         onModuleDisconnected: (moduleId) => {
-          eventBus.emit("module.lifecycle.unloaded", moduleId, {
+          void eventBus.emit("module.lifecycle.unloaded", moduleId, {
             moduleId,
             version: "",
           });
-          ``;
         },
       });
 
@@ -141,7 +140,9 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
       cancelSdkWarm = scheduleSdkWarm();
     }
 
-    init().catch(console.error);
+    init().catch((err) => {
+      console.error("[Platform] init failed:", err);
+    });
 
     return () => {
       cancelled = true;

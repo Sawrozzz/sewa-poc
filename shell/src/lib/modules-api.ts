@@ -29,17 +29,22 @@ async function assertManifestTrusted(
 }
 
 async function fetchManifestFromRegistry(): Promise<SignedMiniAppManifest> {
-  const response = await axios.get<SignedMiniAppManifest>("/api/manifests");
+  const response = await axios.get<SignedMiniAppManifest>("/api/manifests", { timeout: 15000 });
   const manifest = response.data;
-
+  if (!manifest || typeof manifest.id !== "string" || !Array.isArray(manifest.miniApps)) {
+    throw new Error("Invalid manifest shape from registry");
+  }
   await assertManifestTrusted(manifest, "registry");
-  await saveMiniAppsManifest(manifest);
-
+  try {
+    await saveMiniAppsManifest(manifest);
+  } catch (err) {
+    console.warn("[manifest] Failed to persist manifest:", err);
+  }
   return manifest;
 }
 
 export async function verifyVersionUpdate(): Promise<ManifestVersion> {
-  const response = await axios.get<ManifestVersion>("/api/manifest-version");
+  const response = await axios.get<ManifestVersion>("/api/manifest-version", { timeout: 10000 });
   return response.data;
 }
 
@@ -75,23 +80,16 @@ async function isStoredVersionCurrent(storedId: string): Promise<boolean> {
 export async function fetchMiniApps(): Promise<SignedMiniAppManifest> {
   const stored = await getStoredMiniAppsManifest();
   if (stored?.manifest) {
-    const usable = await (async () => {
-      try {
-        await assertManifestTrusted(stored.manifest, "cache");
-      } catch {
-        console.warn("[manifest] Stored manifest is untrusted — discarding");
-        return false;
-      }
-      return isStoredVersionCurrent(stored.manifest.id);
-    })();
-
-    if (usable) {
-      return stored.manifest;
+    let trusted = true;
+    try {
+      await assertManifestTrusted(stored.manifest, "cache");
+    } catch {
+      console.warn("[manifest] Stored manifest untrusted — discarding");
+      trusted = false;
     }
-
-    await clearMiniAppsManifest();
+    if (trusted && (await isStoredVersionCurrent(stored.manifest.id))) return stored.manifest;
+    await clearMiniAppsManifest().catch(() => {});
   }
-
   return fetchManifestFromRegistry();
 }
 
@@ -101,6 +99,7 @@ export async function fetchMiniAppCatalog(
   params: Partial<PaginatedMiniAppParamsType> = {},
 ): Promise<PaginatedMiniApps> {
   const response = await axios.get<PaginatedMiniApps>("/api/mini-apps", {
+    timeout: 15000,
     params: {
       size: params.size ?? MINI_APP_PAGE_SIZE,
       orderBy: params.orderBy ?? "DESC",
@@ -132,6 +131,13 @@ export function findMiniApp(
 }
 
 export function bundleFetchUrl(bundleUrl: string): string {
+  if (!bundleUrl || typeof bundleUrl !== "string") throw new Error("bundleUrl is required");
+  try {
+    const u = new URL(bundleUrl);
+    if (!["http:", "https:"].includes(u.protocol)) throw new Error("Unsupported protocol");
+  } catch (err) {
+    throw new Error(`Invalid bundleUrl: ${err instanceof Error ? err.message : String(err)}`);
+  }
   if (process.env.NEXT_PUBLIC_BUNDLE_PROXY === "off") return bundleUrl;
   return `/api/manifests/bundle?url=${encodeURIComponent(bundleUrl)}`;
 }

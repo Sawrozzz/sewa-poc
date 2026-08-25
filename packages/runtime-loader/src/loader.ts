@@ -70,15 +70,87 @@ export class RuntimeLoader {
   /** Whether signature validation is required */
   private signatureRequired: boolean;
 
-  /**
-   * Create a full URL by combining base URL and file name.
-   * @param baseUrl - Base directory URL
-   * @param fileName - File name to append
-   * @returns Complete URL
-   */
-  private async getFullUrl(baseUrl: string, fileName: string): Promise<string> {
-    const baseUrlNoSlash = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
-    return `${baseUrlNoSlash}/${fileName}`;
+  // --- shared helpers (simplifies load vs loadBundle duplication) ---
+  private validateBundleUrl(bundleUrl: string): URL {
+    if (!bundleUrl || typeof bundleUrl !== "string" || !bundleUrl.trim())
+      throw new Error("bundleUrl must be a non-empty string");
+    let url: URL;
+    try {
+      url = new URL(bundleUrl);
+    } catch {
+      throw new Error(`Invalid bundleUrl: ${bundleUrl}`);
+    }
+    if (!["http:", "https:"].includes(url.protocol))
+      throw new Error(`Unsupported bundleUrl protocol: ${url.protocol}`);
+    return url;
+  }
+
+  private getFullUrl(baseUrl: string, fileName: string): string {
+    this.validateBundleUrl(baseUrl);
+    if (!fileName || fileName.includes("..") || fileName.includes("\\"))
+      throw new Error(`Invalid fileName: ${fileName}`);
+    const base = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+    return new URL(fileName, base).toString();
+  }
+
+  private async withDedup<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    const existing = this.loadingPromises.get(key) as Promise<T> | undefined;
+    if (existing) return existing;
+    const p = fn();
+    this.loadingPromises.set(key, p as unknown as Promise<RemoteLoadResult>);
+    try {
+      return await p;
+    } finally {
+      this.loadingPromises.delete(key);
+    }
+  }
+
+  private async withRetry(
+    moduleId: string,
+    startTime: number,
+    attempts: number,
+    delayMs: number,
+    run: () => Promise<RemoteLoadResult>,
+  ): Promise<RemoteLoadResult> {
+    this.onLoadStart?.(moduleId);
+    let lastError = "";
+    for (let attempt = 0; attempt <= attempts; attempt++) {
+      try {
+        const r = await run();
+        if (r.success) {
+          this.onLoadComplete?.(r);
+          return r;
+        }
+        lastError = r.error ?? "Unknown error";
+      } catch (e) {
+        lastError = e instanceof Error ? e.message : String(e);
+      }
+      if (attempt < attempts) await delay(delayMs * 2 ** attempt);
+    }
+    const fail: RemoteLoadResult = {
+      moduleId,
+      success: false,
+      loadTimeMs: Date.now() - startTime,
+      strategy: "plugin",
+      error: lastError,
+    };
+    this.onLoadError?.(moduleId, lastError);
+    return fail;
+  }
+
+  private makeBundle(exports: MiniAppModuleExports, styles: string[]): MiniAppBundle {
+    return {
+      mount: (c: HTMLElement, p?: MiniAppRuntime) => mountWithIsolation(exports, c, p, styles),
+      unmount: (c: HTMLElement) => {
+        const shadow = c.shadowRoot;
+        if (shadow) {
+          const inner = shadow.querySelector("[data-mini-app-container]");
+          if (inner && typeof exports.unmount === "function") exports.unmount(inner as HTMLElement);
+          shadow.innerHTML = "";
+        }
+      },
+      styles,
+    };
   }
 
   /**
@@ -129,9 +201,6 @@ export class RuntimeLoader {
     version?: string,
     options: PluginLoadOptions = {},
   ): Promise<RemoteLoadResult> {
-    // Return cached module if already loaded (and version still matches).
-    // A module left behind by the bundle flow is never reused here — the two
-    // flows resolve their files differently even for the same id.
     const cached = this.loadedModules.get(moduleId);
     if (cached?.kind !== "bundle" && cached?.bundle && (!version || cached.version === version)) {
       return {
@@ -143,23 +212,9 @@ export class RuntimeLoader {
         version: cached.version,
       };
     }
-
-    // Return existing load promise if currently loading (prevents duplicates).
-    // Keyed by version so a newer release never reuses an in-flight old load.
-    const loadKey = `${moduleId}@${version ?? ""}`;
-    const existing = this.loadingPromises.get(loadKey);
-    if (existing) {
-      return existing;
-    }
-
-    // Start new load operation
-    const promise = this.loadInternal(moduleId, bundleUrl, version, options);
-    this.loadingPromises.set(loadKey, promise);
-    try {
-      return await promise;
-    } finally {
-      this.loadingPromises.delete(loadKey);
-    }
+    return this.withDedup(`${moduleId}@${version ?? ""}`, () =>
+      this.loadInternal(moduleId, bundleUrl, version, options),
+    );
   }
 
   /**
@@ -192,7 +247,6 @@ export class RuntimeLoader {
     bundleUrl: string,
     options: BundleLoadOptions,
   ): Promise<RemoteLoadResult> {
-    // Reuse the evaluated module while it still matches the manifest's digest
     const cached = this.loadedModules.get(moduleId);
     if (cached?.kind === "bundle" && cached.bundleHash === options.bundleHash) {
       return {
@@ -204,19 +258,9 @@ export class RuntimeLoader {
         version: cached.version,
       };
     }
-
-    // Collapse concurrent opens of the same release onto one download
-    const loadKey = `${moduleId}${BUNDLE_CACHE_SUFFIX}@${options.bundleHash}`;
-    const existing = this.loadingPromises.get(loadKey);
-    if (existing) return existing;
-
-    const promise = this.loadBundleInternal(moduleId, bundleUrl, options);
-    this.loadingPromises.set(loadKey, promise);
-    try {
-      return await promise;
-    } finally {
-      this.loadingPromises.delete(loadKey);
-    }
+    return this.withDedup(`${moduleId}${BUNDLE_CACHE_SUFFIX}@${options.bundleHash}`, () =>
+      this.loadBundleInternal(moduleId, bundleUrl, options),
+    );
   }
 
   /**
@@ -292,70 +336,53 @@ export class RuntimeLoader {
   private async fetchViteManifest(
     baseUrl: string,
   ): Promise<{ manifest: ViteManifest; signature: boolean } | null> {
-    const baseUrlNoSlash = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
-    const manifestUrl = `${baseUrlNoSlash}/manifest.json`;
+    this.validateBundleUrl(baseUrl);
+    const manifestUrl = this.getFullUrl(baseUrl, "manifest.json");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
       const res = await this.fetcher(manifestUrl, {
         cache: "no-store",
+        signal: controller.signal,
       });
       if (!res.ok) return null;
-      const raw = (await res.json()) as Record<string, unknown>;
+      let raw: Record<string, unknown>;
+      try {
+        raw = (await res.json()) as Record<string, unknown>;
+      } catch {
+        console.warn("[RuntimeLoader] manifest.json is not valid JSON:", manifestUrl);
+        return null;
+      }
       const signature = raw.signature === true;
       const { signature: _sig, ...entries } = raw;
 
       return { manifest: entries as ViteManifest, signature };
     } catch (err) {
-      console.error("[RuntimeLoader] fetchViteManifest FAILED:", err);
+      if ((err as Error)?.name === "AbortError") {
+        console.warn("[RuntimeLoader] fetchViteManifest timeout:", manifestUrl);
+        return null;
+      }
+      console.warn("[RuntimeLoader] fetchViteManifest failed:", manifestUrl, err);
       return null;
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
-  /**
-   * Internal load implementation with retry logic.
-   *
-   * Attempts load up to retryAttempts times with exponential backoff.
-   *
-   * @param moduleId - Module ID to load
-   * @param bundleUrl - URL of the bundle directory
-   * @param version - Optional version string
-   * @param options - Plugin load options
-   * @returns Result of the load operation
-   */
   private async loadInternal(
     moduleId: string,
     bundleUrl: string,
     version: string | undefined,
     options: PluginLoadOptions,
   ): Promise<RemoteLoadResult> {
-    const startTime = Date.now();
-    this.onLoadStart?.(moduleId);
-    const retryAttempts = options.retryAttempts ?? 3;
-    const retryDelayMs = options.retryDelayMs ?? 1000;
-    let lastError = "";
-
-    for (let attempt = 0; attempt <= retryAttempts; attempt++) {
-      try {
-        const result = await this.loadPlugin(moduleId, bundleUrl, version, startTime, options);
-        if (result.success) {
-          this.onLoadComplete?.(result);
-          return result;
-        }
-        lastError = result.error ?? "Unknown error";
-      } catch (err) {
-        lastError = err instanceof Error ? err.message : String(err);
-      }
-      if (attempt < retryAttempts) await delay(retryDelayMs * (attempt + 1));
-    }
-
-    const result: RemoteLoadResult = {
+    const start = Date.now();
+    return this.withRetry(
       moduleId,
-      success: false,
-      loadTimeMs: Date.now() - startTime,
-      strategy: "plugin",
-      error: lastError,
-    };
-    this.onLoadError?.(moduleId, lastError);
-    return result;
+      start,
+      options.retryAttempts ?? 3,
+      options.retryDelayMs ?? 1000,
+      () => this.loadPlugin(moduleId, bundleUrl, version, start, options),
+    );
   }
 
   /**
@@ -382,6 +409,7 @@ export class RuntimeLoader {
     _options: PluginLoadOptions,
   ): Promise<RemoteLoadResult> {
     if (!bundleUrl) throw new Error(`Module ${moduleId} missing bundleUrl`);
+    this.validateBundleUrl(bundleUrl);
     const bundleDirUrl = bundleUrl;
 
     // Check if module is cached
@@ -406,11 +434,13 @@ export class RuntimeLoader {
       const cachedManifestStr = await this.db.getFile(moduleId, "manifest");
 
       if (cachedManifestStr) {
-        const manifest: ManifestEntry = JSON.parse(cachedManifestStr);
-
-        // Read directly from the bundle property
-        entryFileName = manifest.bundle.entry || "index.js";
-        cssFileNames = manifest.bundle.styles ?? [];
+        try {
+          const manifest: ManifestEntry = JSON.parse(cachedManifestStr);
+          entryFileName = manifest.bundle.entry || "index.js";
+          cssFileNames = manifest.bundle.styles ?? [];
+        } catch {
+          throw new Error(`Cached manifest for ${moduleId} is corrupt`);
+        }
       }
 
       // Load entry JS file from storage
@@ -420,11 +450,14 @@ export class RuntimeLoader {
       }
       files[entryFileName] = indexJs;
 
-      // Load cached CSS files (injection is handled once all files are assembled)
-      for (const cssFile of cssFileNames) {
-        const cssContent = await this.db.getFile(moduleId, cssFile);
-        if (cssContent) {
-          files[cssFile] = cssContent;
+      // Load cached CSS files in parallel
+      if (cssFileNames.length > 0) {
+        const cssContents = await Promise.all(
+          cssFileNames.map((f) => this.db.getFile(moduleId, f)),
+        );
+        for (let i = 0; i < cssFileNames.length; i++) {
+          if (cssContents[i]) files[cssFileNames[i]] = cssContents[i] as string;
+          else console.warn(`[RuntimeLoader] Missing cached CSS: ${cssFileNames[i]}`);
         }
       }
     } else {
@@ -511,100 +544,43 @@ export class RuntimeLoader {
     // 5. Evaluate the JavaScript module
     const moduleExports = await this.evaluateModule(
       moduleId,
-      await this.getFullUrl(bundleDirUrl, entryFileName),
+      this.getFullUrl(bundleDirUrl, entryFileName),
       indexJs,
     );
 
-    // Validate module exports
     if (typeof moduleExports.mount !== "function")
       throw new Error(`Bundle ${entryFileName} must export a mount() function`);
-
-    // Create bundle with mount/unmount methods
-    const typedExports = moduleExports as MiniAppModuleExports;
-    const miniAppBundle: MiniAppBundle = {
-      mount: (container: HTMLElement, props?: MiniAppRuntime) => {
-        // Always mount inside a Shadow DOM root for style isolation
-        mountWithIsolation(typedExports, container, props, styles);
-      },
-      unmount: (container: HTMLElement) => {
-        // The mini-app was mounted on an inner container inside the shadow
-        // root, so unmount from there and clear the root afterwards.
-        const shadow = container.shadowRoot;
-        if (shadow) {
-          const inner = shadow.querySelector("[data-mini-app-container]");
-          if (inner && typeof typedExports.unmount === "function") {
-            typedExports.unmount(inner as HTMLElement);
-          }
-          shadow.innerHTML = "";
-        }
-      },
-      styles,
-    };
-
-    // Cache the loaded module
+    const bundle = this.makeBundle(moduleExports as MiniAppModuleExports, styles);
     this.loadedModules.set(moduleId, {
       moduleId,
       strategy: "plugin",
-      bundle: miniAppBundle,
+      bundle,
       version,
       loadedAt: Date.now(),
     });
-
     return {
       moduleId,
       success: true,
       loadTimeMs: Date.now() - startTime,
       strategy: "plugin",
-      bundle: miniAppBundle,
+      bundle,
       version,
     };
   }
 
-  /**
-   * Bundle load implementation with retry logic.
-   *
-   * Mirrors {@link loadInternal}: attempts the load up to retryAttempts times
-   * with a linear backoff, reporting through the lifecycle callbacks.
-   *
-   * @param moduleId - Module ID to load
-   * @param bundleUrl - URL of the `.zip` archive
-   * @param options - Bundle hash, version, and retry config
-   * @returns Result of the load operation
-   */
   private async loadBundleInternal(
     moduleId: string,
     bundleUrl: string,
     options: BundleLoadOptions,
   ): Promise<RemoteLoadResult> {
-    const startTime = Date.now();
-    this.onLoadStart?.(moduleId);
-    const retryAttempts = options.retryAttempts ?? 2;
-    const retryDelayMs = options.retryDelayMs ?? 1000;
-    let lastError = "";
-
-    for (let attempt = 0; attempt <= retryAttempts; attempt++) {
-      try {
-        const result = await this.loadBundlePlugin(moduleId, bundleUrl, options, startTime);
-        if (result.success) {
-          this.onLoadComplete?.(result);
-          return result;
-        }
-        lastError = result.error ?? "Unknown error";
-      } catch (err) {
-        lastError = err instanceof Error ? err.message : String(err);
-      }
-      if (attempt < retryAttempts) await delay(retryDelayMs * (attempt + 1));
-    }
-
-    const result: RemoteLoadResult = {
+    const start = Date.now();
+    return this.withRetry(
       moduleId,
-      success: false,
-      loadTimeMs: Date.now() - startTime,
-      strategy: "plugin",
-      error: lastError,
-    };
-    this.onLoadError?.(moduleId, lastError);
-    return result;
+      start,
+      options.retryAttempts ?? 2,
+      options.retryDelayMs ?? 1000,
+      () => this.loadBundlePlugin(moduleId, bundleUrl, options, start),
+    );
   }
 
   /**
@@ -640,46 +616,25 @@ export class RuntimeLoader {
     }
 
     const { entryFileName, entryCode, styles } = await this.readBundleFromCache(cacheId, moduleId);
-
     const moduleExports = await this.evaluateModule(moduleId, entryFileName, entryCode);
-    if (typeof moduleExports.mount !== "function") {
+    if (typeof moduleExports.mount !== "function")
       throw new Error(`Bundle ${entryFileName} must export a mount() function`);
-    }
-
-    const typedExports = moduleExports as MiniAppModuleExports;
-    const miniAppBundle: MiniAppBundle = {
-      mount: (container: HTMLElement, props?: MiniAppRuntime) => {
-        mountWithIsolation(typedExports, container, props, styles);
-      },
-      unmount: (container: HTMLElement) => {
-        const shadow = container.shadowRoot;
-        if (shadow) {
-          const inner = shadow.querySelector("[data-mini-app-container]");
-          if (inner && typeof typedExports.unmount === "function") {
-            typedExports.unmount(inner as HTMLElement);
-          }
-          shadow.innerHTML = "";
-        }
-      },
-      styles,
-    };
-
+    const bundle = this.makeBundle(moduleExports as MiniAppModuleExports, styles);
     this.loadedModules.set(moduleId, {
       moduleId,
       strategy: "plugin",
-      bundle: miniAppBundle,
+      bundle,
       version: options.version,
       loadedAt: Date.now(),
       kind: "bundle",
       bundleHash: options.bundleHash,
     });
-
     return {
       moduleId,
       success: true,
       loadTimeMs: Date.now() - startTime,
       strategy: "plugin",
-      bundle: miniAppBundle,
+      bundle,
       version: options.version,
     };
   }
@@ -701,6 +656,7 @@ export class RuntimeLoader {
     bundleUrl: string,
     options: BundleLoadOptions,
   ): Promise<void> {
+    this.validateBundleUrl(bundleUrl);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 60000);
 
@@ -775,7 +731,12 @@ export class RuntimeLoader {
       throw new Error(`Cached bundle for ${moduleId} is missing ${BUNDLE_MANIFEST_FILE}`);
     }
 
-    const manifest: ManifestEntry = JSON.parse(manifestText);
+    let manifest: ManifestEntry;
+    try {
+      manifest = JSON.parse(manifestText) as ManifestEntry;
+    } catch {
+      throw new Error(`Cached bundle for ${moduleId} has corrupt ${BUNDLE_MANIFEST_FILE}`);
+    }
     const entryFileName = manifest.bundle?.entry || "index.js";
     const styleNames = manifest.bundle?.styles ?? [];
     const assetNames = (manifest.bundle?.files ?? []).filter(
@@ -787,20 +748,20 @@ export class RuntimeLoader {
     const published: string[] = [];
     const assetUrls: Record<string, string> = {};
 
-    for (const asset of assetNames) {
-      const text = await this.db.getFile(cacheId, asset);
-      const blob =
-        text !== null
-          ? new Blob([text], { type: mimeTypeFor(asset) })
-          : await this.db
-              .getBinary(cacheId, asset)
-              .then((bin) => (bin ? new Blob([bin.bytes], { type: bin.mimeType }) : null));
-      if (!blob) {
+    const assetResults = await Promise.all(
+      assetNames.map(async (asset) => {
+        const text = await this.db.getFile(cacheId, asset);
+        if (text !== null) return { asset, blob: new Blob([text], { type: mimeTypeFor(asset) }) };
+        const bin = await this.db.getBinary(cacheId, asset);
+        if (bin) return { asset, blob: new Blob([bin.bytes], { type: bin.mimeType }) };
         console.warn("[RuntimeLoader] Bundle asset missing from cache:", asset);
-        continue;
-      }
-      const url = URL.createObjectURL(blob);
-      assetUrls[asset] = url;
+        return null;
+      }),
+    );
+    for (const r of assetResults) {
+      if (!r) continue;
+      const url = URL.createObjectURL(r.blob);
+      assetUrls[r.asset] = url;
       published.push(url);
     }
     this.assetURLs.set(moduleId, published);
@@ -810,9 +771,9 @@ export class RuntimeLoader {
       throw new Error(`Cached bundle for ${moduleId} is missing entry ${entryFileName}`);
     }
 
+    const styleContents = await Promise.all(styleNames.map((n) => this.db.getFile(cacheId, n)));
     const styles: string[] = [];
-    for (const styleName of styleNames) {
-      const css = await this.db.getFile(cacheId, styleName);
+    for (const css of styleContents) {
       if (css) styles.push(rewriteAssetReferences(css, assetUrls));
     }
 

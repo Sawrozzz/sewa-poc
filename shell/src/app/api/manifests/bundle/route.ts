@@ -15,6 +15,19 @@ import { getSignedManifest } from "@/lib/manifest-source";
  * the bytes it receives and compares them against the manifest's `bundleHash`,
  * so a tampered proxy response is rejected exactly like a tampered download.
  */
+const MAX_BUNDLE_BYTES = 100 * 1024 * 1024;
+const BUNDLE_FETCH_TIMEOUT_MS = 30000;
+
+function normalizeBundleUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    u.hash = "";
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 export async function GET(request: NextRequest) {
   const bundleUrl = request.nextUrl.searchParams.get("url");
   if (!bundleUrl) {
@@ -23,14 +36,20 @@ export async function GET(request: NextRequest) {
       { status: 400 },
     );
   }
+  let parsed: URL;
+  try {
+    parsed = new URL(bundleUrl);
+    if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("unsupported protocol");
+  } catch {
+    return NextResponse.json({ success: false, message: "Invalid bundle URL." }, { status: 400 });
+  }
 
   try {
     const manifest = await getSignedManifest();
-
+    const normalized = normalizeBundleUrl(bundleUrl);
     const isPublished = manifest.miniApps.some(
-      (app: ModuleManifest) => app.bundleUrl === bundleUrl,
+      (app: ModuleManifest) => app.bundleUrl && normalizeBundleUrl(app.bundleUrl) === normalized,
     );
-
     if (!isPublished) {
       return NextResponse.json(
         { success: false, message: "Bundle URL is not published in the manifest." },
@@ -38,24 +57,40 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const upstream = await fetch(bundleUrl, { cache: "no-store" });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), BUNDLE_FETCH_TIMEOUT_MS);
+    let upstream: Response;
+    try {
+      upstream = await fetch(bundleUrl, { cache: "no-store", signal: controller.signal });
+    } finally {
+      clearTimeout(timeout);
+    }
     if (!upstream.ok || !upstream.body) {
       return NextResponse.json(
         { success: false, message: `Bundle fetch failed with ${upstream.status}.` },
         { status: 502 },
       );
     }
+    const len = upstream.headers.get("content-length");
+    if (len && Number(len) > MAX_BUNDLE_BYTES) {
+      return NextResponse.json({ success: false, message: "Bundle too large." }, { status: 413 });
+    }
 
     return new NextResponse(upstream.body, {
       status: 200,
       headers: {
         "Content-Type": "application/zip",
-        // The client caches the extracted files in IndexedDB; caching the
-        // archive again here would only duplicate it.
         "Cache-Control": "no-store",
       },
     });
-  } catch (_error) {
+  } catch (error) {
+    console.error("[bundle proxy] error:", error);
+    if ((error as Error)?.name === "AbortError") {
+      return NextResponse.json(
+        { success: false, message: "Bundle fetch timed out." },
+        { status: 504 },
+      );
+    }
     return NextResponse.json(
       { success: false, message: "Server error while fetching the mini app bundle." },
       { status: 500 },

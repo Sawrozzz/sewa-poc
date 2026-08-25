@@ -83,25 +83,17 @@ export function useMiniAppCatalog(options: MiniAppCatalogOptions = {}) {
   });
 
   const miniApps = useMemo<ResolvedMiniApp[]>(() => {
-    const listed = query.data?.pages.flatMap((page) => page.data) ?? [];
-
-    // Nothing is shown until the manifest has resolved: rendering the raw page
-    // first would flash cards that are about to disappear, and a manifest that
-    // failed to load leaves nothing openable to show.
+    const listed = query.data?.pages.flatMap((p) => p.data) ?? [];
     if (!manifestQuery.data) return [];
-
-    const merged = listed.reduce<ResolvedMiniApp[]>((acc, app) => {
+    const merged: ResolvedMiniApp[] = [];
+    for (const app of listed) {
       const entry = manifestEntries.get(app.miniAppId);
-      if (entry) acc.push(mergeMiniApp(app, entry));
-      return acc;
-    }, []);
-
-    if (merged.length !== listed.length) {
-      console.log(
-        `[catalog] Hid ${listed.length - merged.length} of ${listed.length} mini app(s) missing from the signed manifest`,
-      );
+      if (entry) merged.push(mergeMiniApp(app, entry));
     }
-
+    if (merged.length !== listed.length)
+      console.log(
+        `[catalog] Hid ${listed.length - merged.length}/${listed.length} not in manifest`,
+      );
     return merged;
   }, [query.data, manifestQuery.data, manifestEntries]);
 
@@ -113,8 +105,7 @@ export function useMiniAppCatalog(options: MiniAppCatalogOptions = {}) {
   useEffect(() => {
     if (!manifestQuery.data) return;
     if (miniApps.length > 0 || isFetching || !hasNextPage) return;
-
-    fetchNextPage();
+    void fetchNextPage().catch((err) => console.warn("[catalog] fetchNextPage failed:", err));
   }, [manifestQuery.data, miniApps.length, isFetching, hasNextPage, fetchNextPage]);
 
   const isError = query.isError || manifestQuery.isError;
@@ -143,8 +134,10 @@ export function useMiniAppCatalog(options: MiniAppCatalogOptions = {}) {
 export function useMiniApp(id: string | null) {
   return useQuery({
     queryKey: [...MANIFEST_KEY, "fallback", id],
-    // biome-ignore lint/style/noNonNullAssertion: <fix this later>
-    queryFn: () => fetchOldMiniApp(id!),
+    queryFn: () => {
+      if (!id) throw new Error("miniApp id is required");
+      return fetchOldMiniApp(id);
+    },
     enabled: !!id,
   });
 }

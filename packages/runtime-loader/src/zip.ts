@@ -48,7 +48,12 @@ export interface ZipEntry {
  * @param view - View over the whole archive
  * @returns Byte offset of the record, or -1 when not found
  */
+const MAX_ENTRIES = 10_000;
+const MAX_TOTAL_UNCOMPRESSED = 200 * 1024 * 1024; // 200 MB
+const MAX_ENTRY_SIZE = 50 * 1024 * 1024; // 50 MB per entry
+
 function findEndOfCentralDirectory(view: DataView): number {
+  if (view.byteLength < EOCD_SIZE) return -1;
   const maxCommentLength = 0xffff;
   const lowerBound = Math.max(0, view.byteLength - EOCD_SIZE - maxCommentLength);
   for (let offset = view.byteLength - EOCD_SIZE; offset >= lowerBound; offset--) {
@@ -92,6 +97,10 @@ async function inflateRaw(bytes: Uint8Array): Promise<Uint8Array> {
  * ```
  */
 export async function unzip(archive: Uint8Array): Promise<Map<string, Uint8Array>> {
+  if (!archive || archive.byteLength === 0) throw new Error("Empty ZIP archive");
+  if (archive.byteLength > MAX_TOTAL_UNCOMPRESSED) {
+    throw new Error(`ZIP archive too large: ${archive.byteLength} bytes`);
+  }
   const view = new DataView(archive.buffer, archive.byteOffset, archive.byteLength);
   const eocd = findEndOfCentralDirectory(view);
   if (eocd < 0) {
@@ -103,6 +112,9 @@ export async function unzip(archive: Uint8Array): Promise<Map<string, Uint8Array
   if (centralDirOffset === ZIP64_MARKER || entryCount === 0xffff) {
     throw new Error("ZIP64 archives are not supported");
   }
+  if (entryCount > MAX_ENTRIES) throw new Error(`ZIP entry count too large: ${entryCount}`);
+  if (centralDirOffset >= view.byteLength)
+    throw new Error("Corrupt ZIP: central directory offset out of bounds");
 
   const decoder = new TextDecoder();
   const entries = new Map<string, Uint8Array>();
@@ -140,6 +152,12 @@ export async function unzip(archive: Uint8Array): Promise<Map<string, Uint8Array
     const localNameLength = view.getUint16(localHeaderOffset + 26, true);
     const localExtraLength = view.getUint16(localHeaderOffset + 28, true);
     const dataStart = localHeaderOffset + 30 + localNameLength + localExtraLength;
+    if (dataStart + compressedSize > archive.byteLength) {
+      throw new Error(`Corrupt ZIP entry "${path}": data exceeds archive bounds`);
+    }
+    if (uncompressedSize > MAX_ENTRY_SIZE) {
+      throw new Error(`ZIP entry "${path}" too large: ${uncompressedSize} bytes`);
+    }
     const raw = archive.subarray(dataStart, dataStart + compressedSize);
 
     let bytes: Uint8Array;
@@ -159,6 +177,11 @@ export async function unzip(archive: Uint8Array): Promise<Map<string, Uint8Array
 
     entries.set(path, bytes);
   }
+
+  let total = 0;
+  for (const b of entries.values()) total += b.byteLength;
+  if (total > MAX_TOTAL_UNCOMPRESSED)
+    throw new Error(`ZIP total uncompressed size too large: ${total} bytes`);
 
   return entries;
 }

@@ -31,44 +31,53 @@ const MANIFEST_MINI_APPS_PATH = "manifest-registry/registry/mini-apps";
  * @returns The absolute URL to fetch
  * @throws When `NEXT_PUBLIC_API_URL` is not configured
  */
+const FETCH_TIMEOUT_MS = 15000;
+
 function registryUrl(path: string): string {
   if (!REGISTRY_BASE_URL?.trim()) {
     throw new Error("NEXT_PUBLIC_API_URL is not configured — cannot reach the manifest registry.");
   }
+  try {
+    return new URL(
+      path.replace(/^\/+/, ""),
+      `${REGISTRY_BASE_URL.trim().replace(/\/+$/, "")}/`,
+    ).toString();
+  } catch {
+    throw new Error(`Invalid registry URL for path: ${path}`);
+  }
+}
 
-  return `${REGISTRY_BASE_URL.trim().replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { ...init, cache: "no-store", signal: controller.signal });
+    if (!response.ok) throw new Error(`Registry responded with ${response.status} for ${url}`);
+    try {
+      return (await response.json()) as T;
+    } catch {
+      throw new Error(`Registry returned invalid JSON for ${url}`);
+    }
+  } catch (err) {
+    if ((err as Error)?.name === "AbortError")
+      throw new Error(`Registry request timed out: ${url}`);
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function getSignedManifest(): Promise<SignedMiniAppManifest> {
-  const response = await fetch(registryUrl(REGISTRY_MANIFEST_PATH), { cache: "no-store" });
-
-  if (!response.ok) {
-    throw new Error(`Manifest registry responded with ${response.status}.`);
-  }
-
-  return (await response.json()) as SignedMiniAppManifest;
+  return fetchJson<SignedMiniAppManifest>(registryUrl(REGISTRY_MANIFEST_PATH));
 }
 export async function postTogetSignedManifest(): Promise<SignedMiniAppManifest> {
-  const response = await fetch(registryUrl(POST_TO_GET_REGISTRY_MANIFEST_PATH), {
-    cache: "no-store",
+  return fetchJson<SignedMiniAppManifest>(registryUrl(POST_TO_GET_REGISTRY_MANIFEST_PATH), {
     method: "POST",
   });
-
-  if (!response.ok) {
-    throw new Error(`Manifest registry responded with ${response.status}.`);
-  }
-
-  return (await response.json()) as SignedMiniAppManifest;
 }
 
 export async function getManifestVersion(): Promise<ManifestVersion> {
-  const response = await fetch(registryUrl(MANIFEST_VERSION_PATH), { cache: "no-store" });
-
-  if (!response.ok) {
-    throw new Error(`Manifest version responded with ${response.status}.`);
-  }
-
-  return (await response.json()) as ManifestVersion;
+  return fetchJson<ManifestVersion>(registryUrl(MANIFEST_VERSION_PATH));
 }
 
 /**
@@ -86,8 +95,11 @@ export async function getManifestVersion(): Promise<ManifestVersion> {
 export async function getManifestMiniApps(
   params: Partial<PaginatedMiniAppParamsType> = {},
 ): Promise<PaginatedMiniApps> {
+  const MAX_PAGE_SIZE = 100;
+  const size =
+    params.size != null ? Math.min(Math.max(1, Number(params.size)), MAX_PAGE_SIZE) : undefined;
   const query = new URLSearchParams();
-  if (params.size != null) query.set("size", String(params.size));
+  if (size != null) query.set("size", String(size));
   if (params.orderBy) query.set("orderBy", params.orderBy);
   if (params.sortBy) query.set("sortBy", params.sortBy);
   if (params.cursor) query.set("cursor", params.cursor);
@@ -96,12 +108,5 @@ export async function getManifestMiniApps(
 
   const queryString = query.toString();
   const path = queryString ? `${MANIFEST_MINI_APPS_PATH}?${queryString}` : MANIFEST_MINI_APPS_PATH;
-
-  const response = await fetch(registryUrl(path), { cache: "no-store" });
-
-  if (!response.ok) {
-    throw new Error(`Manifest mini apps responded with ${response.status}.`);
-  }
-
-  return (await response.json()) as PaginatedMiniApps;
+  return fetchJson<PaginatedMiniApps>(registryUrl(path));
 }

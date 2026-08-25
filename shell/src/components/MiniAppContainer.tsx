@@ -177,7 +177,7 @@ export function MiniAppContainer({
 
     if (result.success && result.bundle) {
       setLoadState("ready");
-      eventBus.emit("module.lifecycle.loaded", "shell", {
+      void eventBus.emit("module.lifecycle.loaded", "shell", {
         miniAppId,
         version: manifest.version,
         loadTimeMs: result.loadTimeMs,
@@ -185,7 +185,7 @@ export function MiniAppContainer({
     } else {
       setLoadError(result.error ?? "Failed to load plugin bundle");
       setLoadState("error");
-      eventBus.emit("module.lifecycle.failed", "shell", {
+      void eventBus.emit("module.lifecycle.failed", "shell", {
         miniAppId,
         version: manifest.version,
         error: result.error,
@@ -219,15 +219,21 @@ export function MiniAppContainer({
 
     mountCount.current += 1;
     if (mountCount.current === 1) {
-      loadModule();
+      void loadModule();
     }
 
     if (!cleanupDone.current) {
       cleanupDone.current = true;
       return () => {
         cleanupDone.current = false;
-        loader.unload(miniAppId);
-        communicator.disconnectModule(miniAppId);
+        void loader
+          .unload(miniAppId)
+          .catch((e) => console.warn("[MiniAppContainer] unload failed:", e));
+        try {
+          communicator.disconnectModule(miniAppId);
+        } catch (e) {
+          console.warn("[MiniAppContainer] disconnect failed:", e);
+        }
         destroyMiniAppSdk();
       };
     }
@@ -252,11 +258,19 @@ export function MiniAppContainer({
   const handleRetry = useCallback(() => {
     setLoadError("");
     setLoadState("idle");
-    loader.unload(miniAppId).then(() => loadModule());
+    void loader
+      .unload(miniAppId)
+      .then(() => loadModule())
+      .catch((err) => {
+        setLoadError(err instanceof Error ? err.message : "Retry failed");
+        setLoadState("error");
+      });
   }, [loader, miniAppId, loadModule]);
 
   const handleUnload = useCallback(() => {
-    loader.unload(miniAppId);
+    void loader
+      .unload(miniAppId)
+      .catch((e) => console.warn("[MiniAppContainer] unload failed:", e));
     router.push("/");
   }, [loader, miniAppId, router]);
 

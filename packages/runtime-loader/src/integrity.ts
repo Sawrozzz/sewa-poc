@@ -23,17 +23,35 @@ const HASH_ALGORITHMS: Record<string, string> = {
  * @param bundleHash - Hash string from the manifest
  * @returns Web Crypto algorithm name and the normalized expected digest
  */
-function parseBundleHash(bundleHash: string): { algorithm: string; expected: string } {
-  const separator = bundleHash.indexOf("-");
-  if (separator < 0) {
-    return { algorithm: "SHA-256", expected: bundleHash.trim().toLowerCase() };
+export class IntegrityError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IntegrityError";
   }
-  const prefix = bundleHash.slice(0, separator).trim().toLowerCase();
+}
+
+function parseBundleHash(bundleHash: string): { algorithm: string; expected: string } {
+  if (!bundleHash || typeof bundleHash !== "string" || !bundleHash.trim()) {
+    throw new IntegrityError("bundleHash must be a non-empty string");
+  }
+  const trimmed = bundleHash.trim();
+  const separator = trimmed.indexOf("-");
+  if (separator < 0) {
+    const hex = trimmed.toLowerCase();
+    if (!/^[a-f0-9]{64}$|^[a-f0-9]{96}$|^[a-f0-9]{128}$/.test(hex)) {
+      throw new IntegrityError("Bare bundleHash must be hex SHA-256/384/512 digest");
+    }
+    return { algorithm: "SHA-256", expected: hex };
+  }
+  const prefix = trimmed.slice(0, separator).trim().toLowerCase();
   const algorithm = HASH_ALGORITHMS[prefix];
   if (!algorithm) {
-    throw new Error(`Unsupported bundle hash algorithm "${prefix}"`);
+    throw new IntegrityError(`Unsupported bundle hash algorithm "${prefix}"`);
   }
-  return { algorithm, expected: bundleHash.slice(separator + 1).trim() };
+  const digest = trimmed.slice(separator + 1).trim();
+  if (!digest) throw new IntegrityError("bundleHash digest is empty");
+  if (digest.length < 32) throw new IntegrityError("bundleHash digest too short");
+  return { algorithm, expected: digest };
 }
 
 /**
@@ -78,10 +96,18 @@ export async function verifyBundleHash(
   bundleHash: string,
 ): Promise<{ matches: boolean; actual: string }> {
   const { algorithm, expected } = parseBundleHash(bundleHash);
-  const digest = await crypto.subtle.digest(algorithm, bytes as unknown as BufferSource);
+  if (!bytes || bytes.byteLength === 0)
+    throw new IntegrityError("Cannot verify empty bundle bytes");
+  let digest: ArrayBuffer;
+  try {
+    digest = await crypto.subtle.digest(algorithm, bytes as unknown as BufferSource);
+  } catch (err) {
+    throw new IntegrityError(
+      `Digest failed for ${algorithm}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
   const hex = toHex(digest);
-  // The registry emits hex today; base64 is accepted so an SRI-style digest
-  // from the same publisher pipeline still validates.
-  const matches = expected === hex || expected === toBase64(digest);
+  const expectedLower = expected.toLowerCase();
+  const matches = expectedLower === hex || expected === toBase64(digest);
   return { matches, actual: hex };
 }

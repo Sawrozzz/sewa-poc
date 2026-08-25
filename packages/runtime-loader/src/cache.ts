@@ -71,22 +71,46 @@ export class PluginCacheDB {
     }
   }
 
-  /**
-   * Persist cache order to IndexedDB.
-   * Saves the current module access order for FIFO eviction.
-   */
-  private async saveCacheOrder(): Promise<void> {
+  // --- tiny IndexedDB helpers (reduce boilerplate) ---
+  private async idbPut(record: CachedFile | CachedBinaryFile | CacheOrder): Promise<void> {
     const db = await this.open();
     return new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, "readwrite");
-      const req = tx.objectStore(STORE_NAME).put({
-        fileKey: "__cache-order__",
-        data: this.moduleOrder,
-        cachedAt: Date.now(),
-      } as CacheOrder);
+      const req = tx.objectStore(STORE_NAME).put(record as never);
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });
+  }
+
+  private async idbGet<T>(key: string): Promise<T | undefined> {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const req = tx.objectStore(STORE_NAME).get(key);
+      req.onsuccess = () => resolve(req.result as T | undefined);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  private async idbDelete(key: string): Promise<void> {
+    const db = await this.open();
+    return new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const req = tx.objectStore(STORE_NAME).delete(key);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  /**
+   * Persist cache order to IndexedDB.
+   */
+  private async saveCacheOrder(): Promise<void> {
+    await this.idbPut({
+      fileKey: "__cache-order__",
+      data: this.moduleOrder,
+      cachedAt: Date.now(),
+    } as CacheOrder);
   }
 
   /**
@@ -130,6 +154,7 @@ export class PluginCacheDB {
     if (this.db) return this.db;
     return new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
+      let blockedTimeout: ReturnType<typeof setTimeout> | undefined;
       req.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
         if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -137,15 +162,23 @@ export class PluginCacheDB {
         }
       };
       req.onsuccess = () => {
+        if (blockedTimeout) clearTimeout(blockedTimeout);
         this.db = req.result;
+        // Close on versionchange to avoid blocking other tabs
+        this.db.onversionchange = () => this.db?.close();
         resolve(this.db);
       };
       req.onerror = () => {
+        if (blockedTimeout) clearTimeout(blockedTimeout);
         console.error("[PluginCacheDB] Open failed:", req.error);
         reject(req.error);
       };
       req.onblocked = () => {
         console.warn("[PluginCacheDB] Open blocked — check for other tabs with this DB open");
+        blockedTimeout = setTimeout(
+          () => reject(new Error("IndexedDB open blocked by another tab")),
+          5000,
+        );
       };
     });
   }
@@ -220,29 +253,36 @@ export class PluginCacheDB {
       );
       const filesToFetch = fileNames.length > 0 ? fileNames : ["index.js"];
 
-      // Download each file
+      // Download each file — failures throw so caller can retry
       const files: Record<string, string> = {};
       const baseUrlNoSlash = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
-      const fetchPromises = filesToFetch.map(async (fileName) => {
-        const url = `${baseUrlNoSlash}/${fileName}`;
-        const fileRes = await this._fetcher(url, {
-          signal: controller.signal,
-          cache: "no-store",
-        });
-        if (!fileRes.ok) {
-          console.error(
-            "[PluginCacheDB] Failed to fetch file:",
-            url,
-            fileRes.status,
-            fileRes.statusText,
-          );
-          return;
+      const fetchResults = await Promise.allSettled(
+        filesToFetch.map(async (fileName) => {
+          const url = `${baseUrlNoSlash}/${fileName}`;
+          const fileRes = await this._fetcher(url, {
+            signal: controller.signal,
+            cache: "no-store",
+          });
+          if (!fileRes.ok) {
+            throw new Error(`Failed to fetch ${url}: ${fileRes.status} ${fileRes.statusText}`);
+          }
+          const text = await fileRes.text();
+          return { fileName, text };
+        }),
+      );
+      const failures: string[] = [];
+      for (const r of fetchResults) {
+        if (r.status === "fulfilled") files[r.value.fileName] = r.value.text;
+        else failures.push(r.reason instanceof Error ? r.reason.message : String(r.reason));
+      }
+      if (failures.length > 0) {
+        // If entry file failed, fail fast; otherwise warn but continue
+        if (!files[filesToFetch[0]] && !files["index.js"]) {
+          throw new Error(`Failed to download required files: ${failures.join("; ")}`);
         }
-        const text = await fileRes.text();
-        files[fileName] = text;
-      });
-
-      await Promise.all(fetchPromises);
+        for (const f of failures) console.warn("[PluginCacheDB]", f);
+      }
+      if (Object.keys(files).length === 0) throw new Error("No files downloaded from directory");
 
       // Store each file in IndexedDB
       const db = await this.open();
@@ -390,50 +430,22 @@ export class PluginCacheDB {
     }
   }
 
-  /**
-   * Get the cached version marker for a module.
-   * Returns null when no marker has been stored.
-   *
-   * @param moduleId - Module ID to look up
-   * @returns The stored version string or null
-   */
   async getVersion(moduleId: string): Promise<string | null> {
-    const scopedKey = `${moduleId}/__version__`;
     try {
-      const db = await this.open();
-      return new Promise((resolve) => {
-        const tx = db.transaction(STORE_NAME, "readonly");
-        const req = tx.objectStore(STORE_NAME).get(scopedKey);
-        req.onsuccess = () => {
-          const result = req.result as CachedFile | undefined;
-          resolve(result?.data ?? null);
-        };
-        req.onerror = () => resolve(null);
-      });
+      const rec = await this.idbGet<CachedFile>(`${moduleId}/__version__`);
+      return rec?.data ?? null;
     } catch (err) {
-      console.warn("[PluginCacheDB] getVersion failed for:", moduleId, err);
+      console.warn("[PluginCacheDB] getVersion failed:", moduleId, err);
       return null;
     }
   }
 
-  /**
-   * Store the version marker for a module alongside its cached files.
-   *
-   * @param moduleId - Module ID to tag
-   * @param version - Version string to persist
-   */
   async setVersion(moduleId: string, version: string): Promise<void> {
-    const db = await this.open();
-    return new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readwrite");
-      const req = tx.objectStore(STORE_NAME).put({
-        fileKey: `${moduleId}/__version__`,
-        data: version,
-        cachedAt: Date.now(),
-      } as CachedFile);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
+    await this.idbPut({
+      fileKey: `${moduleId}/__version__`,
+      data: version,
+      cachedAt: Date.now(),
+    } as CachedFile);
   }
 
   /**
@@ -460,107 +472,44 @@ export class PluginCacheDB {
     await this.putText(moduleId, "__bundleHash__", bundleHash);
   }
 
-  /**
-   * Store a single text file under a module-scoped key.
-   *
-   * @param moduleId - Module ID for cache scoping
-   * @param fileName - File name (archive path) to store under
-   * @param content - File content
-   */
   async putText(moduleId: string, fileName: string, content: string): Promise<void> {
-    const db = await this.open();
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readwrite");
-      const req = tx.objectStore(STORE_NAME).put({
-        fileKey: `${moduleId}/${fileName}`,
-        data: content,
-        cachedAt: Date.now(),
-      } as CachedFile);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
+    await this.idbPut({
+      fileKey: `${moduleId}/${fileName}`,
+      data: content,
+      cachedAt: Date.now(),
+    } as CachedFile);
     if (!this._manifestCache) this._manifestCache = {};
     this._manifestCache[`${moduleId}/${fileName}`] = content;
   }
 
-  /**
-   * Store raw bytes under a module-scoped key.
-   *
-   * Binary records never enter the in-memory string cache — they are read back
-   * through {@link getBinary}.
-   *
-   * @param moduleId - Module ID for cache scoping
-   * @param fileName - File name (archive path) to store under
-   * @param bytes - Raw file bytes
-   * @param mimeType - MIME type to serve the bytes with
-   */
   async putBinary(
     moduleId: string,
     fileName: string,
     bytes: ArrayBuffer,
     mimeType = "application/octet-stream",
   ): Promise<void> {
-    const db = await this.open();
-    return new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readwrite");
-      const req = tx.objectStore(STORE_NAME).put({
-        fileKey: `${moduleId}/${fileName}`,
-        data: bytes,
-        binary: true,
-        mimeType,
-        cachedAt: Date.now(),
-      } as CachedBinaryFile);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
+    await this.idbPut({
+      fileKey: `${moduleId}/${fileName}`,
+      data: bytes,
+      binary: true,
+      mimeType,
+      cachedAt: Date.now(),
+    } as unknown as CachedBinaryFile);
   }
 
-  /**
-   * Read raw bytes previously stored by {@link putBinary}.
-   *
-   * @param moduleId - Module ID containing the file
-   * @param fileName - File name (archive path) to retrieve
-   * @returns The bytes and MIME type, or null when absent
-   */
   async getBinary(
     moduleId: string,
     fileName: string,
   ): Promise<{ bytes: ArrayBuffer; mimeType: string } | null> {
-    const db = await this.open();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readonly");
-      const req = tx.objectStore(STORE_NAME).get(`${moduleId}/${fileName}`);
-      req.onsuccess = () => {
-        const result = req.result as CachedBinaryFile | undefined;
-        if (!result?.data) {
-          resolve(null);
-          return;
-        }
-        resolve({ bytes: result.data, mimeType: result.mimeType ?? "application/octet-stream" });
-      };
-      req.onerror = () => reject(req.error);
-    });
+    const result = await this.idbGet<CachedBinaryFile>(`${moduleId}/${fileName}`);
+    if (!result?.data) return null;
+    return { bytes: result.data, mimeType: result.mimeType ?? "application/octet-stream" };
   }
 
-  /**
-   * Delete a single cached file.
-   *
-   * Used to drop the downloaded `.zip` once it has been verified and unpacked —
-   * the archive itself is never kept, only its extracted contents.
-   *
-   * @param moduleId - Module ID containing the file
-   * @param fileName - File name (archive path) to delete
-   */
   async deleteFile(moduleId: string, fileName: string): Promise<void> {
     const scopedKey = `${moduleId}/${fileName}`;
     if (this._manifestCache) delete this._manifestCache[scopedKey];
-    const db = await this.open();
-    return new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readwrite");
-      const req = tx.objectStore(STORE_NAME).delete(scopedKey);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
+    await this.idbDelete(scopedKey);
   }
 
   /**

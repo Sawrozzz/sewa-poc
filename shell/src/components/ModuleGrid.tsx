@@ -112,7 +112,8 @@ export function ModuleGrid() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) fetchNextPage();
+        if (entries[0]?.isIntersecting)
+          void fetchNextPage().catch((e) => console.warn("[ModuleGrid] fetchNextPage failed:", e));
       },
       { rootMargin: "200px" },
     );
@@ -164,7 +165,9 @@ export function ModuleGrid() {
             </p>
             <button
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gov-500 text-gov-950 rounded-lg hover:bg-gov-600 transition text-sm font-medium"
-              onClick={() => refreshMiniApps()}
+              onClick={() =>
+                void refreshMiniApps().catch((e) => console.warn("[ModuleGrid] refresh failed:", e))
+              }
               type="button"
             >
               <span>🔄</span>

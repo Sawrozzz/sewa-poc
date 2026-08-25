@@ -17,14 +17,24 @@ type FetchEnv = Pick<SdkCacheEnv, "fetch" | "now">;
  * stored or executed, since it means either a compromised CDN or a bad pin.
  */
 export async function downloadBundle(spec: SdkSpec, env: FetchEnv): Promise<CachedSdkBundle> {
-  const response = await env.fetch(spec.url, { credentials: "omit" });
+  if (!spec?.url || !spec?.integrity)
+    throw new Error("Invalid SdkSpec: url and integrity required");
+  let response: Response;
+  try {
+    response = await env.fetch(spec.url, { credentials: "omit" });
+  } catch (err) {
+    throw new Error(
+      `SDK fetch failed for ${spec.url}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
   if (!response.ok) {
     throw new Error(`SDK download failed: ${response.status} ${response.statusText}`);
   }
 
   const bytes = await response.arrayBuffer();
+  if (bytes.byteLength > 10 * 1024 * 1024) throw new Error("SDK bundle too large");
   const integrity = await verify(bytes, spec.integrity, spec.url);
-  const at = new Date(env.now()).toLocaleDateString();
+  const at = new Date(env.now()).toISOString();
 
   const lm = response.headers.get("last-modified");
   const lastModified = lm ? new Date(lm).toISOString() : undefined;

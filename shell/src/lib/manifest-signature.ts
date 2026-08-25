@@ -76,7 +76,13 @@ function pemToDer(pem: string): ArrayBuffer {
     .replace(/-----BEGIN [^-]+-----/, "")
     .replace(/-----END [^-]+-----/, "")
     .replace(/\s+/g, "");
-  const binary = atob(body);
+  if (!body) throw new Error("PEM body is empty");
+  let binary: string;
+  try {
+    binary = atob(body);
+  } catch {
+    throw new Error("PEM contains invalid base64");
+  }
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes.buffer;
@@ -89,9 +95,15 @@ function pemToDer(pem: string): ArrayBuffer {
  * @returns Raw signature bytes
  */
 function decodeSignature(value: string): ArrayBuffer {
+  if (!value || typeof value !== "string") throw new Error("Signature is empty");
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
   const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
-  const binary = atob(padded);
+  let binary: string;
+  try {
+    binary = atob(padded);
+  } catch {
+    throw new Error("Signature contains invalid base64url");
+  }
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes.buffer;

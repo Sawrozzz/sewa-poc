@@ -143,10 +143,12 @@ export interface ManifestApplication {
   version: string;
   type: string;
 }
-export interface ManifestPlatfrom {
+export interface ManifestPlatform {
   runtime: string;
   sdk: string;
 }
+/** @deprecated use ManifestPlatform */
+export type ManifestPlatfrom = ManifestPlatform;
 
 export interface ManifestBundle {
   entry: string;
@@ -156,11 +158,11 @@ export interface ManifestBundle {
 
 export interface ManifestEntry {
   files: string[];
-  styles: never[];
+  styles: string[];
   entry: string;
   schemaVersion: string;
   application: ManifestApplication;
-  platform: ManifestPlatfrom;
+  platform: ManifestPlatform;
   bundle: ManifestBundle;
 }
 
