@@ -71,7 +71,7 @@ export function PlatformProvider({ children, authConfig }: PlatformProviderProps
         // The navigation service publishes `navigation.back.requested` on it
         // and waits for the mini app's reply — see `useMiniAppBackButton`.
         eventBus,
-      });
+      }) as unknown as ShellServiceMap;
       appearanceController.apply();
 
       const loader = createRuntimeLoader({
