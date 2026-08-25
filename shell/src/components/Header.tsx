@@ -3,9 +3,9 @@
 import { MoonIcon, RefreshCcwIcon, SunIcon } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useAppRefresh } from "@/hooks/use-app-refresh";
+import { useTheme } from "@/hooks/use-theme";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
-import { useAppRefresh } from "@/lib/use-app-refresh";
-import { useTheme } from "@/lib/use-theme";
 import { LocaleSwitcher } from "./LanguageSwitcher";
 
 /**

@@ -2,13 +2,13 @@
 
 import type { OldModuleManifest } from "@sewa/host-platform";
 import { useEffect, useMemo, useRef } from "react";
-import { authClient, mapSessionUser } from "@/lib/auth-client";
 import {
   useFallbackMiniApps,
   useMiniAppCatalog,
   useMiniApps,
   useRefreshMiniApps,
-} from "@/lib/use-mini-apps";
+} from "@/hooks/use-mini-apps";
+import { authClient, mapSessionUser } from "@/lib/auth-client";
 import { OldMiniAppCard } from "./MiniAppCard";
 import { NewMiniAppCard } from "./NewMiniAppCard";
 

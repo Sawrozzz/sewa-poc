@@ -1,7 +1,7 @@
 "use client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type React from "react";
-import { useFcmToken } from "@/lib/useFcmToken";
+import { useFcmToken } from "@/hooks/useFcmToken";
 import NotificationListener from "./NotificationListener";
 import PlatformShell from "./PlatformShell";
 

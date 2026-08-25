@@ -23,6 +23,7 @@ import type {
   MiniAppBundle,
   MiniAppModuleExports,
   MiniAppRuntime,
+  ModuleSourceKind,
   RuntimeLoaderOptions,
   ViteManifest,
 } from "./types";
@@ -153,6 +154,38 @@ export class RuntimeLoader {
     };
   }
 
+  private async finishLoad(
+    moduleId: string,
+    entryFileName: string,
+    entryCode: string,
+    styles: string[],
+    startTime: number,
+    version?: string,
+    extra?: { kind?: ModuleSourceKind; bundleHash?: string },
+  ): Promise<RemoteLoadResult> {
+    const mod = await this.evaluateModule(moduleId, entryFileName, entryCode);
+    if (typeof mod.mount !== "function")
+      throw new Error(`Bundle ${entryFileName} must export a mount() function`);
+    const bundle = this.makeBundle(mod as MiniAppModuleExports, styles);
+    this.loadedModules.set(moduleId, {
+      moduleId,
+      strategy: "plugin",
+      bundle,
+      version,
+      loadedAt: Date.now(),
+      kind: extra?.kind,
+      bundleHash: extra?.bundleHash,
+    });
+    return {
+      moduleId,
+      success: true,
+      loadTimeMs: Date.now() - startTime,
+      strategy: "plugin",
+      bundle,
+      version,
+    };
+  }
+
   /**
    * Create a new RuntimeLoader instance.
    * @param options - Configuration options
@@ -195,6 +228,16 @@ export class RuntimeLoader {
    * }
    * ```
    */
+  // --- unified entry point (directory vs bundle via opts.bundleHash) ---
+  async loadUnified(
+    moduleId: string,
+    bundleUrl: string,
+    opts: Partial<BundleLoadOptions> & { bundleHash?: string; version?: string } = {},
+  ): Promise<RemoteLoadResult> {
+    if (opts.bundleHash) return this.loadBundle(moduleId, bundleUrl, opts as BundleLoadOptions);
+    return this.load(moduleId, bundleUrl, opts.version, opts);
+  }
+
   async load(
     moduleId: string,
     bundleUrl: string,
@@ -217,31 +260,6 @@ export class RuntimeLoader {
     );
   }
 
-  /**
-   * Load a mini-app published as a signed-manifest `.zip` bundle.
-   *
-   * The archive is downloaded, parked in IndexedDB, hashed, and only unpacked
-   * once its digest matches the manifest's `bundleHash`. The archive is then
-   * dropped and its extracted files (JS, CSS, assets) take its place in the
-   * cache. On the next open, a cached digest equal to the manifest's short-
-   * circuits the whole cycle and the files are read straight from IndexedDB.
-   *
-   * `load()` and its directory-based flow are untouched — the two coexist.
-   *
-   * @param moduleId - Unique identifier for the module
-   * @param bundleUrl - URL of the `.zip` archive
-   * @param options - Bundle hash (required), version, and retry config
-   * @returns Result of the load operation
-   *
-   * @example
-   * ```typescript
-   * const result = await loader.loadBundle('test-mini-app', app.bundleUrl, {
-   *   bundleHash: app.bundleHash,
-   *   version: app.version,
-   *   retryAttempts: 2,
-   * });
-   * ```
-   */
   async loadBundle(
     moduleId: string,
     bundleUrl: string,
@@ -538,34 +556,15 @@ export class RuntimeLoader {
       );
     }
 
-    // 4. Collect the CSS contents to scope inside the mini-app's shadow root
     const styles = this.collectStyles(files, cssFileNames);
-
-    // 5. Evaluate the JavaScript module
-    const moduleExports = await this.evaluateModule(
+    return this.finishLoad(
       moduleId,
       this.getFullUrl(bundleDirUrl, entryFileName),
       indexJs,
+      styles,
+      startTime,
+      version,
     );
-
-    if (typeof moduleExports.mount !== "function")
-      throw new Error(`Bundle ${entryFileName} must export a mount() function`);
-    const bundle = this.makeBundle(moduleExports as MiniAppModuleExports, styles);
-    this.loadedModules.set(moduleId, {
-      moduleId,
-      strategy: "plugin",
-      bundle,
-      version,
-      loadedAt: Date.now(),
-    });
-    return {
-      moduleId,
-      success: true,
-      loadTimeMs: Date.now() - startTime,
-      strategy: "plugin",
-      bundle,
-      version,
-    };
   }
 
   private async loadBundleInternal(
@@ -616,27 +615,10 @@ export class RuntimeLoader {
     }
 
     const { entryFileName, entryCode, styles } = await this.readBundleFromCache(cacheId, moduleId);
-    const moduleExports = await this.evaluateModule(moduleId, entryFileName, entryCode);
-    if (typeof moduleExports.mount !== "function")
-      throw new Error(`Bundle ${entryFileName} must export a mount() function`);
-    const bundle = this.makeBundle(moduleExports as MiniAppModuleExports, styles);
-    this.loadedModules.set(moduleId, {
-      moduleId,
-      strategy: "plugin",
-      bundle,
-      version: options.version,
-      loadedAt: Date.now(),
+    return this.finishLoad(moduleId, entryFileName, entryCode, styles, startTime, options.version, {
       kind: "bundle",
       bundleHash: options.bundleHash,
     });
-    return {
-      moduleId,
-      success: true,
-      loadTimeMs: Date.now() - startTime,
-      strategy: "plugin",
-      bundle,
-      version: options.version,
-    };
   }
 
   /**

@@ -6,12 +6,12 @@ import type { RuntimeLoader } from "@sewa/runtime-loader";
 import { createRuntimeLoader } from "@sewa/runtime-loader";
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createShellServices } from "@/platform";
 import type { AppearanceController } from "@/platform/appearance-controller";
 import { createAppearanceController } from "@/platform/appearance-controller";
 import { installHostApiGuard } from "@/platform/host-guard";
 import { scheduleSdkWarm } from "@/platform/sdk";
-import type { PlatformServicesConfig } from "../platform/services";
-import { createShellServices } from "../platform/services";
+import type { PlatformServicesConfig } from "@/types/platform";
 
 export interface PlatformContextValue {
   eventBus: EventBus;

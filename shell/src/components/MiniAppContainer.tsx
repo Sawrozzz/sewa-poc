@@ -5,9 +5,9 @@ import { ArrowLeftIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEventBus, usePlatform, useRuntimeLoader } from "@/context";
+import { useMiniApp, useRegistryMiniApp } from "@/hooks/use-mini-apps";
 import { authClient } from "@/lib/auth-client";
 import { bundleFetchUrl } from "@/lib/modules-api";
-import { useMiniApp, useRegistryMiniApp } from "@/lib/use-mini-apps";
 import { useMiniAppBackButton } from "@/platform";
 import { destroyMiniAppSdk, loadMiniAppSdk } from "@/platform/sdk";
 import { setModuleManifestCache } from "@/platform/services";
@@ -156,19 +156,12 @@ export function MiniAppContainer({
 
     let result: RemoteLoadResult;
     try {
-      // Registry apps arrive as a signed `.zip`: download → hash-check against
-      // the manifest → unpack into IndexedDB. Pre-installed apps keep fetching
-      // their files individually from the bundle base URL.
-      result =
-        manifest.bundleHash !== undefined
-          ? await loader.loadBundle(miniAppId, manifest.bundleUrl, {
-              bundleHash: manifest.bundleHash,
-              version: manifest.version,
-              retryAttempts: 2,
-            })
-          : await loader.load(miniAppId, manifest.bundleUrl, manifest.version, {
-              retryAttempts: 3,
-            });
+      // Unified loader: zip (bundleHash) vs directory auto-detected
+      result = await loader.loadUnified(miniAppId, manifest.bundleUrl, {
+        bundleHash: manifest.bundleHash,
+        version: manifest.version,
+        retryAttempts: manifest.bundleHash ? 2 : 3,
+      });
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Failed to load module");
       setLoadState("error");

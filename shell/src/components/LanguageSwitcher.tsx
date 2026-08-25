@@ -2,8 +2,8 @@
 
 import { Globe } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useLocaleSwitch } from "@/hooks/use-locale-switch";
 import { localeLabels, locales } from "@/i18n/config";
-import { useLocaleSwitch } from "@/lib/use-locale-switch";
 
 export function LocaleSwitcher() {
   const t = useTranslations("LocaleSwitcher");

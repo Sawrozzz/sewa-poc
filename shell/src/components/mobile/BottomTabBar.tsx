@@ -2,7 +2,7 @@
 
 import { HomeIcon, LayoutGridIcon, MenuIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useTheme } from "@/lib/use-theme";
+import { useTheme } from "@/hooks/use-theme";
 import type { MobileTab } from "./MobileTabsContext";
 import { useMobileTabs } from "./MobileTabsContext";
 

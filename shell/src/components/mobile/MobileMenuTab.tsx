@@ -19,6 +19,9 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { AppLockSetupScreen } from "@/components/applock/AppLockSetupScreen";
 import { AppLockUnlockScreen } from "@/components/applock/AppLockUnlockScreen";
+import { useAppRefresh } from "@/hooks/use-app-refresh";
+import { useLocaleSwitch } from "@/hooks/use-locale-switch";
+import { useTheme } from "@/hooks/use-theme";
 import { localeLabels, locales } from "@/i18n/config";
 import {
   disableAppLock,
@@ -27,9 +30,6 @@ import {
   setAppLockPin,
 } from "@/lib/app-lock";
 import { authClient, mapSessionUser } from "@/lib/auth-client";
-import { useAppRefresh } from "@/lib/use-app-refresh";
-import { useLocaleSwitch } from "@/lib/use-locale-switch";
-import { useTheme } from "@/lib/use-theme";
 import { isInstalledPwa } from "@/platform/services/biometric";
 
 const THEME_OPTIONS: { value: ThemePreference; Icon: typeof SunIcon; labelKey: string }[] = [

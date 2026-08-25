@@ -4,14 +4,9 @@ import type { ModuleManifest } from "@sewa/host-platform";
 import type { InfiniteData, QueryClient } from "@tanstack/react-query";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo } from "react";
-import type {
-  MiniAppListItem,
-  PaginatedMiniAppParamsType,
-  PaginatedMiniApps,
-} from "@/types/manifest";
-import { clearMiniAppsManifest } from "./index-db";
-import type { ResolvedMiniApp } from "./merge-mini-app";
-import { indexManifestMiniApps, mergeMiniApp } from "./merge-mini-app";
+import { clearMiniAppsManifest } from "@/lib/index-db";
+import type { ResolvedMiniApp } from "@/lib/merge-mini-app";
+import { indexManifestMiniApps, mergeMiniApp } from "@/lib/merge-mini-app";
 import {
   fetchCatalogRow,
   fetchMiniAppCatalog,
@@ -20,7 +15,12 @@ import {
   findMiniApp,
   getFallbackManifests,
   MINI_APP_PAGE_SIZE,
-} from "./modules-api";
+} from "@/lib/modules-api";
+import type {
+  MiniAppListItem,
+  PaginatedMiniAppParamsType,
+  PaginatedMiniApps,
+} from "@/types/manifest";
 
 const MANIFEST_KEY = ["mini-apps", "manifest"] as const;
 const CATALOG_KEY = ["mini-apps", "catalog"] as const;

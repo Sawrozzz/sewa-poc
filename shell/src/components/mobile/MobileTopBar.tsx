@@ -3,8 +3,8 @@
 import { Bell, RefreshCcwIcon } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { useAppRefresh } from "@/lib/use-app-refresh";
-import { useTheme } from "@/lib/use-theme";
+import { useAppRefresh } from "@/hooks/use-app-refresh";
+import { useTheme } from "@/hooks/use-theme";
 import { useMobileTabs } from "./MobileTabsContext";
 
 /**

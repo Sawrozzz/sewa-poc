@@ -3,7 +3,7 @@
 import { SearchIcon, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
-import { useTheme } from "@/lib/use-theme";
+import { useTheme } from "@/hooks/use-theme";
 
 export function GlobalSearchBar() {
   const t = useTranslations("GlobalSearch");
