@@ -59,7 +59,7 @@ export const FALLBACK_MINI_APPS: OldModuleManifest[] = [
       "http",
       "events",
     ],
-    miniAppCapabilities: [],
+    miniAppCapabilities: ['http', 'http.stream'],
     dataCapabilities: [ 'device.location'],
     isEnabled: true,
     order: 1,
