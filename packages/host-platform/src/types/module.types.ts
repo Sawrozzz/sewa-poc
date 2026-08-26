@@ -67,7 +67,7 @@ export interface OldModuleManifest {
   createdAt: string;
   updatedAt: string;
   dataCapabilities?: string[];
-  miniAppCapabilities?: string[]
+  miniAppCapabilities?: string[];
 }
 
 export interface ModuleCompatibility {
@@ -115,7 +115,7 @@ export interface ModuleManifest {
    */
   capabilities?: string[];
   dataCapabilities?: string[];
-  miniAppCapabilities?: string[]
+  miniAppCapabilities?: string[];
 }
 
 /**

@@ -64,7 +64,8 @@ export function isCapabilityGranted(
 
   const act = action?.trim().toLowerCase();
   return granted.some((entry) => {
-    if (entry === ns || entry === `${ns}.*`) return true;
-    return Boolean(act) && entry === `${ns}.${act}`;
+    if (entry === `${ns}.*`) return true;
+    if (act) return entry === `${ns}.${act}`;
+    return entry === ns;
   });
 }

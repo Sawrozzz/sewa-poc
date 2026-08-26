@@ -19,7 +19,11 @@ import type { Transport } from "../transport";
 import { PostMessageTransport } from "../transport";
 import type { ShellServiceMap } from "../types";
 import type { NavigationTarget } from "../types/sdk.types";
-import { isCapabilityGranted, resolveDataCapabilities, resolveMiniAppCapabilities } from "./capabilities";
+import {
+  isCapabilityGranted,
+  resolveDataCapabilities,
+  resolveMiniAppCapabilities,
+} from "./capabilities";
 import type { RpcContext } from "./method-registry";
 import { MethodRegistry } from "./method-registry";
 
@@ -168,7 +172,7 @@ export class RpcServer {
     console.log("CUREENT MODULE ", moduleManifest);
     const effectiveDataCapabilities = resolveDataCapabilities(moduleManifest);
 
-    const effectiveMiniAppCapabilties = resolveMiniAppCapabilities(moduleManifest)
+    const effectiveMiniAppCapabilties = resolveMiniAppCapabilities(moduleManifest);
 
     const module: ConnectedModule = {
       moduleId: miniAppId,
