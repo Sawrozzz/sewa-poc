@@ -23,13 +23,13 @@ importers:
 
   packages/host-platform:
     dependencies:
-      '@lizuz/mini-app-types':
-        specifier: workspace:*
-        version: link:../../../mini-app-types
       axios:
         specifier: ^1.18.1
         version: 1.19.0
     devDependencies:
+      '@lizuz/mini-app-types':
+        specifier: ^1.0.17
+        version: 1.0.17
       '@types/node':
         specifier: ^26.0.0
         version: 26.2.0
@@ -46,6 +46,9 @@ importers:
         specifier: workspace:*
         version: link:../host-platform
     devDependencies:
+      '@lizuz/mini-app-types':
+        specifier: ^1.0.17
+        version: 1.0.17
       '@types/react':
         specifier: ^19.2.17
         version: 19.2.18
@@ -79,9 +82,6 @@ importers:
       '@google/genai':
         specifier: ^2.11.0
         version: 2.18.0
-      '@lizuz/mini-app-types':
-        specifier: workspace:*
-        version: link:../../mini-app-types
       '@sewa/host-platform':
         specifier: workspace:*
         version: link:../packages/host-platform
@@ -125,6 +125,9 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
+      '@lizuz/mini-app-types':
+        specifier: ^1.0.17
+        version: 1.0.17
       '@serwist/turbopack':
         specifier: ^9.5.11
         version: 9.5.12(@swc/helpers@0.5.23)(esbuild@0.28.2)(next@16.3.2(@types/node@26.2.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
@@ -1064,6 +1067,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@lizuz/mini-app-types@1.0.17':
+    resolution: {integrity: sha512-DBWjG/zfLcYNV42IeZsxDos2bM0ZERxuWyWCbPmd14c3b0utp8lY6ZcKcM5ipd48bKJGAiDYt+KazsC3y/ynRw==}
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     resolution: {integrity: sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ==}
@@ -4471,6 +4477,8 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@lizuz/mini-app-types@1.0.17': {}
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true

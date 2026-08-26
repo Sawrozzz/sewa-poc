@@ -4,12 +4,11 @@ import { ChevronRightIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
-import { authClient, mapSessionUser } from "@/lib/auth-client";
+import { GlobalSearchBar } from "@/components/catalog/GlobalSearchBar";
+import { authClient, mapSessionUser } from "@/features/auth/auth-client";
+import { useFallbackMiniApps, useMiniAppCatalog, useTheme } from "@/hooks";
 import { isFloatingMiniApp } from "@/lib/floating-mini-app";
-import { useFallbackMiniApps, useMiniAppCatalog } from "@/lib/use-mini-apps";
-import { useTheme } from "@/lib/use-theme";
-import { getGreeting } from "@/utils";
-import { GlobalSearchBar } from "../GlobalSearchBar";
+import { getGreeting } from "@/shared/lib";
 import { useMobileTabs } from "./MobileTabsContext";
 
 /** How many apps the launcher shows before deferring to the Services tab. */

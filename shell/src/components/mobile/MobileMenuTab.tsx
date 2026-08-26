@@ -1,6 +1,6 @@
 "use client";
 
-import type { ThemePreference } from "@sewa/host-platform";
+import type { ThemePreference } from "@lizuz/mini-app-types";
 import {
   CheckIcon,
   ChevronDownIcon,

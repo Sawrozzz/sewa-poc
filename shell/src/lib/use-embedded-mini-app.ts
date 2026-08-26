@@ -3,8 +3,8 @@
 import { resolveDataCapabilities, resolveMiniAppCapabilities } from "@sewa/host-platform";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePlatform, useRuntimeLoader } from "@/context";
-import { bundleFetchUrl } from "@/lib/modules-api";
-import { useRegistryMiniApp } from "@/lib/use-mini-apps";
+import { bundleFetchUrl } from "@/core/manifest/modules-api";
+import { useRegistryMiniApp } from "@/hooks";
 import { destroyMiniAppSdk, loadMiniAppSdk } from "@/platform/sdk";
 import { setModuleManifestCache } from "@/platform/services";
 
@@ -107,7 +107,10 @@ export function useEmbeddedMiniApp({
     setState("loading");
 
     try {
-      await loadMiniAppSdk(miniAppId, { capabilities: grantedDeviceCapabilities, ...grantedMiniAppCapabilities });
+      await loadMiniAppSdk(miniAppId, {
+        capabilities: grantedDeviceCapabilities,
+        ...grantedMiniAppCapabilities,
+      });
     } catch (err) {
       if (!aliveRef.current) return;
       setError(err instanceof Error ? err.message : "SDK initialization failed");

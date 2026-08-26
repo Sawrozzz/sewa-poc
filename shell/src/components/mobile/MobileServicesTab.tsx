@@ -5,16 +5,16 @@ import { ChevronRightIcon, SearchIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
-import { authClient, mapSessionUser } from "@/lib/auth-client";
-import { isFloatingMiniApp } from "@/lib/floating-mini-app";
-import type { ResolvedMiniApp } from "@/lib/merge-mini-app";
+import type { ResolvedMiniApp } from "@/core/manifest/merge-mini-app";
+import { authClient, mapSessionUser } from "@/features/auth/auth-client";
 import {
   useFallbackMiniApps,
   useMiniAppCatalog,
   useMiniApps,
   useRefreshMiniApps,
-} from "@/lib/use-mini-apps";
-import { useTheme } from "@/lib/use-theme";
+  useTheme,
+} from "@/hooks";
+import { isFloatingMiniApp } from "@/lib/floating-mini-app";
 
 /** One row in the list — the phone equivalent of a card in `ModuleGrid`. */
 interface ServiceRow {

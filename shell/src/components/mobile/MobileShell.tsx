@@ -8,8 +8,6 @@ import { MobileServicesTab } from "./MobileServicesTab";
 import { useMobileTabs } from "./MobileTabsContext";
 import { MobileTopBar } from "./MobileTopBar";
 
-export { MobileTabsProvider } from "./MobileTabsContext";
-
 /**
  * The phone / installed-PWA face of the portal: an app bar, one tab panel, and
  * a bottom tab bar.

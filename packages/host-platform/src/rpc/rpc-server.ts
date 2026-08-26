@@ -8,6 +8,7 @@
  * and routed here.
  */
 
+import type { NavigationTarget } from "@lizuz/mini-app-types";
 import axios from "axios";
 import { ACTIONS, NAMESPACES, PROTOCOL_VERSION } from "../constants";
 import { RpcMethodError } from "../errors";
@@ -24,8 +25,11 @@ import {
 import type { Transport } from "../transport";
 import { PostMessageTransport } from "../transport";
 import type { ShellServiceMap } from "../types";
-import type { NavigationTarget } from "../types/sdk.types";
-import { isCapabilityGranted, resolveDataCapabilities, resolveMiniAppCapabilities } from "./capabilities";
+import {
+  isCapabilityGranted,
+  resolveDataCapabilities,
+  resolveMiniAppCapabilities,
+} from "./capabilities";
 import type { RpcContext } from "./method-registry";
 import { MethodRegistry } from "./method-registry";
 
@@ -185,7 +189,7 @@ export class RpcServer {
     console.log("CUREENT MODULE ", moduleManifest);
     const effectiveDataCapabilities = resolveDataCapabilities(moduleManifest);
 
-    const effectiveMiniAppCapabilties = resolveMiniAppCapabilities(moduleManifest)
+    const effectiveMiniAppCapabilties = resolveMiniAppCapabilities(moduleManifest);
 
     const clientProtocolVersion = payload.protocolVersion ?? PROTOCOL_VERSION;
     if (!majorVersionsMatch(clientProtocolVersion, PROTOCOL_VERSION)) {

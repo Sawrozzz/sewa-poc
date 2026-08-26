@@ -1,12 +1,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { authClient, mapSessionUser } from "@/lib/auth-client";
-import { getGreeting } from "@/utils";
-import { GlobalSearchBar } from "./GlobalSearchBar";
+import { GlobalSearchBar } from "@/components/catalog/GlobalSearchBar";
+import { ModuleGrid } from "@/components/catalog/ModuleGrid";
+import { MobileShell } from "@/components/mobile/MobileShell";
+import { MobileTabsProvider } from "@/components/mobile/MobileTabsContext";
+import { authClient, mapSessionUser } from "@/features/auth/auth-client";
+import { getGreeting } from "@/shared/lib";
 import { Header } from "./Header";
-import { ModuleGrid } from "./ModuleGrid";
-import { MobileShell, MobileTabsProvider } from "./mobile/MobileShell";
 
 export function AppShell() {
   return (

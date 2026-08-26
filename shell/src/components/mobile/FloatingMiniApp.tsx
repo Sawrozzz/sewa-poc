@@ -3,11 +3,11 @@
 import { MessageCircleIcon, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
+import { MiniAppErrorBoundary } from "@/components/mini-app/MiniAppErrorBoundary";
+import { useTheme } from "@/hooks";
 import { FLOATING_MINI_APP_ID } from "@/lib/floating-mini-app";
 import { useEmbeddedMiniApp } from "@/lib/use-embedded-mini-app";
-import { useTheme } from "@/lib/use-theme";
 import { useMiniAppBackButton } from "@/platform";
-import { MiniAppErrorBoundary } from "../MiniAppErrorBoundary";
 
 /**
  * The chat mini app as a floating bubble — the pattern a website chat widget
