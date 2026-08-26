@@ -1,5 +1,5 @@
 import type { MetaDataType, ModuleManifest } from "@sewa/host-platform";
-import { resolveCapabilities } from "@sewa/host-platform";
+import { resolveDataCapabilities, resolveMiniAppCapabilities } from "@sewa/host-platform";
 import type { MiniAppListItem } from "@/types/manifest";
 
 export type ResolvedMiniApp = MiniAppListItem &
@@ -42,7 +42,7 @@ export function mergeMiniApp(listItem: MiniAppListItem, entry: ModuleManifest): 
               : bundleVerifiedAt.toISOString(),
         }),
   } as ResolvedMiniApp;
-  merged.mergedCapabilities = resolveCapabilities(merged);
+  merged.mergedCapabilities = [...resolveDataCapabilities(merged), ...resolveMiniAppCapabilities(merged) ];
 
   return merged;
 }

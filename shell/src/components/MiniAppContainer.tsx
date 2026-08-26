@@ -1,6 +1,6 @@
 "use client";
 
-import { resolveCapabilities } from "@sewa/host-platform";
+import { resolveDataCapabilities, resolveMiniAppCapabilities } from "@sewa/host-platform";
 import { ArrowLeftIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -106,8 +106,12 @@ export function MiniAppContainer({
    * so what the SDK is told it has and what the gate enforces cannot drift.
    * For a registry app this is exactly the merge's `mergedCapabilities`.
    */
-  const grantedCapabilities = useMemo(
-    () => resolveCapabilities(isRegistry ? registryApp : fallbackManifest),
+  const grantedDataCapabilities = useMemo(
+    () => resolveDataCapabilities(isRegistry ? registryApp : fallbackManifest),
+    [isRegistry, registryApp, fallbackManifest],
+  );
+  const grantedMiniAppCapabilities = useMemo(
+    () => resolveMiniAppCapabilities(isRegistry ? registryApp : fallbackManifest),
     [isRegistry, registryApp, fallbackManifest],
   );
 
@@ -134,9 +138,9 @@ export function MiniAppContainer({
 
   const initMiniAppBridge = useCallback(async () => {
     if (sdkLoaded.current) return;
-    await loadMiniAppSdk(miniAppId, { capabilities: grantedCapabilities });
+    await loadMiniAppSdk(miniAppId, { capabilities: grantedDataCapabilities, ...grantedMiniAppCapabilities });
     sdkLoaded.current = true;
-  }, [miniAppId, grantedCapabilities]);
+  }, [miniAppId, grantedDataCapabilities, grantedMiniAppCapabilities]);
 
   const loadModule = useCallback(async () => {
     if (!manifest) return;

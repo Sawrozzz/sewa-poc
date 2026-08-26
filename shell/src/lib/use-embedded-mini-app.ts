@@ -1,6 +1,6 @@
 "use client";
 
-import { resolveCapabilities } from "@sewa/host-platform";
+import { resolveDataCapabilities, resolveMiniAppCapabilities } from "@sewa/host-platform";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePlatform, useRuntimeLoader } from "@/context";
 import { bundleFetchUrl } from "@/lib/modules-api";
@@ -78,7 +78,8 @@ export function useEmbeddedMiniApp({
     };
   }, [app, miniAppId]);
 
-  const grantedCapabilities = useMemo(() => resolveCapabilities(app), [app]);
+  const grantedDeviceCapabilities = useMemo(() => resolveDataCapabilities(app), [app]);
+  const grantedMiniAppCapabilities = useMemo(() => resolveMiniAppCapabilities(app), [app]);
 
   // Publish the manifest to the cache the RpcServer reads on handshake, exactly
   // as published — the server resolves the granted set itself.
@@ -106,7 +107,7 @@ export function useEmbeddedMiniApp({
     setState("loading");
 
     try {
-      await loadMiniAppSdk(miniAppId, { capabilities: grantedCapabilities });
+      await loadMiniAppSdk(miniAppId, { capabilities: grantedDeviceCapabilities, ...grantedMiniAppCapabilities });
     } catch (err) {
       if (!aliveRef.current) return;
       setError(err instanceof Error ? err.message : "SDK initialization failed");
@@ -141,7 +142,7 @@ export function useEmbeddedMiniApp({
       setError(err instanceof Error ? err.message : "Failed to load module");
       setState("error");
     }
-  }, [descriptor, miniAppId, grantedCapabilities, loader]);
+  }, [descriptor, miniAppId, grantedDeviceCapabilities, loader, grantedMiniAppCapabilities]);
 
   // Loads once, on the first render where the surface asks for it. `loadedRef`
   // — not the dependency list — is what keeps a re-render from reloading:

@@ -19,7 +19,7 @@ import type { Transport } from "../transport";
 import { PostMessageTransport } from "../transport";
 import type { ShellServiceMap } from "../types";
 import type { NavigationTarget } from "../types/sdk.types";
-import { isCapabilityGranted, resolveCapabilities } from "./capabilities";
+import { isCapabilityGranted, resolveDataCapabilities, resolveMiniAppCapabilities } from "./capabilities";
 import type { RpcContext } from "./method-registry";
 import { MethodRegistry } from "./method-registry";
 
@@ -166,13 +166,15 @@ export class RpcServer {
     // own permissions. An unregistered module resolves to the core set only.
     const moduleManifest = this.services.moduleManifest?.get?.(miniAppId);
     console.log("CUREENT MODULE ", moduleManifest);
-    const effectiveCapabilities = resolveCapabilities(moduleManifest);
+    const effectiveDataCapabilities = resolveDataCapabilities(moduleManifest);
+
+    const effectiveMiniAppCapabilties = resolveMiniAppCapabilities(moduleManifest)
 
     const module: ConnectedModule = {
       moduleId: miniAppId,
       sdkVersion: payload.sdkVersion ?? "0.0.0",
       protocolVersion: payload.protocolVersion ?? PROTOCOL_VERSION,
-      capabilities: effectiveCapabilities,
+      capabilities: [...effectiveDataCapabilities, ...effectiveMiniAppCapabilties],
       connectedAt: Date.now(),
       origin,
       eventSubscriptions: new Set(),
@@ -192,7 +194,7 @@ export class RpcServer {
       {
         status: "ok",
         protocolVersion: PROTOCOL_VERSION,
-        capabilities: effectiveCapabilities,
+        capabilities: [...effectiveDataCapabilities, ...effectiveMiniAppCapabilties],
       },
       {
         id: msg.requestId,
