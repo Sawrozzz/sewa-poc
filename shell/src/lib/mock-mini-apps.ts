@@ -18,8 +18,8 @@ export const FALLBACK_MINI_APPS: OldModuleManifest[] = [
     dataCapabilities: ["device.location"],
     isEnabled: true,
     order: 1,
-    bundleUrl: "https://test-mini-app-orcin.vercel.app/",
-    // bundleUrl: "http://localhost:3002/",
+    // bundleUrl: "https://test-mini-app-orcin.vercel.app/",
+    bundleUrl: "http://localhost:3002/",
     entryType: "framework-agnostic",
     loadStrategy: "plugin",
     compatibility: {
@@ -321,8 +321,8 @@ export const FALLBACK_MINI_APPS: OldModuleManifest[] = [
     ],
     isEnabled: true,
     order: 1,
-    bundleUrl: "https://svelte-mini-app.vercel.app/",
-    // bundleUrl: "http://localhost:3008/",
+    // bundleUrl: "https://svelte-mini-app.vercel.app/",
+    bundleUrl: "http://localhost:3008/",
     entryType: "framework-agnostic",
     loadStrategy: "plugin",
     compatibility: {

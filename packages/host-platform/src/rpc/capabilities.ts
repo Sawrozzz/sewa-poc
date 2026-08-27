@@ -7,6 +7,7 @@ export const CORE_CAPABILITIES: readonly string[] = [
   NAMESPACES.APPEARANCE,
   NAMESPACES.NAVIGATION,
   NAMESPACES.AUTH,
+  "http.stream" // NOTE: Need to remove this later
 ];
 
 /** Everything the host serves — what a wildcard grant expands to. */

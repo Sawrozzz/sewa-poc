@@ -180,7 +180,9 @@ export interface CachedFile {
   /** File content as string */
   data: string;
   /** Timestamp when the file was cached */
-  cachedAt: number;
+  cachedAt: Date;
+  /** Exact byte size of `data` as stored (UTF-8 bytes for strings) */
+  size: number;
 }
 
 /**
@@ -199,7 +201,9 @@ export interface CachedBinaryFile {
   /** MIME type inferred from the file extension */
   mimeType: string;
   /** Timestamp when the file was cached */
-  cachedAt: number;
+  cachedAt: Date;
+  /** Exact byte size of `data` (`ArrayBuffer.byteLength`) */
+  size: number;
 }
 
 /**
@@ -222,5 +226,7 @@ export interface CacheOrder {
   /** Ordered list of module IDs (oldest first) */
   data: string[];
   /** Timestamp when the order was last updated */
-  cachedAt: number;
+  cachedAt: Date;
+  /** Exact byte size of `data` as JSON (UTF-8 bytes) */
+  size: number;
 }
