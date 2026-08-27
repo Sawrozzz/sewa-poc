@@ -133,7 +133,7 @@ function dropDb(): Promise<void> {
 
 async function storedKeys(): Promise<string[]> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open("sewa-plugin-cache", 2);
+    const req = indexedDB.open("sewa-plugin-cache");
     req.onsuccess = () => {
       const db = req.result;
       const tx = db.transaction("modules", "readonly");
