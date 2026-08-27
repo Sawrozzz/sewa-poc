@@ -66,6 +66,8 @@ export interface OldModuleManifest {
   mountMode?: "dom" | "shadow" | "portal";
   createdAt: string;
   updatedAt: string;
+  dataCapabilities?: string[];
+  miniAppCapabilities?: string[];
 }
 
 export interface ModuleCompatibility {
@@ -112,6 +114,8 @@ export interface ModuleManifest {
    * Anything not listed is refused at the RPC boundary; `"*"` grants all.
    */
   capabilities?: string[];
+  dataCapabilities?: string[];
+  miniAppCapabilities?: string[];
 }
 
 /**

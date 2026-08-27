@@ -7,7 +7,7 @@
  * offered twice. The desktop grid does not consult this at all — the bubble is
  * phone-only, so the browser layout keeps listing the app normally.
  */
-export const FLOATING_MINI_APP_ID = "chat-mini-app";
+export const FLOATING_MINI_APP_ID = "chat-application";
 
 export function isFloatingMiniApp(miniAppId: string | undefined): boolean {
   return miniAppId === FLOATING_MINI_APP_ID;

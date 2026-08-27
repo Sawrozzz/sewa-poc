@@ -15,12 +15,15 @@ export const ALL_CAPABILITIES: readonly string[] = Array.from(
 );
 
 /** A manifest — or anything else carrying a capability list. */
-export interface CapabilityGrantSource {
+export interface DataCapabilitiesSource {
   /** Declared by the mini app and published by the registry. */
-  capabilities?: readonly string[] | null;
+  dataCapabilities?: readonly string[] | null;
+}
+export interface MiniAppCapabilitiesSource {
+  /** Declared by the mini app and published by the registry. */
+  miniAppCapabilities?: readonly string[] | null;
 }
 
-/** Trims, lower-cases and de-duplicates a raw capability list. */
 export function normalizeCapabilities(input?: readonly string[] | null): string[] {
   if (!input) return [];
   const out: string[] = [];
@@ -42,8 +45,12 @@ export function normalizeCapabilities(input?: readonly string[] | null): string[
  * Idempotent: passing a list this function already produced returns the same
  * set, so a manifest cached with its resolved grant can be re-resolved safely.
  */
-export function resolveCapabilities(source?: CapabilityGrantSource | null): string[] {
-  const granted = normalizeCapabilities(source?.capabilities);
+export function resolveDataCapabilities(source?: DataCapabilitiesSource | null): string[] {
+  const granted = normalizeCapabilities(source?.dataCapabilities);
+  return Array.from(new Set<string>([...granted, ...CORE_CAPABILITIES]));
+}
+export function resolveMiniAppCapabilities(source?: MiniAppCapabilitiesSource | null): string[] {
+  const granted = normalizeCapabilities(source?.miniAppCapabilities);
   return Array.from(new Set<string>([...granted, ...CORE_CAPABILITIES]));
 }
 
@@ -57,7 +64,8 @@ export function isCapabilityGranted(
 
   const act = action?.trim().toLowerCase();
   return granted.some((entry) => {
-    if (entry === ns || entry === `${ns}.*`) return true;
-    return Boolean(act) && entry === `${ns}.${act}`;
+    if (entry === `${ns}.*`) return true;
+    if (act) return entry === `${ns}.${act}`;
+    return entry === ns;
   });
 }

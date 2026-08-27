@@ -1,10 +1,12 @@
 export {
   ALL_CAPABILITIES,
-  type CapabilityGrantSource,
   CORE_CAPABILITIES,
+  type DataCapabilitiesSource,
   isCapabilityGranted,
+  type MiniAppCapabilitiesSource,
   normalizeCapabilities,
-  resolveCapabilities,
+  resolveDataCapabilities,
+  resolveMiniAppCapabilities,
 } from "./capabilities";
 export {
   MethodRegistry,

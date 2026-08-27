@@ -82,8 +82,15 @@ export interface CachedSdkBundle {
   /** Response validators, kept for cheap conditional revalidation later. */
   etag?: string;
   lastModified?: Date | string | undefined;
-  cachedAt: Date | string;
-  lastUsedAt: Date | string;
+  /**
+   * Wall clock, never `performance.now()` — these stamps are compared across
+   * page loads, and a monotonic offset means nothing to the next one.
+   * IndexedDB round-trips `Date` through structured clone with its prototype
+   * intact, so what comes back out of `get()` is a real `Date`.
+   */
+  cachedAt: Date;
+  /** Wall clock. Indexed, and the sort key for the LRU sweep in `core.ts`. */
+  lastUsedAt: Date;
 }
 
 /** Why a given version is the active one. Diagnostics, mostly. */
@@ -99,7 +106,8 @@ export interface SdkPointer {
   name: string;
   version: string;
   pinnedBy: SdkPinReason;
-  promotedAt: number;
+  /** Wall clock, matching `CachedSdkBundle`'s stamps. */
+  promotedAt: Date;
 }
 
 /** Everything needed to locate, verify and identify one SDK build. */
@@ -128,7 +136,7 @@ export interface SdkStore {
   put(bundle: CachedSdkBundle): Promise<void>;
   delete(key: string): Promise<void>;
   listByName(name: string): Promise<CachedSdkBundle[]>;
-  touch(key: string, at: number): Promise<void>;
+  touch(key: string, at: Date): Promise<void>;
   getActive(): Promise<SdkPointer | null>;
   setActive(pointer: SdkPointer): Promise<void>;
   clear(): Promise<void>;
@@ -168,7 +176,14 @@ export interface SdkCacheEnv {
   execute: (blob: Blob) => Promise<void>;
   /** Last resort: today's behaviour, a plain `<script src>` at the CDN. */
   fallback: (spec: SdkSpec) => Promise<void>;
+  /** Monotonic, for elapsed-time measurement only. Browser: `performance.now()`. */
   now: () => number;
+  /**
+   * Wall clock, for timestamps written into stored records. Separate from
+   * `now` because a `performance.now()` value is meaningless the moment the
+   * page it was taken on goes away. Browser: `() => new Date()`.
+   */
+  clock: () => Date;
   /** Versions retained per package, LRU. 2 keeps a rollback target. */
   keepVersions: number;
 }

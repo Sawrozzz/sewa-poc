@@ -57,7 +57,7 @@ async function collectGarbage(
 
   const doomed = held
     .slice()
-    .sort((a, b) => Number(b.lastUsedAt) - Number(a.lastUsedAt))
+    .sort((a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime())
     .slice(keep)
     .filter((record) => record.key !== protect);
 
@@ -72,7 +72,7 @@ async function collectGarbage(
 }
 
 /** Records what actually ran. Written after execution, never before. */
-async function promote(store: SdkStore, spec: SdkSpec, at: number): Promise<void> {
+async function promote(store: SdkStore, spec: SdkSpec, at: Date): Promise<void> {
   await store.setActive({
     key: "active",
     name: spec.name,
@@ -157,7 +157,7 @@ export async function loadSdkBundle(spec: SdkSpec, env: SdkCacheEnv): Promise<Sd
   if (cached) {
     if (await isRecordSound(cached, env)) {
       await env.execute(cached.content);
-      const at = env.now();
+      const at = env.clock();
       // Best-effort bookkeeping: a failure here must not fail the load.
       void store.touch(key, at).catch(() => {});
       void promote(store, spec, at).catch(() => {});
@@ -185,7 +185,7 @@ export async function loadSdkBundle(spec: SdkSpec, env: SdkCacheEnv): Promise<Sd
     if (stale) {
       console.warn(`[SdkCache] ${spec.version} unreachable, running cached ${stale.version}`);
       await env.execute(stale.content);
-      void store.touch(stale.key, env.now()).catch(() => {});
+      void store.touch(stale.key, env.clock()).catch(() => {});
       return {
         outcome: "stale-hit",
         version: stale.version,
@@ -202,7 +202,7 @@ export async function loadSdkBundle(spec: SdkSpec, env: SdkCacheEnv): Promise<Sd
   const stored = await persist(store, downloaded);
 
   await env.execute(downloaded.content);
-  const at = env.now();
+  const at = env.clock();
   if (stored) {
     void promote(store, spec, at).catch(() => {});
     void collectGarbage(store, spec.name, env.keepVersions, key).catch(() => {});
