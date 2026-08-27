@@ -16,12 +16,24 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(reqBody),
     });
 
-    const data = await response.json();
+    // An upstream error page (HTML, empty body, gateway text) must not be
+    // turned into a generic 500 — the client needs the real status/message.
+    const raw = await response.text();
+    let data: unknown;
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      data = {
+        success: response.ok,
+        message: raw.slice(0, 200) || `Upstream returned HTTP ${response.status}.`,
+      };
+    }
 
     return NextResponse.json(data, {
       status: response.status,
     });
-  } catch (_) {
+  } catch (error) {
+    console.error("fcm-register: upstream request failed", error);
     return NextResponse.json(
       {
         success: false,

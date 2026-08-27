@@ -107,7 +107,7 @@ export class IdbSdkStore implements SdkStore {
   }
 
   /** Bumps `lastUsedAt` in one read-modify-write transaction. */
-  async touch(key: string, at: number): Promise<void> {
+  async touch(key: string, at: Date): Promise<void> {
     const db = await this.open();
     const tx = db.transaction(BUNDLE_STORE, "readwrite");
     const store = tx.objectStore(BUNDLE_STORE);

@@ -33,6 +33,7 @@ const browserEnv: SdkCacheEnv = {
   execute: injectBlobScript,
   fallback: (spec) => injectScript({ src: spec.url, integrity: spec.integrity }),
   now: () => performance.now(),
+  clock: () => new Date(),
   keepVersions: resolveKeepVersions(),
 };
 

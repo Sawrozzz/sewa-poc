@@ -3,11 +3,11 @@
  * it — storing and pointer promotion are the caller's ordering concern.
  */
 
-import { verify } from "@/shared/lib";
 import type { CachedSdkBundle, SdkCacheEnv, SdkSpec } from "@/types/platform";
+import { verify } from "@/shared/lib";
 import { bundleKey } from "./config";
 
-type FetchEnv = Pick<SdkCacheEnv, "fetch" | "now">;
+type FetchEnv = Pick<SdkCacheEnv, "fetch" | "clock">;
 
 /**
  * Fetches `spec.url`, verifies it against the pinned digest, and returns a
@@ -17,24 +17,17 @@ type FetchEnv = Pick<SdkCacheEnv, "fetch" | "now">;
  * stored or executed, since it means either a compromised CDN or a bad pin.
  */
 export async function downloadBundle(spec: SdkSpec, env: FetchEnv): Promise<CachedSdkBundle> {
-  if (!spec?.url || !spec?.integrity)
-    throw new Error("Invalid SdkSpec: url and integrity required");
-  let response: Response;
-  try {
-    response = await env.fetch(spec.url, { credentials: "omit" });
-  } catch (err) {
-    throw new Error(
-      `SDK fetch failed for ${spec.url}: ${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
+  const response = await env.fetch(spec.url, { credentials: "omit" });
   if (!response.ok) {
     throw new Error(`SDK download failed: ${response.status} ${response.statusText}`);
   }
 
   const bytes = await response.arrayBuffer();
-  if (bytes.byteLength > 10 * 1024 * 1024) throw new Error("SDK bundle too large");
   const integrity = await verify(bytes, spec.integrity, spec.url);
-  const at = new Date(env.now()).toISOString();
+  // Wall clock, not `env.now()`: these stamps are compared across page loads
+  // by the LRU sweep, and a `performance.now()` offset means nothing to the
+  // next one.
+  const at = env.clock();
 
   const lm = response.headers.get("last-modified");
   const lastModified = lm ? new Date(lm).toISOString() : undefined;

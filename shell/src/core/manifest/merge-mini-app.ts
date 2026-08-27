@@ -42,7 +42,10 @@ export function mergeMiniApp(listItem: MiniAppListItem, entry: ModuleManifest): 
               : bundleVerifiedAt.toISOString(),
         }),
   } as ResolvedMiniApp;
-  merged.mergedCapabilities = [...resolveDataCapabilities(merged), ...resolveMiniAppCapabilities(merged) ];
+  merged.mergedCapabilities = [
+    ...resolveDataCapabilities(merged),
+    ...resolveMiniAppCapabilities(merged),
+  ];
 
   return merged;
 }

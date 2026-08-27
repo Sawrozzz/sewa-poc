@@ -4,6 +4,7 @@ import type { Messaging } from "firebase/messaging";
 import { getToken, onRegistered, onUnregistered, register } from "firebase/messaging";
 import { useCallback, useEffect, useState } from "react";
 import { getFirebaseMessaging } from "@/core/firebase";
+import type { FcmRegistrationFailure } from "@/lib/register-fcm-device";
 import { registerFcmDevice } from "@/lib/register-fcm-device";
 import { privileged } from "@/platform/host-privileges";
 
@@ -25,8 +26,14 @@ export interface FcmTokenResult {
   /** Firebase Installation ID (modern, FID-based registration). Send via the `fid` field of the FCM send API. */
   token: string;
   notificationPermission: NotificationPermission;
+  /** Set when registering this device with the backend failed. `null` once it succeeds. */
+  registrationError: FcmRegistrationFailure | null;
+  /** True while the device registration request is in flight. */
+  isRegistering: boolean;
   /** Re-requests notification permission and re-runs FCM registration when granted. */
   requestPermission: () => Promise<void>;
+  /** Re-runs FCM registration without touching the permission prompt. */
+  retryRegistration: () => void;
 }
 
 /**
@@ -47,6 +54,12 @@ export const useFcmToken = (): FcmTokenResult => {
   const [notificationPermission, setNotificationPermission] =
     useState<NotificationPermission>("default");
   const [retryKey, setRetryKey] = useState(0);
+  const [registrationError, setRegistrationError] = useState<FcmRegistrationFailure | null>(null);
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  const retryRegistration = useCallback(() => {
+    setRetryKey((key) => key + 1);
+  }, []);
 
   // Explicit, user-triggered re-request. MUST be called from a real user
   // gesture (a click handler) — since Chrome 80, Chromium silently ignores
@@ -90,6 +103,7 @@ export const useFcmToken = (): FcmTokenResult => {
     if (retryKey > 0) {
       setToken("");
     }
+    setRegistrationError(null);
 
     const setupMessaging = async (messaging: Messaging) => {
       // Attach the push subscription to the SW that hosts the background handler.
@@ -125,14 +139,32 @@ export const useFcmToken = (): FcmTokenResult => {
           vapidKey: VAPID_KEY,
           serviceWorkerRegistration,
         });
-        if (registrationToken) {
-          console.log("FCM registration token:", registrationToken);
-          await registerFcmDevice(registrationToken);
-        } else {
+        if (!registrationToken) {
           console.warn("FCM: no registration token returned, device not registered.");
+          if (mounted) {
+            setRegistrationError({
+              reason: "unavailable",
+              message: "The browser did not return a push token for this device.",
+            });
+          }
+          return;
         }
+
+        if (mounted) setIsRegistering(true);
+        const result = await registerFcmDevice(registrationToken);
+        if (!mounted) return;
+
+        setIsRegistering(false);
+        setRegistrationError(result.ok ? null : result);
       } catch (error) {
         console.error("FCM registration token retrieval failed:", error);
+        if (mounted) {
+          setIsRegistering(false);
+          setRegistrationError({
+            reason: "unavailable",
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
     };
 
@@ -191,5 +223,12 @@ export const useFcmToken = (): FcmTokenResult => {
     };
   }, [retryKey]);
 
-  return { token, notificationPermission, requestPermission };
+  return {
+    token,
+    notificationPermission,
+    registrationError,
+    isRegistering,
+    requestPermission,
+    retryRegistration,
+  };
 };

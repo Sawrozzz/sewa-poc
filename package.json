@@ -21,7 +21,7 @@
     "format": "biome check --write .",
     "format:check": "biome check .",
     "clean": "turbo run clean",
-    "link:env": "ln -s ../.env shell/.env"
+    "link:env": "ln -sf ../.env shell/.env"
   },
   "packageManager": "pnpm@11.9.0"
 }
