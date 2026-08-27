@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const cfAccessClientSecret =
       process.env.CF_ACCESS_CLIENT_SECRET ||
       "e05834d2c057d48cc226468059addb9f4f93908de33e4369e7e4245625a4f403";
-    const modelMap: Record<string, string> = { qwen: "qwen3.6" };
+    const modelMap: Record<string, string> = { qwen: "qwen3.8" };
     const model = modelMap[options?.model as string] || options?.model;
 
     const bodyMessages = messages.map((msg: { role: string; content: string }) => ({
