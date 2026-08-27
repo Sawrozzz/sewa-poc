@@ -315,17 +315,18 @@ export class RpcServer {
     // has a route of its own to pop, so the next back press is worth asking
     // about. Both carry a single boolean and default to `true` — an older
     // mini app that sends no payload is saying "I handled it".
-    //
-    // Both go out over the SAME `navigation.router` RPC call with the SAME
-    // `{ consumed }` payload — the wire never says which one this is. The
-    // one thing that does tell them apart: `back` only ever arrives as a
-    // direct reply to a `navigation.back.requested` the shell just sent, so
-    // whether a back press is currently held is what decides the dispatch.
-    r.register(NAMESPACES.NAVIGATION, ACTIONS.NAVIGATION.ROUTER, (payload, ctx) => {
+
+    // Backward compat for SDK <=1.0.8 which used distinct back/push actions.
+    // New SDKs send ROUTER above; old SDKs send these two. Both funnel to
+    // the same shell state; `back` settles a pending press, `push` marks
+    // history as available.
+    r.register(NAMESPACES.NAVIGATION, ACTIONS.NAVIGATION.BACK, (payload, ctx) => {
       const consumed = readConsumed(payload);
-      return this.services.navigation.hasPendingBack()
-        ? this.services.navigation.back(consumed, ctx.moduleId)
-        : this.services.navigation.push(consumed, ctx.moduleId);
+      return this.services.navigation.back(consumed, ctx.moduleId);
+    });
+    r.register(NAMESPACES.NAVIGATION, ACTIONS.NAVIGATION.PUSH, (payload, ctx) => {
+      const consumed = readConsumed(payload);
+      return this.services.navigation.push(consumed, ctx.moduleId);
     });
 
     // platform.getType returns `{ type, appearance }`. `type` MUST be a

@@ -181,7 +181,7 @@ export function createShellServices(
     },
 
     /** The mini app's answer to a held back press. */
-    back: async (consumed: boolean): Promise<NavigationRouterResult> => {
+    back: async (consumed: boolean, _moduleId?: string): Promise<NavigationRouterResult> => {
       settleBack(consumed);
       // It just popped its last route, so the next press is the shell's.
       if (!consumed) setCanGoBack(false);
@@ -189,8 +189,27 @@ export function createShellServices(
     },
 
     /** The mini app moved forward inside itself — it now has something to pop. */
-    push: async (consumed: boolean): Promise<NavigationRouterResult> => {
+    push: async (consumed: boolean, _moduleId?: string): Promise<NavigationRouterResult> => {
       setCanGoBack(true);
+      return { consumed };
+    },
+
+    /**
+     * Unified entry for the single `navigation.router` RPC. The wire carries
+     * only `{ consumed }` - `hasPendingBack()` tells whether this is the
+     * answer to a held `navigation.back.requested` (`back`) or a forward
+     * report (`push`). Required by `ShellNavigationService.router:217`.
+     */
+    router: async (consumed: boolean, moduleId?: string): Promise<NavigationRouterResult> => {
+      if (pendingBack !== null) {
+        settleBack(consumed);
+        if (!consumed) setCanGoBack(false);
+        return { consumed };
+      }
+      // No pending back -> forward report. Keep `moduleId` param for type
+      // compatibility; host does not gate by it today.
+      void moduleId;
+      setCanGoBack(consumed);
       return { consumed };
     },
 

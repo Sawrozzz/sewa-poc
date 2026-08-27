@@ -46,6 +46,10 @@ export const ACTIONS = {
     NAVIGATE: "navigate",
     GET_CURRENT: "getCurrent",
     ROUTER: "router",
+    // Legacy aliases for @lizuz/sewa-sdk <=1.0.8 which sent back/push as
+    // separate actions. Kept for backward compat; new SDKs send ROUTER.
+    BACK: "back",
+    PUSH: "push",
   },
   PLATFORM: { GET_TYPE: "getType" },
   DEVICE: {
