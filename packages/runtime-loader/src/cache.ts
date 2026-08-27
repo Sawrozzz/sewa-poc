@@ -7,6 +7,7 @@
  */
 
 import type { PluginLoadOptions } from "@sewa/host-platform";
+import { isTextAsset, mimeTypeFor } from "./bundle-assets";
 import type {
   BundleContents,
   CachedBinaryFile,
@@ -220,11 +221,18 @@ export class PluginCacheDB {
       );
       const filesToFetch = fileNames.length > 0 ? fileNames : ["index.js"];
 
-      // Download each file
+      // Download each file — text assets (js/css/svg/json) as strings, everything
+      // else (png/jpg/woff/mp4 …) as raw bytes so "�PNG" corruption never happens.
       const files: Record<string, string> = {};
       const baseUrlNoSlash = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+      const db = await this.open();
+
+      // Collect binary blobs here; they are persisted via putBinary() and do not
+      // enter the `files` text map.
+      const binaryFiles: Record<string, ArrayBuffer> = {};
+
       const fetchPromises = filesToFetch.map(async (fileName) => {
-        const url = `${baseUrlNoSlash}/${fileName}`;
+        const url = `${baseUrlNoSlash}/${encodeURI(fileName)}`;
         const fileRes = await this._fetcher(url, {
           signal: controller.signal,
           cache: "no-store",
@@ -238,14 +246,18 @@ export class PluginCacheDB {
           );
           return;
         }
-        const text = await fileRes.text();
-        files[fileName] = text;
+        if (isTextAsset(fileName)) {
+          const text = await fileRes.text();
+          files[fileName] = text;
+        } else {
+          const buffer = await fileRes.arrayBuffer();
+          binaryFiles[fileName] = buffer;
+        }
       });
 
       await Promise.all(fetchPromises);
 
-      // Store each file in IndexedDB
-      const db = await this.open();
+      // Store each file in IndexedDB — text via put, binary via putBinary
       const putPromises: Promise<void>[] = [];
       for (const [fileName, content] of Object.entries(files)) {
         putPromises.push(
@@ -259,6 +271,22 @@ export class PluginCacheDB {
             req.onsuccess = () => {
               resolve();
             };
+            req.onerror = () => reject(req.error);
+          }),
+        );
+      }
+      for (const [fileName, buffer] of Object.entries(binaryFiles)) {
+        putPromises.push(
+          new Promise<void>((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, "readwrite");
+            const req = tx.objectStore(STORE_NAME).put({
+              fileKey: `${moduleId}/${fileName}`,
+              data: buffer,
+              binary: true,
+              mimeType: mimeTypeFor(fileName),
+              cachedAt: Date.now(),
+            } as CachedBinaryFile);
+            req.onsuccess = () => resolve();
             req.onerror = () => reject(req.error);
           }),
         );

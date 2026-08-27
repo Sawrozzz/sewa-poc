@@ -13,7 +13,7 @@
  */
 
 import type { PluginLoadOptions, RemoteLoadResult } from "@sewa/host-platform";
-import { mimeTypeFor, rewriteAssetReferences, splitBundleEntries } from "./bundle-assets";
+import { isTextAsset, mimeTypeFor, rewriteAssetReferences, splitBundleEntries } from "./bundle-assets";
 import { PluginCacheDB } from "./cache";
 import { verifyBundleHash } from "./integrity";
 import type {
@@ -400,6 +400,7 @@ export class RuntimeLoader {
     let files: Record<string, string> = {};
     let entryFileName = "index.js";
     let cssFileNames: string[] = [];
+    let manifestEntry: ManifestEntry | null = null;
 
     if (dirCached) {
       // Load from cache
@@ -407,6 +408,7 @@ export class RuntimeLoader {
 
       if (cachedManifestStr) {
         const manifest: ManifestEntry = JSON.parse(cachedManifestStr);
+        manifestEntry = manifest;
 
         // Read directly from the bundle property
         entryFileName = manifest.bundle.entry || "index.js";
@@ -474,6 +476,7 @@ export class RuntimeLoader {
           Array.from(manifestFileNames),
           manifest,
         );
+        manifestEntry = manifest as unknown as ManifestEntry;
       } else {
         // Fallback if manifest download fails
         const fileNames = new Set<string>();
@@ -495,18 +498,105 @@ export class RuntimeLoader {
       if (version) {
         await this.db.setVersion(moduleId, version);
       }
+
+      // If we still have no manifestEntry (e.g. manifest was stored by downloadDirectory),
+      // read it back from IndexedDB so we can discover image assets.
+      if (!manifestEntry) {
+        const stored = await this.db.getFile(moduleId, "manifest");
+        if (stored) {
+          try {
+            manifestEntry = JSON.parse(stored) as ManifestEntry;
+          } catch {}
+        }
+      }
     }
 
     // 3. Get the entry JavaScript file
-    const indexJs = files[entryFileName];
+    let indexJs = files[entryFileName];
     if (!indexJs) {
       throw new Error(
         `Could not find ${entryFileName}. Available: ${Object.keys(files).join(", ")}`,
       );
     }
 
+    // 3b. Publish directory assets (png/jpg/svg/fonts …) as blob URLs and rewrite
+    // references inside JS/CSS — same as bundle flow, otherwise "/pngwing.com.png"
+    // resolves against the shell origin and the shadow root never sees the file.
+    // Release previous blob URLs for this module before minting new ones.
+    for (const stale of this.assetURLs.get(moduleId) ?? []) URL.revokeObjectURL(stale);
+    const published: string[] = [];
+    const assetUrls: Record<string, string> = {};
+    {
+      const allFiles = manifestEntry?.bundle?.files ?? [];
+      const assetNames = allFiles.filter(
+        (f) => f !== entryFileName && !cssFileNames.includes(f) && f !== "manifest",
+      );
+      for (const asset of assetNames) {
+        let blob: Blob | null = null;
+        let text: string | null = null;
+        // Binary assets (png/jpg/woff…) should be read via getBinary(); text assets via getFile().
+        // We probe the correct store first, then fall back for legacy caches where png was stored as text.
+        if (isTextAsset(asset)) {
+          text = await this.db.getFile(moduleId, asset);
+          if (text !== null) {
+            blob = new Blob([text], { type: mimeTypeFor(asset) });
+          } else {
+            const bin = await this.db.getBinary(moduleId, asset);
+            if (bin) blob = new Blob([bin.bytes], { type: bin.mimeType });
+          }
+        } else {
+          const bin = await this.db.getBinary(moduleId, asset);
+          if (bin) {
+            blob = new Blob([bin.bytes], { type: bin.mimeType });
+          } else {
+            // Legacy: png stored as text (contains �) — try to heal by refetching as binary.
+            text = await this.db.getFile(moduleId, asset);
+            if (text !== null) {
+              if (text.includes("�")) {
+                console.warn(
+                  `[RuntimeLoader] Asset ${asset} appears corrupted (was stored as text with �). Attempting to refetch as binary…`,
+                );
+                try {
+                  const freshUrl = `${bundleDirUrl.replace(/\/$/, "")}/${encodeURI(asset)}`;
+                  const freshRes = await this.fetcher(freshUrl, { cache: "no-store" });
+                  if (freshRes.ok) {
+                    const freshBuf = await freshRes.arrayBuffer();
+                    await this.db.putBinary(moduleId, asset, freshBuf, mimeTypeFor(asset));
+                    blob = new Blob([freshBuf], { type: mimeTypeFor(asset) });
+                  } else {
+                    console.warn(`[RuntimeLoader] Refetch failed for ${asset}: ${freshRes.status}`);
+                    blob = new Blob([text], { type: mimeTypeFor(asset) });
+                  }
+                } catch (e) {
+                  console.warn(`[RuntimeLoader] Refetch error for ${asset}:`, e);
+                  blob = new Blob([text], { type: mimeTypeFor(asset) });
+                }
+              } else {
+                blob = new Blob([text], { type: mimeTypeFor(asset) });
+              }
+            }
+          }
+        }
+        if (!blob) {
+          console.warn("[RuntimeLoader] Directory asset missing from cache:", asset);
+          continue;
+        }
+        const url = URL.createObjectURL(blob);
+        assetUrls[asset] = url;
+        published.push(url);
+      }
+    }
+    this.assetURLs.set(moduleId, published);
+    if (Object.keys(assetUrls).length > 0) {
+      indexJs = rewriteAssetReferences(indexJs, assetUrls);
+      files[entryFileName] = indexJs;
+    }
+
     // 4. Collect the CSS contents to scope inside the mini-app's shadow root
-    const styles = this.collectStyles(files, cssFileNames);
+    const rawStyles = this.collectStyles(files, cssFileNames);
+    const styles = rawStyles.map((css) =>
+      Object.keys(assetUrls).length > 0 ? rewriteAssetReferences(css, assetUrls) : css,
+    );
 
     // 5. Evaluate the JavaScript module
     const moduleExports = await this.evaluateModule(
