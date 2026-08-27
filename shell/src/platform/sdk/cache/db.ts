@@ -11,7 +11,13 @@
 import type { CachedSdkBundle, SdkPointer, SdkStore } from "@/types/platform";
 
 const DB_NAME = "sewa-sdk-cache";
-const DB_VERSION = 1;
+/**
+ * v2 changed `cachedAt`/`lastUsedAt` from a locale date *string* to a `Date`,
+ * which the LRU sweep sorts on directly. A v1 row would sort as `NaN`, so the
+ * upgrade drops the bundle store rather than trying to migrate rows that cost
+ * one download to rebuild.
+ */
+const DB_VERSION = 2;
 
 /** Bundle records, keyed by `name@version`. */
 const BUNDLE_STORE = "bundles";
@@ -50,6 +56,14 @@ export class IdbSdkStore implements SdkStore {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
+        const from = event.oldVersion;
+
+        // Any pre-v2 rows carry the old string timestamps — discard them.
+        if (from > 0 && from < 2) {
+          if (db.objectStoreNames.contains(BUNDLE_STORE)) db.deleteObjectStore(BUNDLE_STORE);
+          if (db.objectStoreNames.contains(META_STORE)) db.deleteObjectStore(META_STORE);
+        }
+
         if (!db.objectStoreNames.contains(BUNDLE_STORE)) {
           const store = db.createObjectStore(BUNDLE_STORE, { keyPath: "key" });
           store.createIndex(NAME_INDEX, "name", { unique: false });
@@ -107,7 +121,7 @@ export class IdbSdkStore implements SdkStore {
   }
 
   /** Bumps `lastUsedAt` in one read-modify-write transaction. */
-  async touch(key: string, at: number): Promise<void> {
+  async touch(key: string, at: Date): Promise<void> {
     const db = await this.open();
     const tx = db.transaction(BUNDLE_STORE, "readwrite");
     const store = tx.objectStore(BUNDLE_STORE);

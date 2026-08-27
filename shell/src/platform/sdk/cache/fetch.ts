@@ -7,7 +7,7 @@ import type { CachedSdkBundle, SdkCacheEnv, SdkSpec } from "@/types/platform";
 import { verify } from "@/utils";
 import { bundleKey } from "./config";
 
-type FetchEnv = Pick<SdkCacheEnv, "fetch" | "now">;
+type FetchEnv = Pick<SdkCacheEnv, "fetch" | "clock">;
 
 /**
  * Fetches `spec.url`, verifies it against the pinned digest, and returns a
@@ -24,7 +24,10 @@ export async function downloadBundle(spec: SdkSpec, env: FetchEnv): Promise<Cach
 
   const bytes = await response.arrayBuffer();
   const integrity = await verify(bytes, spec.integrity, spec.url);
-  const at = new Date(env.now()).toLocaleDateString();
+  // Wall clock, not `env.now()`: these stamps are compared across page loads
+  // by the LRU sweep, and a `performance.now()` offset means nothing to the
+  // next one.
+  const at = env.clock();
 
   const lm = response.headers.get("last-modified");
   const lastModified = lm ? new Date(lm).toISOString() : undefined;

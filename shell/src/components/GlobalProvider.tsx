@@ -1,7 +1,7 @@
 "use client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type React from "react";
-import { useFcmToken } from "@/lib/useFcmToken";
+import FcmRegistrationBanner from "./FcmRegistrationBanner";
 import NotificationListener from "./NotificationListener";
 import PlatformShell from "./PlatformShell";
 
@@ -16,10 +16,9 @@ const queryClient = new QueryClient({
 });
 
 export default function GlobalProvider({ children }: { children: React.ReactNode }) {
-  useFcmToken();
-
   return (
     <QueryClientProvider client={queryClient}>
+      <FcmRegistrationBanner />
       <NotificationListener />
       <PlatformShell>{children}</PlatformShell>
     </QueryClientProvider>
