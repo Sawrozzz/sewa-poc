@@ -139,8 +139,7 @@ export function MiniAppContainer({
   const initMiniAppBridge = useCallback(async () => {
     if (sdkLoaded.current) return;
     await loadMiniAppSdk(miniAppId, {
-      capabilities: grantedDataCapabilities,
-      ...grantedMiniAppCapabilities,
+      capabilities: [...grantedDataCapabilities, ...grantedMiniAppCapabilities],
     });
     sdkLoaded.current = true;
   }, [miniAppId, grantedDataCapabilities, grantedMiniAppCapabilities]);

@@ -75,9 +75,19 @@ export class RuntimeLoader {
   private validateBundleUrl(bundleUrl: string): URL {
     if (!bundleUrl || typeof bundleUrl !== "string" || !bundleUrl.trim())
       throw new Error("bundleUrl must be a non-empty string");
+    const trimmed = bundleUrl.trim();
+    // Allow same-origin proxy URLs (e.g. "/api/manifests/bundle?url=...") that
+    // the shell uses to bypass missing CORS headers on the storage origin.
+    if (trimmed.startsWith("/")) {
+      try {
+        return new URL(trimmed, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+      } catch {
+        throw new Error(`Invalid bundleUrl: ${bundleUrl}`);
+      }
+    }
     let url: URL;
     try {
-      url = new URL(bundleUrl);
+      url = new URL(trimmed);
     } catch {
       throw new Error(`Invalid bundleUrl: ${bundleUrl}`);
     }
@@ -91,7 +101,9 @@ export class RuntimeLoader {
     if (!fileName || fileName.includes("..") || fileName.includes("\\"))
       throw new Error(`Invalid fileName: ${fileName}`);
     const base = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-    return new URL(fileName, base).toString();
+    // `new URL(file, base)` needs an absolute base; proxy paths are relative.
+    const baseForUrl = base.startsWith("/") && typeof window !== "undefined" ? `${window.location.origin}${base}` : base;
+    return new URL(fileName, baseForUrl).toString();
   }
 
   private async withDedup<T>(key: string, fn: () => Promise<T>): Promise<T> {

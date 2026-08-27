@@ -108,8 +108,7 @@ export function useEmbeddedMiniApp({
 
     try {
       await loadMiniAppSdk(miniAppId, {
-        capabilities: grantedDeviceCapabilities,
-        ...grantedMiniAppCapabilities,
+        capabilities: [...grantedDeviceCapabilities, ...grantedMiniAppCapabilities],
       });
     } catch (err) {
       if (!aliveRef.current) return;

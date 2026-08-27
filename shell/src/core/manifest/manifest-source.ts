@@ -51,7 +51,16 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
-    const response = await fetch(url, { ...init, cache: "no-store", signal: controller.signal });
+    const response = await fetch(url, {
+      ...init,
+      cache: "no-store",
+      signal: controller.signal,
+      headers: {
+        // ngrok's browser warning interstitial breaks server-side fetches without this
+        "ngrok-skip-browser-warning": "true",
+        ...(init?.headers as Record<string, string> | undefined),
+      },
+    });
     if (!response.ok) throw new Error(`Registry responded with ${response.status} for ${url}`);
     try {
       return (await response.json()) as T;
