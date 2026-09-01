@@ -1,3 +1,4 @@
+import { GicChatService } from "@sewa/host-platform";
 import type { ChatMessage } from "@lizuz/mini-app-types";
 import type {
   EventBus,
@@ -95,16 +96,72 @@ export function createShellServices(
     refresh: async () => {},
   };
 
+  /**
+   * Hybrid GIC base URL resolution — mirrors other mini apps: first lookup from
+   * the signed manifest (fetched on first load), then fallback to env URL, else null.
+   * Manifest lookup checks well-known GIC ids and common config fields so the
+   * registry can control the endpoint without a redeploy.
+   */
+  const GIC_MANIFEST_IDS = ["gic-chat", "gic-chat-app", "gic-chat-agent", "gic", "sewa-gic"] as const;
+
+  function readGicUrlFromManifest(manifest: unknown): string | null {
+    if (!manifest || typeof manifest !== "object") return null;
+    const m = manifest as Record<string, unknown>;
+    const candidates = [
+      m.gicChatBaseUrl,
+      m.gicBaseUrl,
+      m.gicChatUrl,
+      (m.metaData as Record<string, unknown> | undefined)?.gicChatBaseUrl,
+      (m.metaData as Record<string, unknown> | undefined)?.gicBaseUrl,
+      (m.metaData as Record<string, unknown> | undefined)?.gicChatUrl,
+      m.apiBaseUrl,
+      m.endpoint,
+      m.baseUrl,
+    ];
+    for (const v of candidates) {
+      if (typeof v === "string" && v.trim()) return v.trim().replace(/\/$/, "");
+    }
+    return null;
+  }
+
+  function resolveGicChatBaseUrl(): string | null {
+    // 1. Manifest — first available GIC entry wins
+    for (const id of GIC_MANIFEST_IDS) {
+      const manifest = moduleManifestCache.get(id);
+      const fromManifest = readGicUrlFromManifest(manifest);
+      if (fromManifest) return fromManifest;
+    }
+    // 2. Env URL — host-level fallback
+    const envUrl =
+      process.env.NEXT_PUBLIC_GIC_CHAT_BASE_URL ??
+      process.env.GIC_CHAT_BASE_URL;
+    if (envUrl?.trim()) return envUrl.trim().replace(/\/$/, "");
+    // 3. Not available — host will report NOT_SUPPORTED, SDK surfaces it
+    return null;
+  }
+
+  // Used for config exposure so mini apps can do HTTP POST via SDK; value is
+  // resolved lazily on each get() so a late manifest arrival is picked up.
+  const getGicChatBaseUrl = () => resolveGicChatBaseUrl();
+
   const globalConfig: Record<string, unknown> = {
     apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.gov.example",
     environment: process.env.NODE_ENV ?? "development",
     // No hardcoded locale — resolved from the appearance controller (host-driven).
     locale: appearanceController?.getLocale().locale ?? "en-LK",
     currency: "NPR",
+    get gicChatBaseUrl(): string | null {
+      return getGicChatBaseUrl();
+    },
   };
 
   const moduleConfig: Record<string, Record<string, unknown>> = {
-    "chat-mini-app": { exampleKey: "exampleValue" },
+    "chat-mini-app": {
+      exampleKey: "exampleValue",
+      get gicChatBaseUrl(): string | null {
+        return getGicChatBaseUrl();
+      },
+    },
   };
 
   const config = {
@@ -237,6 +294,31 @@ export function createShellServices(
   const { http, api, storage } = createHttpService();
   const device = createDeviceService(() => getConfig().getUser());
 
+  /**
+   * Hybrid GIC service — like other mini apps in the manifest, the GIC endpoint
+   * is first looked up from the signed registry manifest (treated as a mini app
+   * entry), then from the host env, else unavailable. Lazy per-call so a
+   * late manifest arrival is picked up without recreating services.
+   */
+  const gicChat = {
+    async startSession() {
+      const url = resolveGicChatBaseUrl();
+      if (!url) throw new Error("GIC chat not configured — set GIC_CHAT_BASE_URL or publish a gic-chat manifest entry");
+      const svc = new GicChatService({ baseUrl: url });
+      return svc.startSession();
+    },
+    async stream(
+      request: import("@lizuz/mini-app-types").GicChatStreamRequest,
+      onEvent: (event: import("@lizuz/mini-app-types").GicChatEvent) => void | Promise<void>,
+      signal?: AbortSignal,
+    ) {
+      const url = resolveGicChatBaseUrl();
+      if (!url) throw new Error("GIC chat not configured — set GIC_CHAT_BASE_URL or publish a gic-chat manifest entry");
+      const svc = new GicChatService({ baseUrl: url });
+      return svc.stream(request, onEvent, signal);
+    },
+  } as unknown as import("@sewa/host-platform").GicChatService & { baseUrl?: string };
+
   const chat = {
     chat: async function* (messages: ChatMessage[], _options?: Record<string, unknown>) {
       try {
@@ -317,6 +399,7 @@ export function createShellServices(
     config,
     navigation,
     chat,
+    gicChat,
     device,
     storage,
     api,

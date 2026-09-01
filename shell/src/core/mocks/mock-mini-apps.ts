@@ -47,7 +47,6 @@ export const FALLBACK_MINI_APPS: OldModuleManifest[] = [
     capabilities: [
       "auth",
       "chat",
-      "ai",
       "permissions",
       "flags",
       "config",
@@ -92,7 +91,6 @@ export const FALLBACK_MINI_APPS: OldModuleManifest[] = [
     capabilities: [
       "auth",
       "chat",
-      "ai",
       "permissions",
       "flags",
       "config",
@@ -135,7 +133,6 @@ export const FALLBACK_MINI_APPS: OldModuleManifest[] = [
     capabilities: [
       "auth",
       "chat",
-      "ai",
       "permissions",
       "flags",
       "config",
@@ -178,7 +175,6 @@ export const FALLBACK_MINI_APPS: OldModuleManifest[] = [
     capabilities: [
       "auth",
       "chat",
-      "ai",
       "permissions",
       "flags",
       "config",
@@ -221,7 +217,6 @@ export const FALLBACK_MINI_APPS: OldModuleManifest[] = [
     capabilities: [
       "auth",
       "chat",
-      "ai",
       "permissions",
       "flags",
       "config",
@@ -264,7 +259,6 @@ export const FALLBACK_MINI_APPS: OldModuleManifest[] = [
     capabilities: [
       "auth",
       "chat",
-      "ai",
       "permissions",
       "flags",
       "config",
@@ -307,7 +301,6 @@ export const FALLBACK_MINI_APPS: OldModuleManifest[] = [
     capabilities: [
       "auth",
       "chat",
-      "ai",
       "permissions",
       "flags",
       "config",

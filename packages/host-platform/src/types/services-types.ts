@@ -16,6 +16,9 @@ import type {
   AuthSdkModule,
   ConfigSdkModule,
   FlagsSdkModule,
+  GicChatEvent,
+  GicChatSession,
+  GicChatStreamRequest,
   PermissionsSdkModule,
   StorageSdkModule,
 } from "@lizuz/mini-app-types";
@@ -83,13 +86,28 @@ export interface ShellModuleManifestService {
   getAll(): Map<string, MiniAppManifest>;
 }
 
+/** GIC Chat service — GIC prefix fixed, generic chat is ChatSdkModule */
+export interface GicChatService {
+  /** GIC session — POST /start-session per chat_api_spec.pdf */
+  startSession(): Promise<GicChatSession>;
+  /** GIC streaming — POST /stream SSE per chat_api_spec.pdf, emits GicChatEvent */
+  stream(
+    request: GicChatStreamRequest,
+    onEvent: (event: GicChatEvent) => void | Promise<void>,
+    signal?: AbortSignal,
+  ): Promise<void>;
+}
+
 export interface ShellServiceMap {
   auth: AuthSdkModule;
   permissions: PermissionsSdkModule;
   flags: FlagsSdkModule;
   config: ConfigSdkModule;
   navigation: ShellNavigationService;
+  /** Generic chat — ChatSdkModule via HTTP.CHAT_STREAM with ChatMessage[] */
   chat: ChatSdkModule;
+  /** GIC chat — GicChatService via HTTP.CHAT_STREAM with GicChatStreamRequest + GicChatEvent, session via HTTP.GIC_START_SESSION */
+  gicChat?: GicChatService;
   device: ShellDeviceService;
   storage: StorageSdkModule;
   api: ApiSdkModule;

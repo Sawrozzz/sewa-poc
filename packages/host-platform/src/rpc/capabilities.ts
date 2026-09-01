@@ -59,7 +59,9 @@ export function isCapabilityGranted(
   namespace: string,
   action?: string,
 ): boolean {
-  const ns = namespace.trim().toLowerCase();
+  let ns = namespace.trim().toLowerCase();
+  // GIC_CHAT is gated by HTTP per spec — don't require separate gic-chat grant
+  if (ns === NAMESPACES.GIC_CHAT) ns = NAMESPACES.HTTP;
   if (CORE_CAPABILITIES.includes(ns)) return true;
 
   const act = action?.trim().toLowerCase();
