@@ -214,6 +214,8 @@ export interface ShellNavigationService {
   /** A mini app reporting a forward step inside its own router. */
   push(consumed: boolean, moduleId: string): Promise<NavigationRouterResult>;
 
+  router(consumed: boolean, moduleId: string):Promise<NavigationRouterResult>;
+
   // --- Host-only surface (never reachable from a mini app) ---
 
   /**

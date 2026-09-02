@@ -82,17 +82,23 @@ export function useMiniAppBackButton({ onExit, enabled = true }: UseMiniAppBackB
    * We only ever want ONE sentinel.
    */
   const armTrap = useCallback(() => {
-    const state = window.history.state as HistoryState;
+    const state = (window.history.state as HistoryState & { idx?: number }) || {};
 
-    if (state?.[BACK_TRAP_KEY]) {
+    if ((state as HistoryState)?.[BACK_TRAP_KEY]) {
       return;
     }
 
-    // Preserve Next.js's existing history state.
+    // Preserve Next.js's existing history state and keep the hash-history
+    // idx in sync. HashRouter (createHashHistory) stores `idx` in state and
+    // increments it on every push. If we push the sentinel without bumping
+    // idx, the next hash push will duplicate the index and `getIndex()` will
+    // return the wrong delta on POP.
+    const nextIdx = typeof state.idx === "number" ? state.idx + 1 : 1;
     window.history.pushState(
       {
         ...state,
         [BACK_TRAP_KEY]: true,
+        idx: nextIdx,
       },
       "",
       window.location.href,
@@ -149,19 +155,28 @@ export function useMiniAppBackButton({ onExit, enabled = true }: UseMiniAppBackB
      * asking the mini app to handle the back operation.
      */
     const restoreTrap = (): Promise<void> => {
-      return new Promise((resolve) => {
-        const handleRestored = () => {
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        const timer = setTimeout(() => {
           window.removeEventListener("popstate", handleRestored);
+          if (!settled) {
+            settled = true;
+            restoringTrapRef.current = false;
+            reject(new Error("restoreTrap timed out"));
+          }
+        }, 500);
 
+        const handleRestored = () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          window.removeEventListener("popstate", handleRestored);
           restoringTrapRef.current = false;
-
           resolve();
         };
 
         restoringTrapRef.current = true;
-
         window.addEventListener("popstate", handleRestored);
-
         window.history.forward();
       });
     };
@@ -182,6 +197,19 @@ export function useMiniAppBackButton({ onExit, enabled = true }: UseMiniAppBackB
        * is still being processed.
        */
       if (handlingBackRef.current) {
+        return;
+      }
+
+      // HashRouter stores the mini-app route in `location.hash` and creates
+      // real browser entries via pushState (see createHashHistory). Those
+      // hash entries must NOT be treated as sentinel pops. When the mini-app
+      // has history (`canGoBack`) and the URL is hash-routed, a pop is just
+      // the browser popping a hash entry — let it happen naturally. The
+      // mini-app's HashRouter will see the POP and tell the host the new
+      // `canGoBack` via ROUTE_CHANGED. Only when the mini-app is at its
+      // root (canGoBack=false) should a pop be treated as an exit attempt.
+      const isHashRouting = window.location.hash.startsWith("#/");
+      if (isHashRouting && navigation.canGoBack()) {
         return;
       }
 
@@ -207,7 +235,11 @@ export function useMiniAppBackButton({ onExit, enabled = true }: UseMiniAppBackB
          *
          * Restore the sentinel BEFORE asking the mini app to navigate.
          */
-        await restoreTrap();
+        await restoreTrap().catch(() => {
+          // Sentinel could not be restored (e.g. no forward entry); continue
+          // best-effort so the press still reaches the mini app instead of
+          // hanging forever.
+        });
 
         /**
          * Now the browser is back at:

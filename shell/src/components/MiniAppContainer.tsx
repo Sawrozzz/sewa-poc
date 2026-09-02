@@ -53,7 +53,7 @@ export function MiniAppContainer({
   const isRegistry = source === "registry";
 
   const { data: session, isPending: authLoading } = authClient.useSession();
-  const { communicator } = usePlatform();
+  const { communicator, services } = usePlatform();
   const loader = useRuntimeLoader();
   const eventBus = useEventBus();
 
@@ -250,6 +250,16 @@ export function MiniAppContainer({
   ]);
 
   const exitToPortal = useCallback(() => router.push("/"), [router]);
+
+  const handleTopBack = useCallback(async () => {
+    try {
+      const consumed = await services.navigation.requestBack();
+      if (!consumed) router.push("/");
+    } catch {
+      router.push("/");
+    }
+  }, [services, router]);
+
   useMiniAppBackButton({ onExit: exitToPortal, enabled: loadState === "ready" });
 
   const handleRetry = useCallback(() => {
@@ -319,7 +329,7 @@ export function MiniAppContainer({
               ? "text-gray-300 hover:bg-gray-700 hover:text-white"
               : "text-gray-500 hover:bg-gov-50 hover:text-gov-800"
           }`}
-          onClick={() => router.push("/")}
+          onClick={handleTopBack}
           type="button"
         >
           <ArrowLeftIcon size={20} />

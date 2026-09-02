@@ -328,6 +328,10 @@ export class RpcServer {
       const consumed = readConsumed(payload);
       return this.services.navigation.push(consumed, ctx.moduleId);
     });
+    r.register(NAMESPACES.NAVIGATION, ACTIONS.NAVIGATION.ROUTER, (payload, ctx) => {
+      const consumed = readConsumed(payload);
+      return this.services.navigation.router(consumed, ctx.moduleId);
+    });
 
     // platform.getType returns `{ type, appearance }`. `type` MUST be a
     // PlatformTypeLiteral ("web" / "flutter"), not the whole device.info()

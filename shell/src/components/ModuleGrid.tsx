@@ -103,23 +103,48 @@ export function ModuleGrid() {
   const isError = manifestFailed || catalogFailed;
   const error = manifestFailed ? manifestError : catalogError;
 
-  // Infinite scroll: pull the next page once the sentinel below the grid
-  // scrolls into view.
+  // FIX 1: De-duplicate the items to guarantee React keys are unique.
+  // This protects the UI even if the backend API sends overlapping page data.
+  const uniqueMiniApps = useMemo(() => {
+    const seen = new Set();
+    return miniApps.filter((mod) => {
+      const key = mod.id ?? (mod as any).miniAppId;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [miniApps]);
+
+  // FIX 2: Stabilize the IntersectionObserver.
+  // We track the fetching state in a ref so we can read it inside the observer
+  // callback WITHOUT adding it to the dependency array, preventing the observer
+  // from repeatedly disconnecting and reconnecting (which causes double-fires).
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const isFetchingRef = useRef(isFetchingNextPage);
+
+  // Sync ref with actual fetching state
+  useEffect(() => {
+    isFetchingRef.current = isFetchingNextPage;
+  }, [isFetchingNextPage]);
+
+  // Set up the observer only when hasNextPage or fetchNextPage changes
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !hasNextPage || isFetchingNextPage) return;
+    if (!sentinel || !hasNextPage) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) fetchNextPage();
+        // Only fetch if it's visible AND we aren't already fetching
+        if (entries[0]?.isIntersecting && !isFetchingRef.current) {
+          fetchNextPage();
+        }
       },
       { rootMargin: "200px" },
     );
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, fetchNextPage]);
 
   // Process Old Modules with filtering & grouping
   const filteredFallback = useMemo(
@@ -171,11 +196,12 @@ export function ModuleGrid() {
               Try Again
             </button>
           </div>
-        ) : miniApps.length > 0 ? (
+        ) : uniqueMiniApps.length > 0 ? (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {miniApps.map((mod) => (
-                <NewMiniAppCard key={mod.id ?? mod.miniAppId} newModule={mod} />
+              {/* Using uniqueMiniApps array to prevent key duplication */}
+              {uniqueMiniApps.map((mod) => (
+                <NewMiniAppCard key={mod.id ?? (mod as any).miniAppId} newModule={mod} />
               ))}
             </div>
 

@@ -16,10 +16,11 @@ export const FALLBACK_MINI_APPS: OldModuleManifest[] = [
     requiredPermissions: [],
     miniAppCapabilities: [],
     dataCapabilities: ["device.location"],
+    capabilities: ["device.location", "device.camera", "device.gallery", "device.download"],
     isEnabled: true,
     order: 1,
-    // bundleUrl: "https://test-mini-app-orcin.vercel.app/",
-    bundleUrl: "http://localhost:3002/",
+    bundleUrl: "https://test-mini-app-orcin.vercel.app/",
+    // bundleUrl: "http://localhost:3002/",
     entryType: "framework-agnostic",
     loadStrategy: "plugin",
     compatibility: {
