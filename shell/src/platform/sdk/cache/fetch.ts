@@ -3,8 +3,8 @@
  * it — storing and pointer promotion are the caller's ordering concern.
  */
 
-import type { CachedSdkBundle, SdkCacheEnv, SdkSpec } from "@/types/platform";
 import { verify } from "@/shared/lib";
+import type { CachedSdkBundle, SdkCacheEnv, SdkSpec } from "@/types/platform";
 import { bundleKey } from "./config";
 
 type FetchEnv = Pick<SdkCacheEnv, "fetch" | "clock">;

@@ -536,7 +536,11 @@ export class RpcServer {
 
     // GIC Chat — reverted to GIC_CHAT namespace (START_SESSION + STREAM), but gated by HTTP capability per spec
     const handleGicStart = async () => {
-      if (!this.services.gicChat) throw new RpcMethodError("NOT_SUPPORTED", "GIC chat not configured — set GIC_CHAT_BASE_URL");
+      if (!this.services.gicChat)
+        throw new RpcMethodError(
+          "NOT_SUPPORTED",
+          "GIC chat not configured — set GIC_CHAT_BASE_URL",
+        );
       return this.services.gicChat.startSession();
     };
     r.register(NAMESPACES.GIC_CHAT, ACTIONS.GIC_CHAT.START_SESSION, handleGicStart);
@@ -545,36 +549,96 @@ export class RpcServer {
 
     const handleGicStream = async (payload: unknown, ctx: RpcContext) => {
       const p = payload as { user_id: string; session_id: string; message: string };
-      if (!this.services.gicChat) throw new RpcMethodError("NOT_SUPPORTED", "GIC chat not configured");
-      if (!p?.user_id || !p?.session_id) throw new RpcMethodError("INVALID_PARAMS", "user_id and session_id required");
-      if (!p?.message || p.message.trim().length === 0) throw new RpcMethodError("INVALID_PARAMS", "message must be non-blank");
-      if (p.message.length > 200) throw new RpcMethodError("INVALID_PARAMS", "message must be ≤200 characters");
+      if (!this.services.gicChat)
+        throw new RpcMethodError("NOT_SUPPORTED", "GIC chat not configured");
+      if (!p?.user_id || !p?.session_id)
+        throw new RpcMethodError("INVALID_PARAMS", "user_id and session_id required");
+      if (!p?.message || p.message.trim().length === 0)
+        throw new RpcMethodError("INVALID_PARAMS", "message must be non-blank");
+      if (p.message.length > 200)
+        throw new RpcMethodError("INVALID_PARAMS", "message must be ≤200 characters");
       const abort = new AbortController();
       (ctx as unknown as { _gicAbort?: AbortController })._gicAbort = abort;
-      this.streamGicChat(ctx, p, abort.signal, NAMESPACES.GIC_CHAT, ACTIONS.GIC_CHAT.STREAM).catch((err) => {
-        ctx.send(createMessage("response", NAMESPACES.GIC_CHAT, ACTIONS.GIC_CHAT.STREAM, "shell", ctx.moduleId, undefined, { id: ctx.requestId, traceId: ctx.traceId, error: { code: "GIC_CHAT_ERROR", message: err instanceof Error ? err.message : String(err) } }), ctx.source);
-      });
+      this.streamGicChat(ctx, p, abort.signal, NAMESPACES.GIC_CHAT, ACTIONS.GIC_CHAT.STREAM).catch(
+        (err) => {
+          ctx.send(
+            createMessage(
+              "response",
+              NAMESPACES.GIC_CHAT,
+              ACTIONS.GIC_CHAT.STREAM,
+              "shell",
+              ctx.moduleId,
+              undefined,
+              {
+                id: ctx.requestId,
+                traceId: ctx.traceId,
+                error: {
+                  code: "GIC_CHAT_ERROR",
+                  message: err instanceof Error ? err.message : String(err),
+                },
+              },
+            ),
+            ctx.source,
+          );
+        },
+      );
       return { streaming: true };
     };
     r.register(NAMESPACES.GIC_CHAT, ACTIONS.GIC_CHAT.STREAM, handleGicStream);
     // Deprecated alias: HTTP.CHAT_STREAM GIC payload discriminator (kept for compat, forwards to same GIC logic)
     const handleChatStream = async (payload: unknown, ctx: RpcContext) => {
-      const p = payload as { user_id?: string; session_id?: string; message?: string; messages?: { role: string; content: string }[]; options?: Record<string, unknown> };
+      const p = payload as {
+        user_id?: string;
+        session_id?: string;
+        message?: string;
+        messages?: { role: string; content: string }[];
+        options?: Record<string, unknown>;
+      };
       if (p?.user_id || p?.session_id || p?.message) {
         return handleGicStream(payload, ctx);
       }
-      if (!p?.messages || p.messages.length === 0) throw new RpcMethodError("INVALID_PARAMS", "Missing messages");
+      if (!p?.messages || p.messages.length === 0)
+        throw new RpcMethodError("INVALID_PARAMS", "Missing messages");
       const chatMessages = p.messages.map((m) => ({ ...m, role: m.role as "user" | "system" }));
-      const streamIterable = (await this.services.chat.chat(chatMessages, p.options)) as unknown as AsyncIterable<string | Uint8Array>;
-      this.streamChatChunks(ctx, streamIterable, NAMESPACES.HTTP, ACTIONS.HTTP.CHAT_STREAM).catch((err) => {
-        ctx.send(createMessage("response", NAMESPACES.HTTP, ACTIONS.HTTP.CHAT_STREAM, "shell", ctx.moduleId, undefined, { id: ctx.requestId, traceId: ctx.traceId, error: { code: "CHAT_ERROR", message: err instanceof Error ? err.message : String(err) } }), ctx.source);
-      });
+      const streamIterable = (await this.services.chat.chat(
+        chatMessages,
+        p.options,
+      )) as unknown as AsyncIterable<string | Uint8Array>;
+      this.streamChatChunks(ctx, streamIterable, NAMESPACES.HTTP, ACTIONS.HTTP.CHAT_STREAM).catch(
+        (err) => {
+          ctx.send(
+            createMessage(
+              "response",
+              NAMESPACES.HTTP,
+              ACTIONS.HTTP.CHAT_STREAM,
+              "shell",
+              ctx.moduleId,
+              undefined,
+              {
+                id: ctx.requestId,
+                traceId: ctx.traceId,
+                error: {
+                  code: "CHAT_ERROR",
+                  message: err instanceof Error ? err.message : String(err),
+                },
+              },
+            ),
+            ctx.source,
+          );
+        },
+      );
       return { streaming: true };
     };
 
-    r.register(NAMESPACES.HTTP, ACTIONS.HTTP.CHAT_STREAM, async (payload, ctx) => handleChatStream(payload, ctx));
+    r.register(NAMESPACES.HTTP, ACTIONS.HTTP.CHAT_STREAM, async (payload, ctx) =>
+      handleChatStream(payload, ctx),
+    );
     // Alias HTTP.STREAM -> same as CHAT_STREAM
-    r.register(NAMESPACES.HTTP, (ACTIONS.HTTP as unknown as { STREAM: string }).STREAM, async (payload, ctx) => handleChatStream(payload, ctx));
+    r.register(
+      NAMESPACES.HTTP,
+      (ACTIONS.HTTP as unknown as { STREAM: string }).STREAM,
+      async (payload, ctx) => handleChatStream(payload, ctx),
+    );
     // Stream cancellation — SDK notifies via HTTP.CANCEL when StreamBuilder.cancel() or AbortSignal fires
     r.register(NAMESPACES.HTTP, ACTIONS.HTTP.CANCEL, async (payload) => {
       const p = payload as { requestId?: string };
@@ -744,20 +808,12 @@ export class RpcServer {
           lastEventType = (event as { type: string }).type;
           const isLast = lastEventType === "done" || lastEventType === "error";
           ctx.send(
-            createMessage(
-              "stream",
-              ns,
-              action,
-              "shell",
-              ctx.moduleId,
-              JSON.stringify(event),
-              {
-                id: ctx.requestId,
-                traceId: ctx.traceId,
-                streamIndex: index,
-                streamLast: isLast,
-              },
-            ),
+            createMessage("stream", ns, action, "shell", ctx.moduleId, JSON.stringify(event), {
+              id: ctx.requestId,
+              traceId: ctx.traceId,
+              streamIndex: index,
+              streamLast: isLast,
+            }),
             ctx.source,
           );
           index++;

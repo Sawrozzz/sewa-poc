@@ -1,4 +1,3 @@
-import { GicChatService } from "@sewa/host-platform";
 import type { ChatMessage } from "@lizuz/mini-app-types";
 import type {
   EventBus,
@@ -9,7 +8,7 @@ import type {
   OldModuleManifest,
   ShellAppearanceService,
 } from "@sewa/host-platform";
-import { PLATFORM_EVENTS } from "@sewa/host-platform";
+import { GicChatService, PLATFORM_EVENTS } from "@sewa/host-platform";
 import type { PlatformServicesConfig } from "@/types/platform";
 import type { AppearanceController } from "../appearance-controller";
 import { createDeviceService } from "./device";
@@ -102,7 +101,13 @@ export function createShellServices(
    * Manifest lookup checks well-known GIC ids and common config fields so the
    * registry can control the endpoint without a redeploy.
    */
-  const GIC_MANIFEST_IDS = ["gic-chat", "gic-chat-app", "gic-chat-agent", "gic", "sewa-gic"] as const;
+  const GIC_MANIFEST_IDS = [
+    "gic-chat",
+    "gic-chat-app",
+    "gic-chat-agent",
+    "gic",
+    "sewa-gic",
+  ] as const;
 
   function readGicUrlFromManifest(manifest: unknown): string | null {
     if (!manifest || typeof manifest !== "object") return null;
@@ -132,9 +137,7 @@ export function createShellServices(
       if (fromManifest) return fromManifest;
     }
     // 2. Env URL — host-level fallback
-    const envUrl =
-      process.env.NEXT_PUBLIC_GIC_CHAT_BASE_URL ??
-      process.env.GIC_CHAT_BASE_URL;
+    const envUrl = process.env.NEXT_PUBLIC_GIC_CHAT_BASE_URL ?? process.env.GIC_CHAT_BASE_URL;
     if (envUrl?.trim()) return envUrl.trim().replace(/\/$/, "");
     // 3. Not available — host will report NOT_SUPPORTED, SDK surfaces it
     return null;
@@ -303,7 +306,10 @@ export function createShellServices(
   const gicChat = {
     async startSession() {
       const url = resolveGicChatBaseUrl();
-      if (!url) throw new Error("GIC chat not configured — set GIC_CHAT_BASE_URL or publish a gic-chat manifest entry");
+      if (!url)
+        throw new Error(
+          "GIC chat not configured — set GIC_CHAT_BASE_URL or publish a gic-chat manifest entry",
+        );
       const svc = new GicChatService({ baseUrl: url });
       return svc.startSession();
     },
@@ -313,7 +319,10 @@ export function createShellServices(
       signal?: AbortSignal,
     ) {
       const url = resolveGicChatBaseUrl();
-      if (!url) throw new Error("GIC chat not configured — set GIC_CHAT_BASE_URL or publish a gic-chat manifest entry");
+      if (!url)
+        throw new Error(
+          "GIC chat not configured — set GIC_CHAT_BASE_URL or publish a gic-chat manifest entry",
+        );
       const svc = new GicChatService({ baseUrl: url });
       return svc.stream(request, onEvent, signal);
     },

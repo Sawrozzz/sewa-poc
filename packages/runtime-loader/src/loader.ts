@@ -80,7 +80,10 @@ export class RuntimeLoader {
     // the shell uses to bypass missing CORS headers on the storage origin.
     if (trimmed.startsWith("/")) {
       try {
-        return new URL(trimmed, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+        return new URL(
+          trimmed,
+          typeof window !== "undefined" ? window.location.origin : "http://localhost",
+        );
       } catch {
         throw new Error(`Invalid bundleUrl: ${bundleUrl}`);
       }
@@ -102,7 +105,10 @@ export class RuntimeLoader {
       throw new Error(`Invalid fileName: ${fileName}`);
     const base = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
     // `new URL(file, base)` needs an absolute base; proxy paths are relative.
-    const baseForUrl = base.startsWith("/") && typeof window !== "undefined" ? `${window.location.origin}${base}` : base;
+    const baseForUrl =
+      base.startsWith("/") && typeof window !== "undefined"
+        ? `${window.location.origin}${base}`
+        : base;
     return new URL(fileName, baseForUrl).toString();
   }
 
