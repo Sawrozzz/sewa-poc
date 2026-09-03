@@ -1,7 +1,7 @@
 "use client";
 
 import type { OldModuleManifest } from "@sewa/host-platform";
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { authClient, mapSessionUser } from "@/features/auth/auth-client";
 import {
   useFallbackMiniApps,
@@ -103,24 +103,7 @@ export function ModuleGrid() {
   const isError = manifestFailed || catalogFailed;
   const error = manifestFailed ? manifestError : catalogError;
 
-  // Infinite scroll: pull the next page once the sentinel below the grid
-  // scrolls into view.
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel || !hasNextPage || isFetchingNextPage) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting)
-          void fetchNextPage().catch((e) => console.warn("[ModuleGrid] fetchNextPage failed:", e));
-      },
-      { rootMargin: "200px" },
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  // Pagination is now explicit — user clicks "Load more" instead of scroll trigger.
 
   // Process Old Modules with filtering & grouping
   const filteredFallback = useMemo(
@@ -190,10 +173,22 @@ export function ModuleGrid() {
               </div>
             ) : null}
 
-            {/* Tripping this into view loads the next page */}
-            <div aria-hidden className="h-px" ref={sentinelRef} />
-
-            {hasNextPage ? null : (
+            {hasNextPage ? (
+              <div className="flex justify-center mt-8">
+                <button
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isFetchingNextPage}
+                  onClick={() =>
+                    void fetchNextPage().catch((e) =>
+                      console.warn("[ModuleGrid] fetchNextPage failed:", e),
+                    )
+                  }
+                  type="button"
+                >
+                  {isFetchingNextPage ? "Loading…" : "Load more"}
+                </button>
+              </div>
+            ) : (
               <p className="text-center text-xs text-gray-400 mt-8">
                 You&apos;ve reached the end of the list.
               </p>
