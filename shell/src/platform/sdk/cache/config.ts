@@ -12,7 +12,7 @@ import type { SdkSpec } from "@/types/platform";
 const DEFAULT_SDK_NAME = "@lizuz/sewa-sdk";
 
 /** Version the shell ships pinned to. Overridable via env. */
-const DEFAULT_SDK_VERSION = "1.0.8";
+const DEFAULT_SDK_VERSION = "1.0.9";
 
 /**
  * `{name}` / `{version}` placeholders. jsDelivr serves the bundle with
@@ -30,10 +30,10 @@ const DEFAULT_URL_TEMPLATE = "https://cdn.jsdelivr.net/npm/{name}@{version}/dist
  * Regenerate with:
  *   curl -sL <url> | openssl dgst -sha256 -binary | openssl base64 -A
  */
-const PINNED_INTEGRITY: Readonly<Record<string, string>> = {
-  "@lizuz/sewa-sdk@1.0.4": "sha256-K5PeFrm9KI8BNHZGuJzRS3lt0rdgVbE5qXH1JL+/310=",
-  "@lizuz/sewa-sdk@1.0.8": "sha256-rZ4pn6BQqcaOusFUKr4qWSBZCYLuHEjvkTQTTjKkp8Q=",
-};
+// const PINNED_INTEGRITY: Readonly<Record<string, string>> = {
+//   "@lizuz/sewa-sdk@1.0.4": "sha256-K5PeFrm9KI8BNHZGuJzRS3lt0rdgVbE5qXH1JL+/310=",
+//   "@lizuz/sewa-sdk@1.0.8": "sha256-rZ4pn6BQqcaOusFUKr4qWSBZCYLuHEjvkTQTTjKkp8Q=",
+// };
 
 /** localStorage key for the field kill switch. `"off"` bypasses + purges. */
 export const SDK_CACHE_SWITCH_KEY = "sewa.sdk.cache";
@@ -102,14 +102,14 @@ export function resolveSdkSpec(overrides: SdkSpecOverrides = {}): SdkSpec {
     };
   }
 
-  const key = bundleKey(name, version);
-  const pinned = PINNED_INTEGRITY[key] || process.env.NEXT_PUBLIC_SDK_INTEGRITY || undefined;
+  // const key = bundleKey(name, version);
+  // const pinned = PINNED_INTEGRITY[key] || process.env.NEXT_PUBLIC_SDK_INTEGRITY || undefined;
 
   return {
     name,
     version,
     url: overrides.source || buildUrl(name, version),
-    integrity: overrides.source ? undefined : pinned,
+    // integrity: overrides.source ? undefined : pinned,
     pinnedBy: "host-default",
   };
 }
