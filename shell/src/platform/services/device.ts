@@ -343,29 +343,68 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
       }
     },
     notifications: async (_options?: { requestPermission?: boolean; reason?: string }) =>
-      ({ status: "granted", data: { granted: false } }) as unknown as DeviceNotificationResult,
+      ({ enabled: false } as unknown as DeviceNotificationResult),
     network: async () =>
       ({
-        status: "granted",
-        data: {
-          online: navigator.onLine,
-          type: navigator.onLine ? "unknown" : "none",
-        },
+        online: navigator.onLine,
+        // canonical supports wifi/cellular/none; host adds unknown as fallback when online but type unknown
+        type: navigator.onLine ? "unknown" : "none",
+        effectiveType: (navigator as unknown as { connection?: { effectiveType?: string } }).connection?.effectiveType,
       }) as unknown as DeviceNetworkResult,
     info: async () => {
       const ua = navigator.userAgent;
       const isMobile = /Mobi|Android/i.test(ua);
       return {
-        status: "granted",
-        data: {
-          platform: isMobile ? (ua.includes("iPhone") ? "IOS" : "ANDROID") : "WEB",
-          osVersion: "",
-          appVersion: "1",
-          deviceModel: ua,
-          locale: navigator.language,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        },
+        platform: isMobile ? "flutter" : "web",
+        osVersion: "",
+        appVersion: "1",
+        deviceModel: ua,
+        locale: navigator.language,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        screenWidth: typeof window !== "undefined" ? window.screen.width : undefined,
+        screenHeight: typeof window !== "undefined" ? window.screen.height : undefined,
       } as unknown as DeviceInfoResult;
+    },
+    share: async (data: { title?: string; text?: string; url?: string }) => {
+      if (typeof navigator !== "undefined" && (navigator as unknown as { share?: (d: unknown) => Promise<void> }).share) {
+        try {
+          await (navigator as unknown as { share: (d: unknown) => Promise<void> }).share(data);
+          return { completed: true };
+        } catch (err) {
+          if (err instanceof Error && err.name === "AbortError") return { completed: false };
+          throw err;
+        }
+      }
+      // Fallback: copy to clipboard or open url
+      if (data.url && typeof window !== "undefined") {
+        window.open(data.url, "_blank");
+        return { completed: true };
+      }
+      throw new Error("Share not supported");
+    },
+    clipboardWrite: async (text: string) => {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      throw new Error("Clipboard write not supported");
+    },
+    clipboardRead: async () => {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.readText) {
+        const text = await navigator.clipboard.readText();
+        return text;
+      }
+      throw new Error("Clipboard read not supported");
+    },
+    haptics: async (style?: string) => {
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        const pattern = style === "heavy" ? 30 : style === "medium" ? 20 : 10;
+        (navigator as unknown as { vibrate: (n: number) => void }).vibrate(pattern);
+      }
+    },
+    review: async () => {
+      // No-op on web — native review prompt only on mobile wrappers
+      return;
     },
   };
 

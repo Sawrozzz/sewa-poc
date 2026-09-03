@@ -319,11 +319,11 @@ export class RpcServer {
       return null;
     });
 
-    r.register(NAMESPACES.PERMISSIONS, ACTIONS.PERMISSIONS.HAS, (payload) =>
-      this.services.permissions.has((payload as { permission?: string })?.permission ?? ""),
+    r.register(NAMESPACES.PERMISSIONS, ACTIONS.PERMISSIONS.HAS, async (payload) =>
+      await this.services.permissions.has((payload as { permission?: string })?.permission ?? ""),
     );
-    r.register(NAMESPACES.PERMISSIONS, ACTIONS.PERMISSIONS.LIST, () =>
-      this.services.permissions.list(),
+    r.register(NAMESPACES.PERMISSIONS, ACTIONS.PERMISSIONS.LIST, async () =>
+      await this.services.permissions.list(),
     );
 
     r.register(NAMESPACES.FLAGS, ACTIONS.FLAGS.IS_ENABLED, (payload) =>
@@ -347,9 +347,29 @@ export class RpcServer {
       });
       return null;
     });
-    r.register(NAMESPACES.NAVIGATION, ACTIONS.NAVIGATION.GET_CURRENT, () =>
-      this.services.navigation.getCurrent(),
-    );
+    r.register(NAMESPACES.NAVIGATION, ACTIONS.NAVIGATION.GET_CURRENT, () => {
+      const state = this.services.navigation.getCurrent() as unknown as Record<string, unknown>;
+      // Normalize to SDK shape { current, history } while preserving legacy fields for compat.
+      if (state && typeof state.current === "string" && Array.isArray(state.history)) {
+        return state;
+      }
+      // Host shape { app, route, params, historyLength } -> SDK shape
+      const app = (state.app as string) ?? "shell";
+      const route = (state.route as string) ?? "/";
+      const historyLength = (state.historyLength as number) ?? 1;
+      const current = app === "shell" ? route : `/${app}${route}`;
+      const history = Array.from({ length: historyLength }, (_, i) =>
+        i === historyLength - 1 ? current : `${current}#${i}`,
+      );
+      return {
+        current,
+        history,
+        app,
+        route,
+        params: state.params ?? {},
+        historyLength,
+      };
+    });
 
     // The mini app's half of the back-button handshake. `back` is its answer
     // to `navigation.back.requested`; `push` is it telling the shell it now
@@ -397,7 +417,8 @@ export class RpcServer {
 
     r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.LOCATION, async (payload) => {
       try {
-        return await this.services.device.location(payload as Record<string, unknown>);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return await this.services.device.location(payload as any);
       } catch (err) {
         return {
           status: "denied",
@@ -406,38 +427,113 @@ export class RpcServer {
       }
     });
     r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.CAMERA, (payload) =>
-      this.services.device.camera(payload as Record<string, unknown>),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.services.device.camera(payload as any),
     );
     r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.GALLERY, (payload) =>
-      this.services.device.gallery(payload as Record<string, unknown>),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.services.device.gallery(payload as any),
     );
     r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.FILES, (payload) =>
-      this.services.device.files(payload as Record<string, unknown>),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.services.device.files(payload as any),
     );
     r.register(NAMESPACES.DEVICE, "download", (payload) =>
-      this.services.device.download(payload as Record<string, unknown>),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.services.device.download(payload as any),
     );
     r.register(NAMESPACES.DEVICE, "contact", (payload) =>
-      this.services.device.contact(payload as Record<string, unknown>),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.services.device.contact(payload as any),
     );
     r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.BIOMETRIC, (payload) =>
-      this.services.device.biometric(payload as Record<string, unknown>),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.services.device.biometric(payload as any),
     );
     r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.NOTIFICATIONS, (payload) =>
-      this.services.device.notifications(payload as Record<string, unknown>),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.services.device.notifications(payload as any),
     );
-    r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.NETWORK, () => this.services.device.network());
-    r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.INFO, () => this.services.device.info());
+    r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.NETWORK, async () => {
+      const res = await this.services.device.network();
+      // Normalize to canonical optional type? Host already returns canonical now.
+      return res;
+    });
+    r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.INFO, async () => {
+      const res = await this.services.device.info() as unknown as Record<string, unknown>;
+      // Normalize platform to lowercase web/flutter for canonical SDK expectation
+      if (res && typeof res.platform === "string") {
+        const raw = (res.platform as string).toLowerCase();
+        const normalized = raw === "web" || raw === "flutter" ? raw : raw.includes("web") ? "web" : "flutter";
+        return { ...res, platform: normalized };
+      }
+      return res;
+    });
+    // Web-facing device actions added in SDK 1.1.x — previously caused Unknown method errors.
+    r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.SHARE, async (payload) => {
+      const data = payload as { title?: string; text?: string; url?: string };
+      if (this.services.device.share) return this.services.device.share(data);
+      // Fallback to Web Share API
+      if (typeof navigator !== "undefined" && (navigator as unknown as { share?: (d: unknown) => Promise<void> }).share) {
+        try {
+          await (navigator as unknown as { share: (d: unknown) => Promise<void> }).share(data);
+          return { completed: true };
+        } catch (err) {
+          if (err instanceof Error && err.name === "AbortError") return { completed: false };
+          throw new RpcMethodError("SHARE_ERROR", err instanceof Error ? err.message : String(err));
+        }
+      }
+      throw new RpcMethodError("NOT_SUPPORTED", "Share not supported on this host");
+    });
+    r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.CLIPBOARD_WRITE, async (payload) => {
+      const { text } = (payload ?? {}) as { text?: string };
+      if (this.services.device.clipboardWrite) return this.services.device.clipboardWrite(text ?? "");
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text ?? "");
+        return null;
+      }
+      throw new RpcMethodError("NOT_SUPPORTED", "Clipboard write not supported");
+    });
+    r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.CLIPBOARD_READ, async () => {
+      if (this.services.device.clipboardRead) {
+        const text = await this.services.device.clipboardRead();
+        return { text };
+      }
+      if (typeof navigator !== "undefined" && navigator.clipboard?.readText) {
+        const text = await navigator.clipboard.readText();
+        return { text };
+      }
+      throw new RpcMethodError("NOT_SUPPORTED", "Clipboard read not supported");
+    });
+    r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.HAPTICS, async (payload) => {
+      const { style } = (payload ?? {}) as { style?: string };
+      if (this.services.device.haptics) return this.services.device.haptics(style as "light" | "medium" | "heavy" | "selection");
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        const pattern = style === "heavy" ? 30 : style === "medium" ? 20 : 10;
+        (navigator as unknown as { vibrate: (n: number) => void }).vibrate(pattern);
+        return null;
+      }
+      return null;
+    });
+    r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.REVIEW, async () => {
+      if (this.services.device.review) return this.services.device.review();
+      return null;
+    });
 
-    r.register(NAMESPACES.STORAGE, ACTIONS.STORAGE.GET, (payload) => {
+    r.register(NAMESPACES.STORAGE, ACTIONS.STORAGE.GET, async (payload) => {
       const key = (payload as { key?: string })?.key;
       if (!key) throw new RpcMethodError("INVALID_PARAMS", "Missing key");
-      return this.services.storage.get(key);
+      const value = await this.services.storage.get(key);
+      // SDK expects { value } wrapper, but legacy shell storage returns raw string. Wrap if needed.
+      if (value !== null && typeof value === "string") return { value };
+      if (value !== null && typeof value === "object" && "value" in (value as Record<string, unknown>)) return value;
+      return { value: value as string | null };
     });
     r.register(NAMESPACES.STORAGE, ACTIONS.STORAGE.SET, (payload) => {
-      const { key, value } = payload as { key?: string; value?: string };
+      const { key, value, ttlMs } = payload as { key?: string; value?: string; ttlMs?: number };
       if (!key) throw new RpcMethodError("INVALID_PARAMS", "Missing key");
-      return this.services.storage.set(key, value ?? "").then(() => null);
+      // Forward ttlMs if storage service honors it; fallback ignores it (spec: host may drop after expiry)
+      return (this.services.storage.set as (k: string, v: string, opts?: { ttlMs?: number }) => Promise<void>)(key, value ?? "", ttlMs !== undefined ? { ttlMs } : undefined).then(() => null);
     });
     r.register(NAMESPACES.STORAGE, ACTIONS.STORAGE.REMOVE, (payload) => {
       const key = (payload as { key?: string })?.key;
@@ -460,6 +556,61 @@ export class RpcServer {
     r.register(NAMESPACES.HTTP, ACTIONS.HTTP.DELETE, (payload) =>
       this.handleHttpRequest("delete", payload as Record<string, unknown>),
     );
+    r.register(NAMESPACES.HTTP, ACTIONS.HTTP.GET_STREAM, async (payload, ctx) => {
+      const params = payload as Record<string, unknown>;
+      const endpoint = params.endpoint as string | undefined;
+      if (!endpoint) throw new RpcMethodError("INVALID_PARAMS", "Missing endpoint");
+      // Stream file/binary as SSE-like chunks via HostPlatformMessage type "stream"
+      // Fallback: fetch and stream bytes as Uint8Array chunks.
+      try {
+        const res = await axios({
+          method: "get",
+          url: endpoint,
+          params: params.query as Record<string, string> | undefined,
+          headers: await this.withAppearanceHeaders(params.headers as Record<string, string> | undefined),
+          responseType: "arraybuffer",
+        });
+        const buffer = res.data as ArrayBuffer;
+        const chunkSize = 64 * 1024;
+        let index = 1;
+        const total = Math.ceil(buffer.byteLength / chunkSize);
+        for (let offset = 0; offset < buffer.byteLength; offset += chunkSize) {
+          const slice = buffer.slice(offset, offset + chunkSize);
+          const text = Buffer.from(slice).toString("base64");
+          ctx.send(
+            createMessage("stream", NAMESPACES.HTTP, ACTIONS.HTTP.GET_STREAM, "shell", ctx.moduleId, text, {
+              id: ctx.requestId,
+              traceId: ctx.traceId,
+              streamIndex: index,
+              streamLast: index === total,
+            }),
+            ctx.source,
+          );
+          index++;
+        }
+        if (total === 0) {
+          ctx.send(
+            createMessage("stream", NAMESPACES.HTTP, ACTIONS.HTTP.GET_STREAM, "shell", ctx.moduleId, "", {
+              id: ctx.requestId,
+              traceId: ctx.traceId,
+              streamIndex: 1,
+              streamLast: true,
+            }),
+            ctx.source,
+          );
+        }
+        return { streaming: true };
+      } catch (err) {
+        throw new RpcMethodError("HTTP_ERROR", err instanceof Error ? err.message : String(err));
+      }
+    });
+    r.register(NAMESPACES.HTTP, ACTIONS.HTTP.WEBSOCKET, async (payload) => {
+      const params = payload as { endpoint?: string; query?: Record<string, string> };
+      if (!params?.endpoint) throw new RpcMethodError("INVALID_PARAMS", "Missing endpoint");
+      // Host cannot proxy a WebSocket over postMessage without a dedicated bridge.
+      // Return endpoint so SDK can create WebSocket directly if allowed, otherwise error.
+      throw new RpcMethodError("NOT_SUPPORTED", "WebSocket not supported via host RPC — connect directly to " + params.endpoint);
+    });
 
     r.register(NAMESPACES.API, ACTIONS.API.REQUEST, async (payload) => {
       const apiPayload = payload as
@@ -509,6 +660,40 @@ export class RpcServer {
     r.register(NAMESPACES.APPEARANCE, ACTIONS.APPEARANCE.GET_THEME, () =>
       this.services.appearance.getTheme(),
     );
+
+    // Notifications — register for push
+    r.register(NAMESPACES.NOTIFICATIONS, ACTIONS.NOTIFICATIONS.REGISTER, async (payload) => {
+      const opts = (payload ?? {}) as { requestPermission?: boolean };
+      if (this.services.notifications?.register) {
+        return this.services.notifications.register(opts);
+      }
+      // Fallback to device.notifications (SDK's older path) or stub
+      try {
+        const dev = await this.services.device.notifications(opts as Record<string, unknown>);
+        // Normalize granted vs enabled
+        const enabled = (dev as unknown as { enabled?: boolean; granted?: boolean }).enabled ?? (dev as unknown as { granted?: boolean }).granted ?? false;
+        const token = (dev as unknown as { token?: string }).token;
+        return { enabled, token };
+      } catch {
+        return { enabled: false };
+      }
+    });
+
+    // Links — open deep link
+    r.register(NAMESPACES.LINKS, ACTIONS.LINKS.OPEN, async (payload) => {
+      const { url, inApp } = (payload ?? {}) as { url?: string; inApp?: boolean };
+      if (!url) throw new RpcMethodError("INVALID_PARAMS", "Missing url");
+      if (this.services.links?.open) {
+        await this.services.links.open(url, { inApp });
+        return null;
+      }
+      // Fallback: host fallback to window.open when available
+      if (typeof window !== "undefined" && typeof window.open === "function") {
+        window.open(url, inApp ? "_self" : "_blank");
+        return null;
+      }
+      throw new RpcMethodError("NOT_SUPPORTED", "Links not supported on this host");
+    });
 
     // Events — subscription bookkeeping lives on the ConnectedModule and is
     // consulted by broadcastToModules(). The SDK subscribes to host events

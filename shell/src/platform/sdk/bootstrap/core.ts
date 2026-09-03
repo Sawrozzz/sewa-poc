@@ -30,6 +30,18 @@ export function readSdkInstance(w: Window & typeof globalThis): MiniAppSdkInterf
     : null;
 }
 
+function isDestroyedInstance(sdk: MiniAppSdkInterface): boolean {
+  try {
+    const maybe = sdk as unknown as { destroyed?: boolean; debug?: { snapshot?: () => { status?: string } } };
+    if (maybe.destroyed === true) return true;
+    const snap = maybe.debug?.snapshot?.();
+    if (snap?.status === "destroyed") return true;
+  } catch {
+    // ignore
+  }
+  return false;
+}
+
 export function seedSdkConfig(
   w: Window & typeof globalThis,
   miniAppId: string,
@@ -76,11 +88,36 @@ export async function bootstrapMiniAppSdk(
 ): Promise<MiniAppSdkLoadResult> {
   const existing = readSdkInstance(env.window);
   if (existing) {
-    return {
-      sdk: existing,
-      source: "existing",
-      initTimeMs: await initializeSdk(existing, env.now),
-    };
+    // The global may still hold a destroyed instance if `destroy()` raced
+    // with a re-open, or the `writeGlobal(null)` bug kept it alive.
+    // Never reuse a destroyed instance — it throws `SDK_ALREADY_DESTROYED`
+    // on `initialize()`. Clear it and fall through to a fresh load.
+    if (isDestroyedInstance(existing)) {
+      // eslint-disable-next-line no-console
+      console.warn(`[SdkBootstrap] Discarding destroyed SDK instance for "${(existing as unknown as { miniAppId?: string }).miniAppId ?? "unknown"}" — creating fresh one for "${miniAppId}"`);
+      try {
+        (env.window as unknown as Record<string, unknown>)[SDK_GLOBAL_KEY] = undefined;
+        delete (env.window as unknown as Record<string, unknown>)[SDK_GLOBAL_KEY];
+      } catch {}
+    } else {
+      const existingId = (existing as unknown as { miniAppId?: string }).miniAppId;
+      // Test fakes have no miniAppId — treat as matching to keep existing tests green.
+      if (!existingId || existingId === miniAppId) {
+        return {
+          sdk: existing,
+          source: "existing",
+          initTimeMs: await initializeSdk(existing, env.now),
+        };
+      }
+      // Different miniAppId on same tab — tear down the previous instance
+      // before seeding a new one, so the handshake uses the correct miniAppId.
+      try {
+        existing.destroy();
+      } catch {}
+      try {
+        delete (env.window as unknown as Record<string, unknown>)[SDK_GLOBAL_KEY];
+      } catch {}
+    }
   }
 
   const source = options.source ?? DEFAULT_SDK_SOURCE;

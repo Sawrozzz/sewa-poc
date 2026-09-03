@@ -156,8 +156,14 @@ export function createHttpService() {
         return null;
       }
     },
-    set: async (key: string, value: string) => {
-      await http.post("/api/storage", { key, value });
+    set: async (key: string, value: string, options?: { ttlMs?: number }) => {
+      await http.post("/api/storage", { key, value, ttlMs: options?.ttlMs });
+      // TTL is best-effort: host may honor it server-side; web fallback stores without expiry
+      if (options?.ttlMs && typeof window !== "undefined") {
+        try {
+          // For local fallback, schedule expiry via setTimeout not needed for this shell's remote storage
+        } catch {}
+      }
     },
     remove: async (key: string) => {
       await http.delete(`/api/storage/${key}`);

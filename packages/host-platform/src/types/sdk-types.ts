@@ -1,17 +1,21 @@
 /**
  * SDK surface contracts — implemented by Mini App SDK, fulfilled by the host.
  *
- * Types that are identical between the SDK and host are imported from
- * `@lizuz/mini-app-types`. Types that differ (shell-side services,
- * platform-specific shapes) are defined locally.
+ * Canonical types are imported from `@lizuz/mini-app-types`. Host-only
+ * extensions are defined as additive intersections so the wire format stays
+ * compatible with the SDK's expectations.
  */
 
 import type {
   ApiResult,
+  ChatSdkModule,
   DeviceBiometricResult as BaseDeviceBiometricResult,
   DeviceDownloadResult as BaseDeviceDownloadResult,
+  DeviceNetworkResult as BaseDeviceNetworkResult,
+  DeviceContactResult as BaseDeviceContactResult,
+  DeviceNotificationResult as BaseDeviceNotificationResult,
+  DeviceInfoResult as BaseDeviceInfoResult,
   PlatformUser as BasePlatformUser,
-  ChatSdkModule,
   DeviceDownloadOptions,
   DeviceFileOptions,
   DeviceFileResult,
@@ -22,6 +26,7 @@ import type {
   HttpResult,
   HttpSdkModule,
   NavigationTarget,
+  NavigationState as CanonicalNavigationState,
 } from "@lizuz/mini-app-types";
 
 export type {
@@ -51,27 +56,26 @@ export type PlatformUser = BasePlatformUser & {
   metadata?: Record<string, unknown>;
 };
 
-export interface NavigationState {
-  app: string;
-  route: string;
-  params: Record<string, string>;
-  historyLength: number;
+/**
+ * Navigation state — canonical shape is { current, history } as per
+ * `@lizuz/mini-app-types`. Host also carries shell-routing fields
+ * (app/route/params/historyLength) for internal navigation; these are
+ * optional on the wire so a mini app sees the canonical fields.
+ */
+export interface NavigationState extends CanonicalNavigationState {
+  app?: string;
+  route?: string;
+  params?: Record<string, string>;
+  historyLength?: number;
 }
 
 export type DevicePermissionResponse<T> = DevicePermissionBaseResponse<T>;
 
-// DeviceLocationResult / DeviceCameraResult are single-sourced from mini-app-types (re-exported above)
+// Re-export canonical device results; host extensions are additive and optional.
 
-export interface DeviceContactResult {
-  contactName?: string;
-  /**
-   * Kept as a string: phone numbers carry leading zeros and a `+<country>`
-   * prefix, both of which a JS number silently destroys.
-   * Divergence from mini-app-types: `number` is required here (web picker
-   * always yields one), optional upstream for other platforms.
-   */
-  number: string;
-}
+export type DeviceContactResult = BaseDeviceContactResult;
+// Alias kept for backwards compat — number remains optional per canonical type.
+// Previously required here; now optional so TS matches SDK.
 
 export type FileOptions = DeviceFileOptions;
 
@@ -83,12 +87,10 @@ export interface DeviceDownloadResult extends BaseDeviceDownloadResult {
    * (File System Access API), so the save is confirmed.
    *
    * False when the browser lacks that API and the file was handed to its own
-   * download manager instead. The web platform exposes no completion or
-   * cancellation signal for that path, so the outcome is unknown — the user may
-   * still have dismissed the browser's own save dialog.
-   * Divergence from mini-app-types: web-only confirmation flag.
+   * download manager instead.
+   * Host-only, optional for wire compat — SDK will ignore if absent.
    */
-  saved: boolean;
+  saved?: boolean;
 }
 
 export type DownloadOptions = DeviceDownloadOptions;
@@ -96,10 +98,6 @@ export type DownloadOptions = DeviceDownloadOptions;
 /**
  * Modality the unlock sheet was labelled as: `face` on iOS (Face ID),
  * `fingerprint` on Android, `biometric` anywhere else.
- *
- * Advisory, for matching your copy to the sheet the user sees — NOT a
- * guarantee of which sensor ran. The web cannot ask a device what hardware it
- * has, so an older Touch ID iPhone still reports `face`.
  */
 export type BiometricMethod = "face" | "fingerprint" | "biometric";
 
@@ -108,27 +106,25 @@ export interface DeviceBiometricResult extends BaseDeviceBiometricResult {
   method?: BiometricMethod;
 }
 
-export interface DeviceNotificationResult {
-  granted: boolean;
-  token?: string;
+/** Canonical DeviceNotificationResult uses `enabled`; host also accepts `granted` as alias for compat. */
+export type DeviceNotificationResult = BaseDeviceNotificationResult & {
+  /** @deprecated alias for `enabled` — host may return either */
+  granted?: boolean;
+};
+
+/** Canonical DeviceNetworkResult has optional `type?: "wifi"|"cellular"|"none"`; host adds ethernet/unknown */
+export type DeviceNetworkResult = Omit<BaseDeviceNetworkResult, "type"> & {
+  type?: "wifi" | "cellular" | "none" | "ethernet" | "unknown";
+};
+
+/** Canonical DeviceInfoResult; host adds optional locale/timezone */
+export interface DeviceInfoResult extends BaseDeviceInfoResult {
+  locale?: string;
+  timezone?: string;
 }
 
-export interface DeviceNetworkResult {
-  online: boolean;
-  type: "wifi" | "cellular" | "ethernet" | "unknown";
-  effectiveType?: string;
-}
-
-export interface DeviceInfoResult {
-  platform: PlatformTypeLiteral;
-  osVersion: string;
-  appVersion: string;
-  deviceModel: string;
-  locale: string;
-  timezone: string;
-}
-
-export type PlatformTypeLiteral = "WEB" | "FLUTTER";
+/** Platform literal — use canonical lowercase "web" | "flutter"; uppercase kept as alias. */
+export type PlatformTypeLiteral = "web" | "flutter" | "WEB" | "FLUTTER";
 
 export interface ApiRequestParams<TBody = unknown> {
   method: HttpMethod;
@@ -143,7 +139,7 @@ export interface ShellApiService {
 
 export interface ShellStorageService {
   get(key: string): Promise<string | null>;
-  set(key: string, value: string): Promise<void>;
+  set(key: string, value: string, options?: { ttlMs?: number }): Promise<void>;
   remove(key: string): Promise<void>;
 }
 
@@ -155,8 +151,8 @@ export interface ShellAuthService {
 }
 
 export interface ShellPermissionsService {
-  has(permission: string): boolean;
-  list(): string[];
+  has(permission: string): boolean | Promise<boolean>;
+  list(): string[] | Promise<string[]>;
 }
 
 export interface ShellFlagsService {

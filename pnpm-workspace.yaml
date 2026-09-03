@@ -12,3 +12,5 @@ allowBuilds:
   protobufjs: true
   sharp: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@lizuz/mini-app-types@1.1.2'

@@ -132,8 +132,6 @@ export function MiniAppContainer({
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [loadError, setLoadError] = useState("");
 
-  const mountCount = useRef(0);
-  const cleanupDone = useRef(false);
   const sdkLoaded = useRef(false);
 
   const initMiniAppBridge = useCallback(async () => {
@@ -212,28 +210,22 @@ export function MiniAppContainer({
 
     if (manifestError || !manifest) return;
 
-    mountCount.current += 1;
-    if (mountCount.current === 1) {
-      void loadModule();
-    }
+    void loadModule();
 
-    if (!cleanupDone.current) {
-      cleanupDone.current = true;
-      return () => {
-        cleanupDone.current = false;
-        void loader
-          .unload(miniAppId)
-          .catch((e) => console.warn("[MiniAppContainer] unload failed:", e));
-        try {
-          communicator.disconnectModule(miniAppId);
-        } catch (e) {
-          console.warn("[MiniAppContainer] disconnect failed:", e);
-        }
-        destroyMiniAppSdk();
-      };
-    }
-
-    return () => {};
+    return () => {
+      void loader
+        .unload(miniAppId)
+        .catch((e) => console.warn("[MiniAppContainer] unload failed:", e));
+      try {
+        communicator.disconnectModule(miniAppId);
+      } catch (e) {
+        console.warn("[MiniAppContainer] disconnect failed:", e);
+      }
+      destroyMiniAppSdk();
+      // Allow a subsequent open (same tab, same miniAppId) to create a
+      // fresh SDK instance instead of reusing a destroyed one.
+      sdkLoaded.current = false;
+    };
   }, [
     authLoading,
     manifestLoading,

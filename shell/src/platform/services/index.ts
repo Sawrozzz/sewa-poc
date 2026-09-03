@@ -44,6 +44,8 @@ export function createShellServices(
       }
     : nullAppearance;
   let navigationState: NavigationState = {
+    current: "/",
+    history: ["/"],
     app: "shell",
     route: "/",
     params: {},
@@ -219,11 +221,15 @@ export function createShellServices(
 
   const navigation = {
     navigate: async (target: NavigationTarget) => {
+      const current = target.app === "shell" ? target.route : `/${target.app}${target.route}`;
+      const history = [...(navigationState.history ?? []), current];
       navigationState = {
+        current,
+        history,
         app: target.app,
         route: target.route,
         params: target.params ?? {},
-        historyLength: navigationState.historyLength + 1,
+        historyLength: history.length,
       };
       getConfig().navigate(
         target.app === "shell"
@@ -326,7 +332,7 @@ export function createShellServices(
       const svc = new GicChatService({ baseUrl: url });
       return svc.stream(request, onEvent, signal);
     },
-  } as unknown as import("@sewa/host-platform").GicChatService & { baseUrl?: string };
+  } as unknown as import("@sewa/host-platform").GicChatHostService & { baseUrl?: string };
 
   const chat = {
     chat: async function* (messages: ChatMessage[], _options?: Record<string, unknown>) {

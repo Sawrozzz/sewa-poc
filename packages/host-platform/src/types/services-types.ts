@@ -22,6 +22,13 @@ import type {
   PermissionsSdkModule,
   StorageSdkModule,
 } from "@lizuz/mini-app-types";
+import type {
+  DeviceBiometricOptions,
+  DeviceDownloadOptions,
+  DeviceExtraOptions,
+  DeviceFileOptions,
+  DeviceNotificationsOptions,
+} from "@lizuz/mini-app-types";
 import type { ModuleManifest, OldModuleManifest } from "./module-types";
 import type {
   ChatSdkModule,
@@ -36,7 +43,6 @@ import type {
   DeviceNetworkResult,
   DeviceNotificationResult,
   DevicePermissionResponse,
-  FileOptions,
   HttpSdkModule,
   LocaleState,
   ShellNavigationService,
@@ -58,28 +64,39 @@ export interface ShellAppearanceService {
 }
 
 export interface ShellDeviceService {
-  location(options?: {
-    highAccuracy?: boolean;
-    timeout?: number;
-    reason?: string;
-  }): Promise<DevicePermissionResponse<DeviceLocationResult>>;
-  camera(options?: {
-    facing?: "front" | "back";
-    reason?: string;
-  }): Promise<DevicePermissionResponse<DeviceCameraResult>>;
-  gallery(options?: FileOptions): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
-  files(options?: FileOptions): Promise<DevicePermissionResponse<DeviceFilesResult>>;
-  download(options?: { reason?: string }): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
-  contact(options?: { reason?: string }): Promise<DevicePermissionResponse<DeviceContactResult>>;
-  biometric(options?: {
-    reason?: string;
-  }): Promise<DevicePermissionResponse<DeviceBiometricResult>>;
-  notifications(options?: {
-    requestPermission?: boolean;
-    reason?: string;
-  }): Promise<DeviceNotificationResult>;
+  location(
+    options?: DeviceExtraOptions & { highAccuracy?: boolean; timeout?: number },
+  ): Promise<DevicePermissionResponse<DeviceLocationResult>>;
+  camera(
+    options?: DeviceExtraOptions & { facing?: "front" | "back" },
+  ): Promise<DevicePermissionResponse<DeviceCameraResult>>;
+  gallery(
+    options?: DeviceFileOptions,
+  ): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
+  files(
+    options?: DeviceFileOptions,
+  ): Promise<DevicePermissionResponse<DeviceFilesResult>>;
+  download(
+    options?: DeviceDownloadOptions & DeviceExtraOptions,
+  ): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
+  contact(
+    options?: DeviceExtraOptions,
+  ): Promise<DevicePermissionResponse<DeviceContactResult>>;
+  biometric(
+    options?: DeviceBiometricOptions,
+  ): Promise<DevicePermissionResponse<DeviceBiometricResult>>;
+  notifications(
+    options?: DeviceNotificationsOptions & DeviceExtraOptions,
+  ): Promise<DeviceNotificationResult>;
   network(): Promise<DeviceNetworkResult>;
   info(): Promise<DeviceInfoResult>;
+  /** Web Share API */
+  share?(data: { title?: string; text?: string; url?: string }): Promise<{ completed: boolean }>;
+  clipboardWrite?(text: string): Promise<void>;
+  clipboardRead?(): Promise<string>;
+  haptics?(style?: "light" | "medium" | "heavy" | "selection"): Promise<void>;
+  /** App store review prompt */
+  review?(): Promise<void>;
 }
 export interface ShellModuleManifestService {
   get(moduleId: string): MiniAppManifest | undefined;
@@ -87,7 +104,7 @@ export interface ShellModuleManifestService {
 }
 
 /** GIC Chat service — GIC prefix fixed, generic chat is ChatSdkModule */
-export interface GicChatService {
+export interface GicChatHostService {
   /** GIC session — POST /start-session per chat_api_spec.pdf */
   startSession(): Promise<GicChatSession>;
   /** GIC streaming — POST /stream SSE per chat_api_spec.pdf, emits GicChatEvent */
@@ -98,6 +115,14 @@ export interface GicChatService {
   ): Promise<void>;
 }
 
+export interface ShellLinkService {
+  open(url: string, options?: { inApp?: boolean }): Promise<void>;
+}
+
+export interface ShellNotificationsService {
+  register(options?: { requestPermission?: boolean }): Promise<{ enabled: boolean; token?: string }>;
+}
+
 export interface ShellServiceMap {
   auth: AuthSdkModule;
   permissions: PermissionsSdkModule;
@@ -106,12 +131,16 @@ export interface ShellServiceMap {
   navigation: ShellNavigationService;
   /** Generic chat — ChatSdkModule via HTTP.CHAT_STREAM with ChatMessage[] */
   chat: ChatSdkModule;
-  /** GIC chat — GicChatService via HTTP.CHAT_STREAM with GicChatStreamRequest + GicChatEvent, session via HTTP.GIC_START_SESSION */
-  gicChat?: GicChatService;
+  /** GIC chat — GicChatHostService via HTTP.CHAT_STREAM with GicChatStreamRequest + GicChatEvent, session via HTTP.GIC_START_SESSION */
+  gicChat?: GicChatHostService;
   device: ShellDeviceService;
   storage: StorageSdkModule;
   api: ApiSdkModule;
   http: HttpSdkModule;
   appearance: ShellAppearanceService;
   moduleManifest: ShellModuleManifestService;
+  /** Optional link handler — when absent, host falls back to window.open */
+  links?: ShellLinkService;
+  /** Optional notifications handler — when absent, host returns enabled:false */
+  notifications?: ShellNotificationsService;
 }

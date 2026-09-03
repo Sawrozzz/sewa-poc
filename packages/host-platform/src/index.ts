@@ -12,5 +12,7 @@ export * from "./protocol";
 export * from "./rpc";
 // Transports.
 export * from "./transport";
+// Services.
+export * from "./services/gic-chat-service";
 // Contracts: SDK surface, module manifest, shell service map.
 export * from "./types";
