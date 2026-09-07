@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { LocaleSwitcher } from "@/components/shell-chrome/LanguageSwitcher";
 import { SRI_LANKA_DIAL_CODE } from "@/core/mocks/mock-user";
 import { SriLankaFlag } from "./SriLankaFlag";
 
@@ -57,9 +56,6 @@ export function PhoneLoginScreen({
   return (
     <div className="min-h-dvh flex items-center justify-center bg-linear-to-br from-gov-950 via-gov-900 to-gov-800 p-4">
       <div className="w-full max-w-md animate-fade-in">
-        <div className="flex justify-end">
-          <LocaleSwitcher />
-        </div>
 
         <div className="text-center mb-8 mt-4">
           <div className="w-20 h-20 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20">
