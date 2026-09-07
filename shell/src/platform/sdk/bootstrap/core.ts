@@ -73,10 +73,11 @@ async function initializeSdk(sdk: MiniAppSdkInterface, now: () => number): Promi
 }
 
 /**
- * Ensures a live, initialized SDK instance exists for `miniAppId`. Reuses an
- * existing instance if present; otherwise seeds the globals and loads the
- * configured bundle source. `initialize()` is idempotent, so waiting on it
- * guarantees the handshake completed before returning.
+ * Ensures a live, initialized SDK instance exists for `miniAppId`. If an
+ * existing instance is present but has already been `destroy()`ed, it cannot
+ * be re-initialized (the SDK throws `SDK_ALREADY_DESTROYED`), so drop it and
+ * load a fresh bundle. Otherwise, `initialize()` is idempotent, so waiting
+ * on it guarantees the handshake completed before returning.
  *
  * Throws if the source fails to load, throws during evaluation, or loads
  * without producing an instance.
@@ -118,6 +119,11 @@ export async function bootstrapMiniAppSdk(
         delete (env.window as unknown as Record<string, unknown>)[SDK_GLOBAL_KEY];
       } catch {}
     }
+  }
+
+  if (existing) {
+    // A destroyed instance cannot be re-initialized; fall through and load
+    // a fresh bundle.
   }
 
   const source = options.source ?? DEFAULT_SDK_SOURCE;

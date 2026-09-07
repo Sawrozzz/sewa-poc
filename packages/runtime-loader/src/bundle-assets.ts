@@ -139,8 +139,23 @@ export function rewriteAssetReferences(code: string, assetUrls: Record<string, s
   let output = code;
 
   for (const path of paths) {
-    const pattern = new RegExp(`(["'\`(])(?:\\.{0,2}/)?${escapeForRegExp(path)}(?=["'\`)])`, "g");
-    output = output.replace(pattern, (_match, opener: string) => `${opener}${assetUrls[path]}`);
+    // Match both raw and URI-encoded forms — e.g. "pngwing.com (1).png" and
+    // "pngwing.com%20(1).png" — because public assets with spaces are often
+    // authored as "/pngwing.com%20(1).png" while the manifest stores the raw name.
+    const variants = new Set<string>([path]);
+    try {
+      const encoded = encodeURI(path);
+      if (encoded !== path) variants.add(encoded);
+    } catch {}
+    try {
+      const fullEncoded = encodeURIComponent(path);
+      if (fullEncoded !== path) variants.add(fullEncoded);
+    } catch {}
+
+    for (const variant of variants) {
+      const pattern = new RegExp(`(["'\`(])(?:\\.{0,2}/)?${escapeForRegExp(variant)}(?=["'\`)])`, "g");
+      output = output.replace(pattern, (_match, opener: string) => `${opener}${assetUrls[path]}`);
+    }
   }
 
   return output;

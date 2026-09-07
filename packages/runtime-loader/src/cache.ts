@@ -7,6 +7,7 @@
  */
 
 import type { PluginLoadOptions } from "@sewa/host-platform";
+import { isTextAsset, mimeTypeFor } from "./bundle-assets";
 import type {
   BundleContents,
   CachedBinaryFile,
@@ -22,7 +23,12 @@ const DB_NAME = "sewa-plugin-cache";
 const STORE_NAME = "modules";
 
 /** IndexedDB version (increment to trigger schema upgrade) */
-const DB_VERSION = 2;
+const DB_VERSION = 3;
+
+/** UTF-8 byte size of a string — exact storage size for `CachedFile.data` */
+function stringByteSize(value: string): number {
+  return new TextEncoder().encode(value).byteLength;
+}
 
 export class PluginCacheDB {
   private db: IDBDatabase | null = null;
@@ -96,7 +102,12 @@ export class PluginCacheDB {
     const db = await this.open();
     return new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, "readwrite");
-      const req = tx.objectStore(STORE_NAME).delete(key);
+      const req = tx.objectStore(STORE_NAME).put({
+        fileKey: "__cache-order__",
+        data: this.moduleOrder,
+        cachedAt: new Date(),
+        size: stringByteSize(JSON.stringify(this.moduleOrder)),
+      } as CacheOrder);
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });
@@ -253,39 +264,43 @@ export class PluginCacheDB {
       );
       const filesToFetch = fileNames.length > 0 ? fileNames : ["index.js"];
 
-      // Download each file — failures throw so caller can retry
+      // Download each file — text assets (js/css/svg/json) as strings, everything
+      // else (png/jpg/woff/mp4 …) as raw bytes so "�PNG" corruption never happens.
       const files: Record<string, string> = {};
       const baseUrlNoSlash = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
-      const fetchResults = await Promise.allSettled(
-        filesToFetch.map(async (fileName) => {
-          const url = `${baseUrlNoSlash}/${fileName}`;
-          const fileRes = await this._fetcher(url, {
-            signal: controller.signal,
-            cache: "no-store",
-          });
-          if (!fileRes.ok) {
-            throw new Error(`Failed to fetch ${url}: ${fileRes.status} ${fileRes.statusText}`);
-          }
-          const text = await fileRes.text();
-          return { fileName, text };
-        }),
-      );
-      const failures: string[] = [];
-      for (const r of fetchResults) {
-        if (r.status === "fulfilled") files[r.value.fileName] = r.value.text;
-        else failures.push(r.reason instanceof Error ? r.reason.message : String(r.reason));
-      }
-      if (failures.length > 0) {
-        // If entry file failed, fail fast; otherwise warn but continue
-        if (!files[filesToFetch[0]] && !files["index.js"]) {
-          throw new Error(`Failed to download required files: ${failures.join("; ")}`);
-        }
-        for (const f of failures) console.warn("[PluginCacheDB]", f);
-      }
-      if (Object.keys(files).length === 0) throw new Error("No files downloaded from directory");
-
-      // Store each file in IndexedDB
       const db = await this.open();
+
+      // Collect binary blobs here; they are persisted via putBinary() and do not
+      // enter the `files` text map.
+      const binaryFiles: Record<string, ArrayBuffer> = {};
+
+      const fetchPromises = filesToFetch.map(async (fileName) => {
+        const url = `${baseUrlNoSlash}/${encodeURI(fileName)}`;
+        const fileRes = await this._fetcher(url, {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        if (!fileRes.ok) {
+          console.error(
+            "[PluginCacheDB] Failed to fetch file:",
+            url,
+            fileRes.status,
+            fileRes.statusText,
+          );
+          return;
+        }
+        if (isTextAsset(fileName)) {
+          const text = await fileRes.text();
+          files[fileName] = text;
+        } else {
+          const buffer = await fileRes.arrayBuffer();
+          binaryFiles[fileName] = buffer;
+        }
+      });
+
+      await Promise.all(fetchPromises);
+
+      // Store each file in IndexedDB — text via put, binary via putBinary
       const putPromises: Promise<void>[] = [];
       for (const [fileName, content] of Object.entries(files)) {
         putPromises.push(
@@ -294,7 +309,8 @@ export class PluginCacheDB {
             const req = tx.objectStore(STORE_NAME).put({
               fileKey: `${moduleId}/${fileName}`,
               data: content,
-              cachedAt: Date.now(),
+              cachedAt: new Date(),
+              size: stringByteSize(content),
             } as CachedFile);
             req.onsuccess = () => {
               resolve();
@@ -303,16 +319,35 @@ export class PluginCacheDB {
           }),
         );
       }
+      for (const [fileName, buffer] of Object.entries(binaryFiles)) {
+        putPromises.push(
+          new Promise<void>((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, "readwrite");
+            const req = tx.objectStore(STORE_NAME).put({
+              fileKey: `${moduleId}/${fileName}`,
+              data: buffer,
+              binary: true,
+              mimeType: mimeTypeFor(fileName),
+              cachedAt: new Date(),
+              size: buffer.byteLength,
+            } as CachedBinaryFile);
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+          }),
+        );
+      }
 
       // Store Vite manifest if provided
       if (viteManifest) {
+        const manifestJson = JSON.stringify(viteManifest);
         putPromises.push(
           new Promise<void>((resolve, reject) => {
             const tx = db.transaction(STORE_NAME, "readwrite");
             const req = tx.objectStore(STORE_NAME).put({
               fileKey: `${moduleId}/manifest`,
-              data: JSON.stringify(viteManifest),
-              cachedAt: Date.now(),
+              data: manifestJson,
+              cachedAt: new Date(),
+              size: stringByteSize(manifestJson),
             } as CachedFile);
             req.onsuccess = () => resolve();
             req.onerror = () => reject(req.error);
@@ -441,11 +476,18 @@ export class PluginCacheDB {
   }
 
   async setVersion(moduleId: string, version: string): Promise<void> {
-    await this.idbPut({
-      fileKey: `${moduleId}/__version__`,
-      data: version,
-      cachedAt: Date.now(),
-    } as CachedFile);
+    const db = await this.open();
+    return new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const req = tx.objectStore(STORE_NAME).put({
+        fileKey: `${moduleId}/__version__`,
+        data: version,
+        cachedAt: new Date(),
+        size: stringByteSize(version),
+      } as CachedFile);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
   }
 
   /**
@@ -473,11 +515,18 @@ export class PluginCacheDB {
   }
 
   async putText(moduleId: string, fileName: string, content: string): Promise<void> {
-    await this.idbPut({
-      fileKey: `${moduleId}/${fileName}`,
-      data: content,
-      cachedAt: Date.now(),
-    } as CachedFile);
+    const db = await this.open();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const req = tx.objectStore(STORE_NAME).put({
+        fileKey: `${moduleId}/${fileName}`,
+        data: content,
+        cachedAt: new Date(),
+        size: stringByteSize(content),
+      } as CachedFile);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
     if (!this._manifestCache) this._manifestCache = {};
     this._manifestCache[`${moduleId}/${fileName}`] = content;
   }
@@ -488,24 +537,185 @@ export class PluginCacheDB {
     bytes: ArrayBuffer,
     mimeType = "application/octet-stream",
   ): Promise<void> {
-    await this.idbPut({
-      fileKey: `${moduleId}/${fileName}`,
-      data: bytes,
-      binary: true,
-      mimeType,
-      cachedAt: Date.now(),
-    } as unknown as CachedBinaryFile);
+    const db = await this.open();
+    return new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const req = tx.objectStore(STORE_NAME).put({
+        fileKey: `${moduleId}/${fileName}`,
+        data: bytes,
+        binary: true,
+        mimeType,
+        cachedAt: new Date(),
+        size: bytes.byteLength,
+      } as CachedBinaryFile);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
   }
 
+  /**
+   * Read raw bytes previously stored by {@link putBinary}.
+   *
+   * @param moduleId - Module ID containing the file
+   * @param fileName - File name (archive path) to retrieve
+   * @returns The bytes and MIME type, or null when absent
+   */
   async getBinary(
     moduleId: string,
     fileName: string,
   ): Promise<{ bytes: ArrayBuffer; mimeType: string } | null> {
-    const result = await this.idbGet<CachedBinaryFile>(`${moduleId}/${fileName}`);
-    if (!result?.data) return null;
-    return { bytes: result.data, mimeType: result.mimeType ?? "application/octet-stream" };
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const req = tx.objectStore(STORE_NAME).get(`${moduleId}/${fileName}`);
+      req.onsuccess = () => {
+        const result = req.result as CachedBinaryFile | undefined;
+        if (!result?.data) {
+          resolve(null);
+          return;
+        }
+        resolve({ bytes: result.data, mimeType: result.mimeType ?? "application/octet-stream" });
+      };
+      req.onerror = () => reject(req.error);
+    });
   }
 
+  /**
+   * Get full metadata for a text file, including `size` and `cachedAt` as `Date`.
+   * Handles legacy entries where `cachedAt` was a number and `size` was absent.
+   *
+   * @param moduleId - Module ID containing the file
+   * @param fileName - File name to retrieve
+   * @returns Full `CachedFile` record or null
+   */
+  async getFileMeta(moduleId: string, fileName: string): Promise<CachedFile | null> {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const req = tx.objectStore(STORE_NAME).get(`${moduleId}/${fileName}`);
+      req.onsuccess = () => {
+        const result = req.result as (CachedFile & { binary?: true; cachedAt: Date | number }) | undefined;
+        if (!result || result.binary) {
+          resolve(null);
+          return;
+        }
+        const cachedAt = result.cachedAt instanceof Date ? result.cachedAt : new Date(result.cachedAt as unknown as number);
+        const size = typeof (result as CachedFile).size === "number" ? (result as CachedFile).size : stringByteSize(result.data);
+        resolve({ ...result, cachedAt, size } as CachedFile);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  /**
+   * Get full metadata for a binary file, including `size` and `cachedAt` as `Date`.
+   *
+   * @param moduleId - Module ID containing the file
+   * @param fileName - File name to retrieve
+   * @returns Full `CachedBinaryFile` record or null
+   */
+  async getBinaryMeta(moduleId: string, fileName: string): Promise<CachedBinaryFile | null> {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const req = tx.objectStore(STORE_NAME).get(`${moduleId}/${fileName}`);
+      req.onsuccess = () => {
+        const result = req.result as (CachedBinaryFile & { cachedAt: Date | number }) | undefined;
+        if (!result?.binary) {
+          resolve(null);
+          return;
+        }
+        const cachedAt = result.cachedAt instanceof Date ? result.cachedAt : new Date(result.cachedAt as unknown as number);
+        const size = typeof result.size === "number" ? result.size : (result.data as ArrayBuffer)?.byteLength ?? 0;
+        resolve({ ...result, cachedAt, size } as CachedBinaryFile);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  /**
+   * Compute exact stored byte size for a single module (sum of all its `size` fields).
+   * Falls back to computing from `data` when legacy entries lack `size`.
+   *
+   * @param moduleId - Module ID to measure
+   * @returns Total bytes for the module, 0 if none
+   */
+  async getModuleSize(moduleId: string): Promise<number> {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const cursorReq = store.openCursor();
+      let total = 0;
+      cursorReq.onsuccess = () => {
+        const cursor = cursorReq.result;
+        if (cursor) {
+          const key = cursor.key as string;
+          if (key.startsWith(`${moduleId}/`)) {
+            const val = cursor.value as CachedFile | CachedBinaryFile;
+            if (typeof (val as CachedFile).size === "number") {
+              total += (val as CachedFile).size;
+            } else if ((val as CachedBinaryFile).binary) {
+              total += (val as CachedBinaryFile).data?.byteLength ?? 0;
+            } else {
+              total += stringByteSize((val as CachedFile).data ?? "");
+            }
+          }
+          cursor.continue();
+        } else {
+          resolve(total);
+        }
+      };
+      cursorReq.onerror = () => reject(cursorReq.error);
+    });
+  }
+
+  /**
+   * Compute total cache usage across all modules.
+   * Useful for quota monitoring — sums the stored `size` field for every entry
+   * except the internal `__cache-order__` bookkeeping record.
+   *
+   * @returns Total bytes used in the `modules` store
+   */
+  async getTotalCacheSize(): Promise<number> {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const cursorReq = store.openCursor();
+      let total = 0;
+      cursorReq.onsuccess = () => {
+        const cursor = cursorReq.result;
+        if (cursor) {
+          const key = cursor.key as string;
+          if (key !== "__cache-order__") {
+            const val = cursor.value as CachedFile | CachedBinaryFile;
+            if (typeof (val as CachedFile).size === "number") {
+              total += (val as CachedFile).size;
+            } else if ((val as CachedBinaryFile).binary) {
+              total += (val as CachedBinaryFile).data?.byteLength ?? 0;
+            } else if (typeof (val as CachedFile).data === "string") {
+              total += stringByteSize((val as CachedFile).data);
+            }
+          }
+          cursor.continue();
+        } else {
+          resolve(total);
+        }
+      };
+      cursorReq.onerror = () => reject(cursorReq.error);
+    });
+  }
+
+  /**
+   * Delete a single cached file.
+   *
+   * Used to drop the downloaded `.zip` once it has been verified and unpacked —
+   * the archive itself is never kept, only its extracted contents.
+   *
+   * @param moduleId - Module ID containing the file
+   * @param fileName - File name (archive path) to delete
+   */
   async deleteFile(moduleId: string, fileName: string): Promise<void> {
     const scopedKey = `${moduleId}/${fileName}`;
     if (this._manifestCache) delete this._manifestCache[scopedKey];
