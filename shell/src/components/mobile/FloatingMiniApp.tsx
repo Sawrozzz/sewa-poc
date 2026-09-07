@@ -113,7 +113,7 @@ export function FloatingMiniApp() {
         <section
           aria-hidden={!isOpen}
           aria-label={name}
-          className={`safe-bottom fixed inset-x-4 bottom-0 z-70 flex h-[80dvh] flex-col overflow-hidden rounded-t-3xl border-t shadow-2xl md:bottom-20 md:right-8 md:left-auto md:max-w-[min(38rem,80vw)] md:h-[min(60vh,42rem)] md:border md:rounded-2xl ${surfaceClass} ${
+          className={`safe-bottom fixed inset-x-4 bottom-0 z-70 flex h-[80dvh] w-137.5 flex-col overflow-hidden rounded-t-3xl border-t shadow-2xl md:bottom-20 md:right-8 md:left-auto md:max-w-[min(38rem,80vw)] md:h-[min(60vh,42rem)] md:border md:rounded-2xl ${surfaceClass} ${
             isOpen ? "animate-fade-in" : "hidden"
           }`}
         >
