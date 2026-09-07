@@ -4,9 +4,18 @@ import { AppLockGate } from "@/components/applock/AppLockGate";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { AppShell } from "@/components/shell-chrome/AppShell";
 import { authClient } from "@/features/auth/auth-client";
+import { isGuestMode } from "@/features/auth/guest";
 
 export default function HomePage() {
   const { data: session, isPending, refetch } = authClient.useSession();
+
+  if (isGuestMode()) {
+    return (
+      <AppLockGate>
+        <AppShell />
+      </AppLockGate>
+    );
+  }
 
   if (isPending) {
     return (

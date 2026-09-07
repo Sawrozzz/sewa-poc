@@ -5,8 +5,10 @@ import { ChevronRightIcon, SearchIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
+import { LoginRequiredModal } from "@/components/auth/LoginRequiredModal";
 import type { ResolvedMiniApp } from "@/core/manifest/merge-mini-app";
 import { authClient, mapSessionUser } from "@/features/auth/auth-client";
+import { isGuestMode } from "@/features/auth/guest";
 import {
   useFallbackMiniApps,
   useMiniAppCatalog,
@@ -14,7 +16,7 @@ import {
   useRefreshMiniApps,
   useTheme,
 } from "@/hooks";
-import { isFloatingMiniApp } from "@/lib/floating-mini-app";
+import { FLOATING_MINI_APP_ID } from "@/lib/floating-mini-app";
 
 /** One row in the list — the phone equivalent of a card in `ModuleGrid`. */
 interface ServiceRow {
@@ -63,21 +65,31 @@ function matches(row: ServiceRow, term: string) {
 function ServiceListRow({ isDark, row }: { isDark: boolean; row: ServiceRow }) {
   const router = useRouter();
   const [imgError, setImgError] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const guest = isGuestMode();
+  const isChatApp =
+    row.href === `/${FLOATING_MINI_APP_ID}` ||
+    row.href === `/${FLOATING_MINI_APP_ID}?source=registry`;
 
   return (
     <li>
       <button
-        className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors active:scale-[0.99] ${
-          isDark ? "active:bg-gray-800" : "active:bg-gov-50"
-        }`}
+        className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors active:scale-[0.99] ${isDark ? "active:bg-gray-800" : "active:bg-gov-50"
+          }`}
         id={`mobile-${row.key}`}
-        onClick={() => router.push(row.href)}
+        onClick={() => {
+          if (guest && !isChatApp) {
+            setShowLoginModal(true);
+            return;
+          }
+          router.push(row.href);
+        }}
         type="button"
       >
         <span
-          className={`flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl text-xl ${
-            isDark ? "bg-gray-800" : "bg-gray-50"
-          }`}
+          className={`flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl text-xl ${isDark ? "bg-gray-800" : "bg-gray-50"
+            }`}
           style={row.color ? { backgroundColor: `${row.color}18` } : undefined}
         >
           {row.iconUrl && !imgError ? (
@@ -95,9 +107,8 @@ function ServiceListRow({ isDark, row }: { isDark: boolean; row: ServiceRow }) {
 
         <span className="min-w-0 flex-1">
           <span
-            className={`block truncate text-sm font-semibold ${
-              isDark ? "text-gray-100" : "text-gray-900"
-            }`}
+            className={`block truncate text-sm font-semibold ${isDark ? "text-gray-100" : "text-gray-900"
+              }`}
           >
             {row.name}
           </span>
@@ -111,6 +122,9 @@ function ServiceListRow({ isDark, row }: { isDark: boolean; row: ServiceRow }) {
 
         <ChevronRightIcon className={isDark ? "text-gray-600" : "text-gray-300"} size={18} />
       </button>
+
+      {/** biome-ignore lint/suspicious/noLeakedRender: <custom> */}
+{showLoginModal && <LoginRequiredModal isDark={isDark} />}
     </li>
   );
 }
@@ -160,14 +174,8 @@ export function MobileServicesTab() {
 
   const search = term.trim().toLowerCase();
 
-  // The chat app is reachable from the floating bubble on this shell, so it is
-  // not also listed here.
   const registryRows = useMemo(
-    () =>
-      miniApps
-        .filter((app) => !isFloatingMiniApp(app.miniAppId))
-        .map(toRegistryRow)
-        .filter((row) => matches(row, search)),
+    () => miniApps.map(toRegistryRow).filter((row) => matches(row, search)),
     [miniApps, search],
   );
 
@@ -184,27 +192,24 @@ export function MobileServicesTab() {
 
   const isEmpty = !isLoading && !isError && registryRows.length === 0 && fallbackRows.length === 0;
 
-  const cardClass = `overflow-hidden rounded-2xl border ${
-    isDark ? "border-gray-800 bg-gray-900" : "border-gray-200 bg-white"
-  }`;
+  const cardClass = `overflow-hidden rounded-2xl border ${isDark ? "border-gray-800 bg-gray-900" : "border-gray-200 bg-white"
+    }`;
   const dividerClass = isDark ? "divide-gray-800" : "divide-gray-100";
 
   return (
     <div className="px-4 py-4">
       <div className="relative mb-4">
         <SearchIcon
-          className={`pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 ${
-            isDark ? "text-gray-500" : "text-gray-400"
-          }`}
+          className={`pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 ${isDark ? "text-gray-500" : "text-gray-400"
+            }`}
           size={18}
         />
 
         <input
-          className={`w-full rounded-xl border py-3 pl-11 pr-4 text-sm outline-none transition focus:border-gov-500 focus:ring-2 focus:ring-gov-200 ${
-            isDark
+          className={`w-full rounded-xl border py-3 pl-11 pr-4 text-sm outline-none transition focus:border-gov-500 focus:ring-2 focus:ring-gov-200 ${isDark
               ? "border-gray-800 bg-gray-900 text-gray-100 placeholder:text-gray-500"
               : "border-gray-200 bg-white text-gray-900 placeholder:text-gray-400"
-          }`}
+            }`}
           onChange={(e) => setTerm(e.target.value)}
           placeholder={t("search_placeholder")}
           type="search"
@@ -247,9 +252,8 @@ export function MobileServicesTab() {
           {registryRows.length > 0 && (
             <section>
               <h2
-                className={`mb-2 px-1 text-xs font-semibold uppercase tracking-wide ${
-                  isDark ? "text-gray-500" : "text-gray-500"
-                }`}
+                className={`mb-2 px-1 text-xs font-semibold uppercase tracking-wide ${isDark ? "text-gray-500" : "text-gray-500"
+                  }`}
               >
                 {t("available")}
               </h2>
@@ -259,18 +263,12 @@ export function MobileServicesTab() {
                   <ServiceListRow isDark={isDark} key={row.key} row={row} />
                 ))}
               </ul>
-
-              {/* Deliberately a button, not the desktop grid's intersection
-                  observer: this list shares the document scroll with the Home
-                  tab, and an offscreen sentinel would keep paging while the
-                  user is somewhere else. */}
               {!!hasNextPage && (
                 <button
-                  className={`mt-3 w-full rounded-xl border py-3 text-sm font-medium transition disabled:opacity-60 ${
-                    isDark
+                  className={`mt-3 w-full rounded-xl border py-3 text-sm font-medium transition disabled:opacity-60 ${isDark
                       ? "border-gray-800 bg-gray-900 text-gray-200"
                       : "border-gray-200 bg-white text-gov-800"
-                  }`}
+                    }`}
                   disabled={isFetchingNextPage}
                   onClick={() => fetchNextPage()}
                   type="button"
@@ -284,9 +282,8 @@ export function MobileServicesTab() {
           {fallbackRows.length > 0 && (
             <section>
               <h2
-                className={`mb-2 px-1 text-xs font-semibold uppercase tracking-wide ${
-                  isDark ? "text-gray-500" : "text-gray-500"
-                }`}
+                className={`mb-2 px-1 text-xs font-semibold uppercase tracking-wide ${isDark ? "text-gray-500" : "text-gray-500"
+                  }`}
               >
                 {t("playground")}
               </h2>

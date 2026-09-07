@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { markAsGuest } from "@/features/auth/guest";
 import { privileged } from "@/platform/host-privileges";
 import { LanguageScreen } from "./LanguageScreen";
+import { LoginTypeScreen } from "./LoginTypeScreen";
 import { OtpScreen } from "./OtpScreen";
 import { PhoneLoginScreen } from "./PhoneLoginScreen";
 import { WelcomeScreen } from "./WelcomeScreen";
 
-type Step = "welcome" | "language" | "login" | "otp";
+type Step = "welcome" | "language" | "login-type" | "login" | "otp";
 
 /** Set once the intro is done, so returning users land straight on login. */
 const ONBOARDED_KEY = "sewa.onboarding.completed";
@@ -23,7 +25,7 @@ export function OnboardingFlow({ onAuthenticatedAction }: { onAuthenticatedActio
     const onboarded =
       typeof window !== "undefined" && privileged.localStorage?.getItem(ONBOARDED_KEY) === "true";
     const frame = requestAnimationFrame(() => {
-      setStep(onboarded ? "login" : "welcome");
+      setStep(onboarded ? "login-type" : "welcome");
     });
     return () => cancelAnimationFrame(frame);
   }, []);
@@ -34,7 +36,7 @@ export function OnboardingFlow({ onAuthenticatedAction }: { onAuthenticatedActio
     } catch {
       // Private mode / storage disabled — the intro simply shows again.
     }
-    setStep("login");
+    setStep("login-type");
   };
 
   if (step === null) {
@@ -50,7 +52,26 @@ export function OnboardingFlow({ onAuthenticatedAction }: { onAuthenticatedActio
   }
 
   if (step === "language") {
-    return <LanguageScreen onContinueAction={completeIntro} />;
+    return (
+      <LanguageScreen
+        onContinueAction={() => {
+          completeIntro();
+          setStep("login-type");
+        }}
+      />
+    );
+  }
+
+  if (step === "login-type") {
+    return (
+      <LoginTypeScreen
+        onGuestAction={() => {
+          markAsGuest();
+          onAuthenticatedAction();
+        }}
+        onPhoneLoginAction={() => setStep("login")}
+      />
+    );
   }
 
   if (step === "otp") {

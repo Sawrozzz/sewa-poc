@@ -2,17 +2,21 @@
   "language": "සිංහල",
   "HomePage": {
     "title": "ආයුබෝවන් ලෝකය!",
-     "greetings": {
-    "morning": "සුභ උදෑසනක්",
-    "afternoon": "සුභ දහවලක්",
-    "evening": "සුභ සන්ධ්‍යාවක්",
-    "day": "සුභ දිනයක්"
-  },
-  "welcome_text": "{greeting}, {name}!",
+    "greetings": {
+      "morning": "සුභ උදෑසනක්",
+      "afternoon": "සුභ දහවලක්",
+      "evening": "සුභ සන්ධ්‍යාවක්",
+      "day": "සුභ දිනයක්"
+    },
+    "welcome_text": "{greeting}, {name}!",
     "services_description": "පහතින් ඔබගේ රජයේ සේවාවන් වෙත ප්‍රවේශ වන්න. නව සේවාවන් ලබා ගත හැකි වන විට ඒවා ස්වයංක්‍රීයව එක් කරනු ලැබේ."
   },
   "LocaleSwitcher": {
     "label": "භාෂාව"
+  },
+  "LoginRequired": {
+    "title": "Not authorized yet",
+    "body": "You are not authorized to open this service while browsing as a guest. Log in with your phone number to gain access."
   },
   "MobileNav": {
     "label": "ප්‍රධාන සංචලනය",
@@ -85,7 +89,12 @@
     "phone_placeholder": "71 234 5678",
     "send_otp": "OTP යවන්න",
     "sending_otp": "OTP යවමින්...",
-    "hint": "නිදර්ශන අංකය: 71 234 5678"
+    "hint": "නිදර්ශන අංකය: 71 234 5678",
+    "login_type_subtitle": "Choose how you want to enter the portal.",
+    "login_with_phone": "Continue with phone number",
+    "login_with_phone_hint": "We'll send a one-time password to your mobile number.",
+    "login_as_guest": "Continue as guest",
+    "login_as_guest_hint": "Skip verification and browse the portal without signing in."
   },
   "OtpPage": {
     "heading": "OTP සත්‍යාපනය කරන්න",

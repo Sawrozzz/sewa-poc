@@ -14,6 +14,10 @@
   "LocaleSwitcher": {
     "label": "Language"
   },
+  "LoginRequired": {
+    "title": "Not authorized yet",
+    "body": "You are not authorized to open this service while browsing as a guest. Log in with your phone number to gain access."
+  },
   "MobileNav": {
     "label": "Main navigation",
     "app_name": "Sewa",
@@ -85,7 +89,12 @@
     "phone_placeholder": "71 234 5678",
     "send_otp": "Send OTP",
     "sending_otp": "Sending OTP...",
-    "hint": "Demo number: 98 404 9910"
+    "hint": "Demo number: 98 404 9910",
+    "login_type_subtitle": "Choose how you want to enter the portal.",
+    "login_with_phone": "Continue with phone number",
+    "login_with_phone_hint": "We'll send a one-time password to your mobile number.",
+    "login_as_guest": "Continue as guest",
+    "login_as_guest_hint": "Skip verification and browse the portal without signing in."
   },
   "OtpPage": {
     "heading": "Verify OTP",

@@ -2,17 +2,21 @@
   "language": "தமிழ்",
   "HomePage": {
     "title": "வணக்கம் உலகமே!",
-   "greetings": {
-    "morning": "காலை வணக்கம்",
-    "afternoon": "மதிய வணக்கம்",
-    "evening": "மாலை வணக்கம்",
-    "day": "நல்ல நாள்"
-  },
-  "welcome_text": "{greeting}, {name}!",
+    "greetings": {
+      "morning": "காலை வணக்கம்",
+      "afternoon": "மதிய வணக்கம்",
+      "evening": "மாலை வணக்கம்",
+      "day": "நல்ல நாள்"
+    },
+    "welcome_text": "{greeting}, {name}!",
     "services_description": "கீழே உங்கள் அரசாங்க சேவைகளை அணுகுங்கள். புதிய சேவைகள் கிடைக்கும் போது அவை தானாகவே சேர்க்கப்படும்."
   },
   "LocaleSwitcher": {
     "label": "மொழி"
+  },
+  "LoginRequired": {
+    "title": "Not authorized yet",
+    "body": "You are not authorized to open this service while browsing as a guest. Log in with your phone number to gain access."
   },
   "MobileNav": {
     "label": "முதன்மை வழிசெலுத்தல்",
@@ -85,7 +89,12 @@
     "phone_placeholder": "71 234 5678",
     "send_otp": "OTP அனுப்பு",
     "sending_otp": "OTP அனுப்பப்படுகிறது...",
-    "hint": "மாதிரி எண்: 71 234 5678"
+    "hint": "மாதிரி எண்: 71 234 5678",
+    "login_type_subtitle": "Choose how you want to enter the portal.",
+    "login_with_phone": "Continue with phone number",
+    "login_with_phone_hint": "We'll send a one-time password to your mobile number.",
+    "login_as_guest": "Continue as guest",
+    "login_as_guest_hint": "Skip verification and browse the portal without signing in."
   },
   "OtpPage": {
     "heading": "OTP ஐ சரிபார்க்கவும்",

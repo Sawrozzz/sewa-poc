@@ -1,11 +1,11 @@
 /**
- * The one mini app the phone shell presents as a floating bubble instead of a
- * launcher tile — the website-chat-widget pattern.
+ * The one mini app the shell presents as a floating bubble and bottom sheet —
+ * the website-chat-widget pattern, active on every device class.
  *
- * Exported as a single constant because two places have to agree on it: the
- * widget that mounts it, and the mobile lists that filter it out so it is not
- * offered twice. The desktop grid does not consult this at all — the bubble is
- * phone-only, so the browser layout keeps listing the app normally.
+ * Exported as a single constant so the widget that mounts it and the registry
+ * rows agree on the id. The app is also listed normally in the launcher, the
+ * services list, and the desktop grid — the bubble is the extra, always-visible
+ * entry point rather than a replacement for those tiles.
  */
 export const FLOATING_MINI_APP_ID = "chat-application";
 

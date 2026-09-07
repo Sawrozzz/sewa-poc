@@ -4,10 +4,12 @@ import { ChevronRightIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
+import { LoginRequiredModal } from "@/components/auth/LoginRequiredModal";
 import { GlobalSearchBar } from "@/components/catalog/GlobalSearchBar";
 import { authClient, mapSessionUser } from "@/features/auth/auth-client";
+import { isGuestMode } from "@/features/auth/guest";
 import { useFallbackMiniApps, useMiniAppCatalog, useTheme } from "@/hooks";
-import { isFloatingMiniApp } from "@/lib/floating-mini-app";
+import { FLOATING_MINI_APP_ID } from "@/lib/floating-mini-app";
 import { getGreeting } from "@/shared/lib";
 import { useMobileTabs } from "./MobileTabsContext";
 
@@ -26,11 +28,24 @@ interface LauncherTile {
 function AppTile({ isDark, tile }: { isDark: boolean; tile: LauncherTile }) {
   const router = useRouter();
   const [imgError, setImgError] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const guest = isGuestMode();
+  const isChatApp =
+    tile.href === `/${FLOATING_MINI_APP_ID}` ||
+    tile.href === `/${FLOATING_MINI_APP_ID}?source=registry`;
 
   return (
     <button
       className="flex flex-col items-center gap-2 transition active:scale-95"
-      onClick={() => router.push(tile.href)}
+      onClick={(e) => {
+        if (guest && !isChatApp) {
+          e.preventDefault();
+          setShowLoginModal(true);
+          return;
+        }
+        router.push(tile.href);
+      }}
       type="button"
     >
       <span
@@ -63,6 +78,8 @@ function AppTile({ isDark, tile }: { isDark: boolean; tile: LauncherTile }) {
       >
         {tile.name}
       </span>
+
+      {showLoginModal && <LoginRequiredModal isDark={isDark} />}
     </button>
   );
 }
@@ -88,16 +105,12 @@ export function MobileHomeTab() {
   const fallbackModules = useFallbackMiniApps();
 
   const tiles = useMemo<LauncherTile[]>(() => {
-    // The chat app is reachable from the floating bubble on this shell, so it
-    // is not also given a launcher tile.
-    const registry = miniApps
-      .filter((app) => !isFloatingMiniApp(app.miniAppId))
-      .map((app) => ({
-        key: `registry:${app.id ?? app.miniAppId}`,
-        name: app.displayName ?? app.miniAppId,
-        iconUrl: app.iconUrl ?? undefined,
-        href: `/${app.miniAppId}?source=registry`,
-      }));
+    const registry = miniApps.map((app) => ({
+      key: `registry:${app.id ?? app.miniAppId}`,
+      name: app.displayName ?? app.miniAppId,
+      iconUrl: app.iconUrl ?? undefined,
+      href: `/${app.miniAppId}?source=registry`,
+    }));
 
     const fallback = fallbackModules
       .filter((m) => m.isEnabled)

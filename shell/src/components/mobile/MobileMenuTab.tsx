@@ -26,6 +26,7 @@ import {
   setAppLockPin,
 } from "@/features/auth/app-lock";
 import { authClient, mapSessionUser } from "@/features/auth/auth-client";
+import { clearGuestMode } from "@/features/auth/guest";
 import { useAppRefresh } from "@/hooks/use-app-refresh";
 import { useLocaleSwitch } from "@/hooks/use-locale-switch";
 import { useTheme } from "@/hooks/use-theme";
@@ -162,6 +163,7 @@ export function MobileMenuTab() {
   const user = mapSessionUser(session?.user);
 
   const handleLogout = async () => {
+    clearGuestMode();
     await authClient.signOut();
     router.replace("/");
   };
@@ -192,6 +194,47 @@ export function MobileMenuTab() {
 
   return (
     <div className="space-y-6 px-4 py-4">
+      {/* Guest indicator with a short-cut to log in */}
+      {!user && (
+        <section
+          className={`flex items-center justify-between gap-3 rounded-2xl border p-4 ${
+            isDark ? "border-gray-800 bg-gray-900" : "border-gray-200 bg-white"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 text-base font-bold ${
+                isDark
+                  ? "border-gray-700 bg-gray-800 text-gray-200"
+                  : "border-gov-100 bg-gov-50 text-gov-800"
+              }`}
+            >
+              G
+            </div>
+
+            <div className="min-w-0">
+              <p className={`text-base font-bold ${labelClass}`}>Guest user</p>
+              <p className={`text-xs ${mutedClass}`}>Browsing without a verified account</p>
+            </div>
+          </div>
+
+          <button
+            className={`shrink-0 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+              isDark
+                ? "border-gray-600 text-gray-200 hover:border-gov-400 hover:text-white"
+                : "border-gray-300 text-gov-700 hover:bg-gov-50"
+            }`}
+            onClick={() => {
+              clearGuestMode();
+              router.push("/");
+            }}
+            type="button"
+          >
+            Log in
+          </button>
+        </section>
+      )}
+
       {/* Profile */}
       {!!user && (
         <section

@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { GlobalSearchBar } from "@/components/catalog/GlobalSearchBar";
 import { ModuleGrid } from "@/components/catalog/ModuleGrid";
+import { FloatingMiniApp } from "@/components/mobile/FloatingMiniApp";
 import { MobileShell } from "@/components/mobile/MobileShell";
 import { MobileTabsProvider } from "@/components/mobile/MobileTabsContext";
 import { authClient, mapSessionUser } from "@/features/auth/auth-client";
@@ -12,9 +13,10 @@ import { Header } from "./Header";
 export function AppShell() {
   return (
     <MobileTabsProvider>
-      <div className="mobile-surface min-h-screen bg-linear-to-br from-gov-50 via-white to-gov-50">
+      <div className="mobile-surface relative min-h-screen bg-linear-to-br from-gov-50 via-white to-gov-50">
         <DesktopShell />
         <MobileShell />
+        <FloatingMiniApp />
       </div>
     </MobileTabsProvider>
   );

@@ -72,11 +72,22 @@ body {
   bottom: calc(1rem + var(--safe-bottom));
 }
 
-/* Floats clear of the fixed bottom tab bar: its 3.75rem body, the
-   home-indicator inset that bar already reserves, plus a 1rem gap. Same
-   arithmetic as `.tabbar-gap`, which keeps list content off it. */
-.above-tabbar {
-  bottom: calc(3.75rem + var(--safe-bottom) + 1rem);
+/*
+ * Floats clear of the fixed bottom tab bar: its 3.75rem body, the home-indicator
+ * inset that bar already reserves, plus a 1rem gap — same arithmetic that
+ * `.tabbar-gap` applies to list content. Scoped to phone view: on desktop the
+ * bottom tab bar is not rendered, so the bubble keeps a plain 1rem gap instead.
+ */
+@media (max-width: 47.99rem) {
+  .above-tabbar {
+    bottom: calc(3.75rem + var(--safe-bottom) + 1rem);
+  }
+}
+
+@media (min-width: 48rem) {
+  .above-tabbar {
+    bottom: 1rem;
+  }
 }
 
 /*

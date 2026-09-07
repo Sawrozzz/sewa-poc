@@ -13,10 +13,11 @@ import { useMiniAppBackButton } from "@/platform";
  * The chat mini app as a floating bubble — the pattern a website chat widget
  * uses, applied to a mini app.
  *
- * Phone-only, and gated the same way every other mobile surface is: the caller
- * renders it inside `MobileShell`, whose subtree is `md:hidden`. That keeps the
- * split in CSS rather than in a `matchMedia` hook, so there is no SSR guess and
- * no first-paint flash — see the note on `MobileShell`.
+ * The same bubble+sheet renders on every device class: the caller mounts it
+ * once from `AppShell`, and the layout split stays in CSS — phone view is a
+ * full-width bottom sheet above the tab bar; desktop view is a fixed, capped-
+ * width sheet at the bottom-right, beside where the bubble sits. No `matchMedia`
+ * hook, so there is no SSR guess and no first-paint flash.
  *
  * The panel is mounted lazily on first open and then kept in the DOM, hidden
  * rather than unmounted. A chat that reset its thread every time the bubble was
@@ -27,7 +28,7 @@ export function FloatingMiniApp() {
   const { isDark } = useTheme();
 
   const [isOpen, setIsOpen] = useState(false);
-  // Sticky: once opened, the bundle stays loaded for the life of the portal.
+  // Once opened, the bundle stays loaded for the life of the portal.
   const [hasOpened, setHasOpened] = useState(false);
 
   const { containerRef, state, error, name, isAvailable, retry } = useEmbeddedMiniApp({
@@ -50,7 +51,11 @@ export function FloatingMiniApp() {
   useEffect(() => {
     if (!isOpen) return;
     const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // Locks scrolling on phone view, where the sheet covers the screen and the
+    // native back button must not scroll the page behind the backdrop.
+    if (window.matchMedia("(max-width: 47.99rem)").matches) {
+      document.body.style.overflow = "hidden";
+    }
     return () => {
       document.body.style.overflow = previous;
     };
@@ -77,7 +82,7 @@ export function FloatingMiniApp() {
       {isOpen ? null : (
         <button
           aria-label={t("open", { name })}
-          className="above-tabbar fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gov-600 text-white shadow-lg shadow-gov-900/25 transition active:scale-95 md:hidden"
+          className="above-tabbar fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gov-600 text-white shadow-lg shadow-gov-900/25 transition active:scale-95 md:bottom-16 md:right-8"
           onClick={open}
           type="button"
         >
@@ -85,7 +90,10 @@ export function FloatingMiniApp() {
         </button>
       )}
 
-      {/* Backdrop. Rendered only while open so it never swallows taps. */}
+      {/*
+       * Phone view only: a tap-outside backdrop that never swallows taps while
+       * closed. Desktop has no backdrop — `Escape` and the tab bar stay usable.
+       */}
       {isOpen ? (
         <button
           aria-label={t("close")}
@@ -105,7 +113,7 @@ export function FloatingMiniApp() {
         <section
           aria-hidden={!isOpen}
           aria-label={name}
-          className={`safe-bottom fixed inset-x-4 bottom-0 z-70 flex h-[80dvh] flex-col overflow-hidden rounded-t-3xl border-t shadow-2xl md:hidden ${surfaceClass} ${
+          className={`safe-bottom fixed inset-x-4 bottom-0 z-70 flex h-[80dvh] flex-col overflow-hidden rounded-t-3xl border-t shadow-2xl md:bottom-20 md:right-8 md:left-auto md:max-w-[min(38rem,80vw)] md:h-[min(60vh,42rem)] md:border md:rounded-2xl ${surfaceClass} ${
             isOpen ? "animate-fade-in" : "hidden"
           }`}
         >

@@ -4,6 +4,7 @@ import { MoonIcon, RefreshCcwIcon, SunIcon } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient, mapSessionUser } from "@/features/auth/auth-client";
+import { clearGuestMode } from "@/features/auth/guest";
 import { useAppRefresh } from "@/hooks/use-app-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { LocaleSwitcher } from "./LanguageSwitcher";
@@ -22,6 +23,7 @@ export function Header() {
   const { isRefreshing, showSuccess, refresh: handleRefresh } = useAppRefresh();
 
   const handleLogout = async () => {
+    clearGuestMode();
     await authClient.signOut();
     router.replace("/");
   };
@@ -70,6 +72,31 @@ export function Header() {
             >
               {isDark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
             </button>
+
+            {!user && (
+              <div className="flex shrink-0 items-center gap-3">
+                <span
+                  className={`text-sm font-medium ${isDark ? "text-gray-200" : "text-gray-700"}`}
+                >
+                  Guest user
+                </span>
+                <button
+                  className={`shrink-0 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+                    isDark
+                      ? "border-gray-600 text-gray-200 hover:border-gov-500 hover:text-white"
+                      : "border-gray-300 text-gov-700 hover:bg-gov-50"
+                  }`}
+                  onClick={() => {
+                    clearGuestMode();
+                    router.push("/");
+                  }}
+                  title="Sign in"
+                  type="button"
+                >
+                  Log in
+                </button>
+              </div>
+            )}
 
             {user && (
               <div className="flex min-w-0 items-center gap-1 sm:gap-3">
@@ -128,7 +155,7 @@ export function Header() {
                       ? "text-gray-300 hover:text-red-400 hover:bg-red-950/40"
                       : "text-gray-500 hover:text-red-600 hover:bg-red-50"
                   }`}
-                  onClick={handleLogout}
+                  onClick={() => handleLogout()}
                   title="Sign Out"
                   type="button"
                 >
