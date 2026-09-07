@@ -51,11 +51,8 @@ export function FloatingMiniApp() {
   useEffect(() => {
     if (!isOpen) return;
     const previous = document.body.style.overflow;
-    // Locks scrolling on phone view, where the sheet covers the screen and the
-    // native back button must not scroll the page behind the backdrop.
-    if (window.matchMedia("(max-width: 47.99rem)").matches) {
-      document.body.style.overflow = "hidden";
-    }
+    // Locks scrolling while open, so the page behind the backdrop does not scroll.
+    document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = previous;
     };
@@ -91,13 +88,14 @@ export function FloatingMiniApp() {
       )}
 
       {/*
-       * Phone view only: a tap-outside backdrop that never swallows taps while
-       * closed. Desktop has no backdrop — `Escape` and the tab bar stay usable.
+       * Click-outside backdrop: closes the panel when anything outside is tapped.
+       * Present on every device class, so on desktop a background tap dismisses
+       * the floating app just like on phone.
        */}
       {isOpen ? (
         <button
           aria-label={t("close")}
-          className="fixed inset-0 z-60 bg-black/40 md:hidden"
+          className="fixed inset-0 z-60 bg-black/40"
           onClick={close}
           tabIndex={-1}
           type="button"
