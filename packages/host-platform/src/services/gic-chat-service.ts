@@ -136,11 +136,12 @@ export class GicChatService {
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         // SSE events delimited by \n\n
-        let idx: number;
-        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+        let idx = buffer.indexOf("\n\n");
+        while (idx !== -1) {
           const chunk = buffer.slice(0, idx);
           buffer = buffer.slice(idx + 2);
           if (chunk.trim()) await pushEvent(chunk);
+          idx = buffer.indexOf("\n\n");
         }
       }
       // Flush remaining

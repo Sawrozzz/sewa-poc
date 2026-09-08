@@ -102,12 +102,7 @@ export class PluginCacheDB {
     const db = await this.open();
     return new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, "readwrite");
-      const req = tx.objectStore(STORE_NAME).put({
-        fileKey: "__cache-order__",
-        data: this.moduleOrder,
-        cachedAt: new Date(),
-        size: stringByteSize(JSON.stringify(this.moduleOrder)),
-      } as CacheOrder);
+      const req = tx.objectStore(STORE_NAME).delete(key);
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });
@@ -120,8 +115,9 @@ export class PluginCacheDB {
     await this.idbPut({
       fileKey: "__cache-order__",
       data: this.moduleOrder,
-      cachedAt: Date.now(),
-    } as CacheOrder);
+      cachedAt: new Date(),
+      size: stringByteSize(JSON.stringify(this.moduleOrder)),
+    });
   }
 
   /**
@@ -594,13 +590,21 @@ export class PluginCacheDB {
       const tx = db.transaction(STORE_NAME, "readonly");
       const req = tx.objectStore(STORE_NAME).get(`${moduleId}/${fileName}`);
       req.onsuccess = () => {
-        const result = req.result as (CachedFile & { binary?: true; cachedAt: Date | number }) | undefined;
+        const result = req.result as
+          | (CachedFile & { binary?: true; cachedAt: Date | number })
+          | undefined;
         if (!result || result.binary) {
           resolve(null);
           return;
         }
-        const cachedAt = result.cachedAt instanceof Date ? result.cachedAt : new Date(result.cachedAt as unknown as number);
-        const size = typeof (result as CachedFile).size === "number" ? (result as CachedFile).size : stringByteSize(result.data);
+        const cachedAt =
+          result.cachedAt instanceof Date
+            ? result.cachedAt
+            : new Date(result.cachedAt as unknown as number);
+        const size =
+          typeof (result as CachedFile).size === "number"
+            ? (result as CachedFile).size
+            : stringByteSize(result.data);
         resolve({ ...result, cachedAt, size } as CachedFile);
       };
       req.onerror = () => reject(req.error);
@@ -625,8 +629,14 @@ export class PluginCacheDB {
           resolve(null);
           return;
         }
-        const cachedAt = result.cachedAt instanceof Date ? result.cachedAt : new Date(result.cachedAt as unknown as number);
-        const size = typeof result.size === "number" ? result.size : (result.data as ArrayBuffer)?.byteLength ?? 0;
+        const cachedAt =
+          result.cachedAt instanceof Date
+            ? result.cachedAt
+            : new Date(result.cachedAt as unknown as number);
+        const size =
+          typeof result.size === "number"
+            ? result.size
+            : ((result.data as ArrayBuffer)?.byteLength ?? 0);
         resolve({ ...result, cachedAt, size } as CachedBinaryFile);
       };
       req.onerror = () => reject(req.error);

@@ -32,7 +32,10 @@ export function readSdkInstance(w: Window & typeof globalThis): MiniAppSdkInterf
 
 function isDestroyedInstance(sdk: MiniAppSdkInterface): boolean {
   try {
-    const maybe = sdk as unknown as { destroyed?: boolean; debug?: { snapshot?: () => { status?: string } } };
+    const maybe = sdk as unknown as {
+      destroyed?: boolean;
+      debug?: { snapshot?: () => { status?: string } };
+    };
     if (maybe.destroyed === true) return true;
     const snap = maybe.debug?.snapshot?.();
     if (snap?.status === "destroyed") return true;
@@ -95,7 +98,9 @@ export async function bootstrapMiniAppSdk(
     // on `initialize()`. Clear it and fall through to a fresh load.
     if (isDestroyedInstance(existing)) {
       // eslint-disable-next-line no-console
-      console.warn(`[SdkBootstrap] Discarding destroyed SDK instance for "${(existing as unknown as { miniAppId?: string }).miniAppId ?? "unknown"}" — creating fresh one for "${miniAppId}"`);
+      console.warn(
+        `[SdkBootstrap] Discarding destroyed SDK instance for "${(existing as unknown as { miniAppId?: string }).miniAppId ?? "unknown"}" — creating fresh one for "${miniAppId}"`,
+      );
       try {
         (env.window as unknown as Record<string, unknown>)[SDK_GLOBAL_KEY] = undefined;
         delete (env.window as unknown as Record<string, unknown>)[SDK_GLOBAL_KEY];

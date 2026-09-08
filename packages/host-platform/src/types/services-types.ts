@@ -15,19 +15,17 @@ import type {
   ApiSdkModule,
   AuthSdkModule,
   ConfigSdkModule,
+  DeviceBiometricOptions,
+  DeviceDownloadOptions,
+  DeviceExtraOptions,
+  DeviceFileOptions,
+  DeviceNotificationsOptions,
   FlagsSdkModule,
   GicChatEvent,
   GicChatSession,
   GicChatStreamRequest,
   PermissionsSdkModule,
   StorageSdkModule,
-} from "@lizuz/mini-app-types";
-import type {
-  DeviceBiometricOptions,
-  DeviceDownloadOptions,
-  DeviceExtraOptions,
-  DeviceFileOptions,
-  DeviceNotificationsOptions,
 } from "@lizuz/mini-app-types";
 import type { ModuleManifest, OldModuleManifest } from "./module-types";
 import type {
@@ -70,18 +68,12 @@ export interface ShellDeviceService {
   camera(
     options?: DeviceExtraOptions & { facing?: "front" | "back" },
   ): Promise<DevicePermissionResponse<DeviceCameraResult>>;
-  gallery(
-    options?: DeviceFileOptions,
-  ): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
-  files(
-    options?: DeviceFileOptions,
-  ): Promise<DevicePermissionResponse<DeviceFilesResult>>;
+  gallery(options?: DeviceFileOptions): Promise<DevicePermissionResponse<DeviceGalleryResult>>;
+  files(options?: DeviceFileOptions): Promise<DevicePermissionResponse<DeviceFilesResult>>;
   download(
     options?: DeviceDownloadOptions & DeviceExtraOptions,
   ): Promise<DevicePermissionResponse<DeviceDownloadResult>>;
-  contact(
-    options?: DeviceExtraOptions,
-  ): Promise<DevicePermissionResponse<DeviceContactResult>>;
+  contact(options?: DeviceExtraOptions): Promise<DevicePermissionResponse<DeviceContactResult>>;
   biometric(
     options?: DeviceBiometricOptions,
   ): Promise<DevicePermissionResponse<DeviceBiometricResult>>;
@@ -120,7 +112,9 @@ export interface ShellLinkService {
 }
 
 export interface ShellNotificationsService {
-  register(options?: { requestPermission?: boolean }): Promise<{ enabled: boolean; token?: string }>;
+  register(options?: {
+    requestPermission?: boolean;
+  }): Promise<{ enabled: boolean; token?: string }>;
 }
 
 export interface ShellServiceMap {

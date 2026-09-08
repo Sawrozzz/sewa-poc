@@ -13,7 +13,12 @@
  */
 
 import type { PluginLoadOptions, RemoteLoadResult } from "@sewa/host-platform";
-import { isTextAsset, mimeTypeFor, rewriteAssetReferences, splitBundleEntries } from "./bundle-assets";
+import {
+  isTextAsset,
+  mimeTypeFor,
+  rewriteAssetReferences,
+  splitBundleEntries,
+} from "./bundle-assets";
 import { PluginCacheDB } from "./cache";
 import { verifyBundleHash } from "./integrity";
 import type {
@@ -666,14 +671,7 @@ export class RuntimeLoader {
     );
 
     // 5. Evaluate the JavaScript module
-    const moduleExports = await this.evaluateModule(
-      moduleId,
-      this.getFullUrl(bundleDirUrl, entryFileName),
-      indexJs,
-      styles,
-      startTime,
-      version,
-    );
+    return this.finishLoad(moduleId, entryFileName, indexJs, styles, startTime, version);
   }
 
   private async loadBundleInternal(

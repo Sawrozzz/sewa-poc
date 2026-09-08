@@ -26,8 +26,9 @@ export function LoginRequiredModal({ isDark }: { isDark: boolean }) {
           <div className="text-3xl">🔒</div>
           <button
             aria-label="Close"
-            className={`shrink-0 rounded-md p-1 transition ${isDark ? "text-gray-400 hover:bg-gray-800" : "text-gray-500 hover:bg-gray-100"
-              }`}
+            className={`shrink-0 rounded-md p-1 transition ${
+              isDark ? "text-gray-400 hover:bg-gray-800" : "text-gray-500 hover:bg-gray-100"
+            }`}
             onClick={() => setOpen(false)}
             type="button"
           >
@@ -40,10 +41,11 @@ export function LoginRequiredModal({ isDark }: { isDark: boolean }) {
 
         <div className="flex gap-3">
           <button
-            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition ${isDark
-              ? "bg-gov-500 text-gov-950 hover:bg-gov-400"
-              : "bg-gov-600 text-white hover:bg-gov-700"
-              }`}
+            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition ${
+              isDark
+                ? "bg-gov-500 text-gov-950 hover:bg-gov-400"
+                : "bg-gov-600 text-white hover:bg-gov-700"
+            }`}
             onClick={() => {
               try {
                 window.localStorage.removeItem("sewa.guestMode");
@@ -57,10 +59,11 @@ export function LoginRequiredModal({ isDark }: { isDark: boolean }) {
             Log in
           </button>
           <button
-            className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition ${isDark
-              ? "border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700"
-              : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-              }`}
+            className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition ${
+              isDark
+                ? "border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700"
+                : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+            }`}
             onClick={() => setOpen(false)}
             type="button"
           >

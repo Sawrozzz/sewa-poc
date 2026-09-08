@@ -343,13 +343,14 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
       }
     },
     notifications: async (_options?: { requestPermission?: boolean; reason?: string }) =>
-      ({ enabled: false } as unknown as DeviceNotificationResult),
+      ({ enabled: false }) as unknown as DeviceNotificationResult,
     network: async () =>
       ({
         online: navigator.onLine,
         // canonical supports wifi/cellular/none; host adds unknown as fallback when online but type unknown
         type: navigator.onLine ? "unknown" : "none",
-        effectiveType: (navigator as unknown as { connection?: { effectiveType?: string } }).connection?.effectiveType,
+        effectiveType: (navigator as unknown as { connection?: { effectiveType?: string } })
+          .connection?.effectiveType,
       }) as unknown as DeviceNetworkResult,
     info: async () => {
       const ua = navigator.userAgent;
@@ -366,7 +367,10 @@ export function createDeviceService(getUser: () => PlatformUser | null) {
       } as unknown as DeviceInfoResult;
     },
     share: async (data: { title?: string; text?: string; url?: string }) => {
-      if (typeof navigator !== "undefined" && (navigator as unknown as { share?: (d: unknown) => Promise<void> }).share) {
+      if (
+        typeof navigator !== "undefined" &&
+        (navigator as unknown as { share?: (d: unknown) => Promise<void> }).share
+      ) {
         try {
           await (navigator as unknown as { share: (d: unknown) => Promise<void> }).share(data);
           return { completed: true };

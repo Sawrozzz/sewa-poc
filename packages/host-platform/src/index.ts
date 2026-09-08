@@ -10,9 +10,9 @@ export * from "./events";
 export * from "./protocol";
 // RPC: MethodRegistry, RpcServer.
 export * from "./rpc";
-// Transports.
-export * from "./transport";
 // Services.
 export * from "./services/gic-chat-service";
+// Transports.
+export * from "./transport";
 // Contracts: SDK surface, module manifest, shell service map.
 export * from "./types";

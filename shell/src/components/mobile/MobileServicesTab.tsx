@@ -75,8 +75,9 @@ function ServiceListRow({ isDark, row }: { isDark: boolean; row: ServiceRow }) {
   return (
     <li>
       <button
-        className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors active:scale-[0.99] ${isDark ? "active:bg-gray-800" : "active:bg-gov-50"
-          }`}
+        className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors active:scale-[0.99] ${
+          isDark ? "active:bg-gray-800" : "active:bg-gov-50"
+        }`}
         id={`mobile-${row.key}`}
         onClick={() => {
           if (guest && !isChatApp) {
@@ -88,8 +89,9 @@ function ServiceListRow({ isDark, row }: { isDark: boolean; row: ServiceRow }) {
         type="button"
       >
         <span
-          className={`flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl text-xl ${isDark ? "bg-gray-800" : "bg-gray-50"
-            }`}
+          className={`flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl text-xl ${
+            isDark ? "bg-gray-800" : "bg-gray-50"
+          }`}
           style={row.color ? { backgroundColor: `${row.color}18` } : undefined}
         >
           {row.iconUrl && !imgError ? (
@@ -107,8 +109,9 @@ function ServiceListRow({ isDark, row }: { isDark: boolean; row: ServiceRow }) {
 
         <span className="min-w-0 flex-1">
           <span
-            className={`block truncate text-sm font-semibold ${isDark ? "text-gray-100" : "text-gray-900"
-              }`}
+            className={`block truncate text-sm font-semibold ${
+              isDark ? "text-gray-100" : "text-gray-900"
+            }`}
           >
             {row.name}
           </span>
@@ -124,7 +127,7 @@ function ServiceListRow({ isDark, row }: { isDark: boolean; row: ServiceRow }) {
       </button>
 
       {/** biome-ignore lint/suspicious/noLeakedRender: <custom> */}
-{showLoginModal && <LoginRequiredModal isDark={isDark} />}
+      {showLoginModal && <LoginRequiredModal isDark={isDark} />}
     </li>
   );
 }
@@ -192,24 +195,27 @@ export function MobileServicesTab() {
 
   const isEmpty = !isLoading && !isError && registryRows.length === 0 && fallbackRows.length === 0;
 
-  const cardClass = `overflow-hidden rounded-2xl border ${isDark ? "border-gray-800 bg-gray-900" : "border-gray-200 bg-white"
-    }`;
+  const cardClass = `overflow-hidden rounded-2xl border ${
+    isDark ? "border-gray-800 bg-gray-900" : "border-gray-200 bg-white"
+  }`;
   const dividerClass = isDark ? "divide-gray-800" : "divide-gray-100";
 
   return (
     <div className="px-4 py-4">
       <div className="relative mb-4">
         <SearchIcon
-          className={`pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 ${isDark ? "text-gray-500" : "text-gray-400"
-            }`}
+          className={`pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 ${
+            isDark ? "text-gray-500" : "text-gray-400"
+          }`}
           size={18}
         />
 
         <input
-          className={`w-full rounded-xl border py-3 pl-11 pr-4 text-sm outline-none transition focus:border-gov-500 focus:ring-2 focus:ring-gov-200 ${isDark
+          className={`w-full rounded-xl border py-3 pl-11 pr-4 text-sm outline-none transition focus:border-gov-500 focus:ring-2 focus:ring-gov-200 ${
+            isDark
               ? "border-gray-800 bg-gray-900 text-gray-100 placeholder:text-gray-500"
               : "border-gray-200 bg-white text-gray-900 placeholder:text-gray-400"
-            }`}
+          }`}
           onChange={(e) => setTerm(e.target.value)}
           placeholder={t("search_placeholder")}
           type="search"
@@ -252,8 +258,9 @@ export function MobileServicesTab() {
           {registryRows.length > 0 && (
             <section>
               <h2
-                className={`mb-2 px-1 text-xs font-semibold uppercase tracking-wide ${isDark ? "text-gray-500" : "text-gray-500"
-                  }`}
+                className={`mb-2 px-1 text-xs font-semibold uppercase tracking-wide ${
+                  isDark ? "text-gray-500" : "text-gray-500"
+                }`}
               >
                 {t("available")}
               </h2>
@@ -265,10 +272,11 @@ export function MobileServicesTab() {
               </ul>
               {!!hasNextPage && (
                 <button
-                  className={`mt-3 w-full rounded-xl border py-3 text-sm font-medium transition disabled:opacity-60 ${isDark
+                  className={`mt-3 w-full rounded-xl border py-3 text-sm font-medium transition disabled:opacity-60 ${
+                    isDark
                       ? "border-gray-800 bg-gray-900 text-gray-200"
                       : "border-gray-200 bg-white text-gov-800"
-                    }`}
+                  }`}
                   disabled={isFetchingNextPage}
                   onClick={() => fetchNextPage()}
                   type="button"
@@ -282,8 +290,9 @@ export function MobileServicesTab() {
           {fallbackRows.length > 0 && (
             <section>
               <h2
-                className={`mb-2 px-1 text-xs font-semibold uppercase tracking-wide ${isDark ? "text-gray-500" : "text-gray-500"
-                  }`}
+                className={`mb-2 px-1 text-xs font-semibold uppercase tracking-wide ${
+                  isDark ? "text-gray-500" : "text-gray-500"
+                }`}
               >
                 {t("playground")}
               </h2>

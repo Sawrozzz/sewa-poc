@@ -25,7 +25,6 @@ import {
 import type { Transport } from "../transport";
 import { PostMessageTransport } from "../transport";
 import type { ShellServiceMap } from "../types";
-import type { NavigationTarget } from "../types/sdk.types";
 import {
   isCapabilityGranted,
   resolveDataCapabilities,
@@ -320,11 +319,16 @@ export class RpcServer {
       return null;
     });
 
-    r.register(NAMESPACES.PERMISSIONS, ACTIONS.PERMISSIONS.HAS, async (payload) =>
-      await this.services.permissions.has((payload as { permission?: string })?.permission ?? ""),
+    r.register(
+      NAMESPACES.PERMISSIONS,
+      ACTIONS.PERMISSIONS.HAS,
+      async (payload) =>
+        await this.services.permissions.has((payload as { permission?: string })?.permission ?? ""),
     );
-    r.register(NAMESPACES.PERMISSIONS, ACTIONS.PERMISSIONS.LIST, async () =>
-      await this.services.permissions.list(),
+    r.register(
+      NAMESPACES.PERMISSIONS,
+      ACTIONS.PERMISSIONS.LIST,
+      async () => await this.services.permissions.list(),
     );
 
     r.register(NAMESPACES.FLAGS, ACTIONS.FLAGS.IS_ENABLED, (payload) =>
@@ -466,11 +470,12 @@ export class RpcServer {
       return res;
     });
     r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.INFO, async () => {
-      const res = await this.services.device.info() as unknown as Record<string, unknown>;
+      const res = (await this.services.device.info()) as unknown as Record<string, unknown>;
       // Normalize platform to lowercase web/flutter for canonical SDK expectation
       if (res && typeof res.platform === "string") {
         const raw = (res.platform as string).toLowerCase();
-        const normalized = raw === "web" || raw === "flutter" ? raw : raw.includes("web") ? "web" : "flutter";
+        const normalized =
+          raw === "web" || raw === "flutter" ? raw : raw.includes("web") ? "web" : "flutter";
         return { ...res, platform: normalized };
       }
       return res;
@@ -480,7 +485,10 @@ export class RpcServer {
       const data = payload as { title?: string; text?: string; url?: string };
       if (this.services.device.share) return this.services.device.share(data);
       // Fallback to Web Share API
-      if (typeof navigator !== "undefined" && (navigator as unknown as { share?: (d: unknown) => Promise<void> }).share) {
+      if (
+        typeof navigator !== "undefined" &&
+        (navigator as unknown as { share?: (d: unknown) => Promise<void> }).share
+      ) {
         try {
           await (navigator as unknown as { share: (d: unknown) => Promise<void> }).share(data);
           return { completed: true };
@@ -493,7 +501,8 @@ export class RpcServer {
     });
     r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.CLIPBOARD_WRITE, async (payload) => {
       const { text } = (payload ?? {}) as { text?: string };
-      if (this.services.device.clipboardWrite) return this.services.device.clipboardWrite(text ?? "");
+      if (this.services.device.clipboardWrite)
+        return this.services.device.clipboardWrite(text ?? "");
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text ?? "");
         return null;
@@ -513,7 +522,8 @@ export class RpcServer {
     });
     r.register(NAMESPACES.DEVICE, ACTIONS.DEVICE.HAPTICS, async (payload) => {
       const { style } = (payload ?? {}) as { style?: string };
-      if (this.services.device.haptics) return this.services.device.haptics(style as "light" | "medium" | "heavy" | "selection");
+      if (this.services.device.haptics)
+        return this.services.device.haptics(style as "light" | "medium" | "heavy" | "selection");
       if (typeof navigator !== "undefined" && "vibrate" in navigator) {
         const pattern = style === "heavy" ? 30 : style === "medium" ? 20 : 10;
         (navigator as unknown as { vibrate: (n: number) => void }).vibrate(pattern);
@@ -532,14 +542,25 @@ export class RpcServer {
       const value = await this.services.storage.get(key);
       // SDK expects { value } wrapper, but legacy shell storage returns raw string. Wrap if needed.
       if (value !== null && typeof value === "string") return { value };
-      if (value !== null && typeof value === "object" && "value" in (value as Record<string, unknown>)) return value;
+      if (
+        value !== null &&
+        typeof value === "object" &&
+        "value" in (value as Record<string, unknown>)
+      )
+        return value;
       return { value: value as string | null };
     });
     r.register(NAMESPACES.STORAGE, ACTIONS.STORAGE.SET, (payload) => {
       const { key, value, ttlMs } = payload as { key?: string; value?: string; ttlMs?: number };
       if (!key) throw new RpcMethodError("INVALID_PARAMS", "Missing key");
       // Forward ttlMs if storage service honors it; fallback ignores it (spec: host may drop after expiry)
-      return (this.services.storage.set as (k: string, v: string, opts?: { ttlMs?: number }) => Promise<void>)(key, value ?? "", ttlMs !== undefined ? { ttlMs } : undefined).then(() => null);
+      return (
+        this.services.storage.set as (
+          k: string,
+          v: string,
+          opts?: { ttlMs?: number },
+        ) => Promise<void>
+      )(key, value ?? "", ttlMs !== undefined ? { ttlMs } : undefined).then(() => null);
     });
     r.register(NAMESPACES.STORAGE, ACTIONS.STORAGE.REMOVE, (payload) => {
       const key = (payload as { key?: string })?.key;
@@ -573,7 +594,9 @@ export class RpcServer {
           method: "get",
           url: endpoint,
           params: params.query as Record<string, string> | undefined,
-          headers: await this.withAppearanceHeaders(params.headers as Record<string, string> | undefined),
+          headers: await this.withAppearanceHeaders(
+            params.headers as Record<string, string> | undefined,
+          ),
           responseType: "arraybuffer",
         });
         const buffer = res.data as ArrayBuffer;
@@ -584,24 +607,40 @@ export class RpcServer {
           const slice = buffer.slice(offset, offset + chunkSize);
           const text = Buffer.from(slice).toString("base64");
           ctx.send(
-            createMessage("stream", NAMESPACES.HTTP, ACTIONS.HTTP.GET_STREAM, "shell", ctx.moduleId, text, {
-              id: ctx.requestId,
-              traceId: ctx.traceId,
-              streamIndex: index,
-              streamLast: index === total,
-            }),
+            createMessage(
+              "stream",
+              NAMESPACES.HTTP,
+              ACTIONS.HTTP.GET_STREAM,
+              "shell",
+              ctx.moduleId,
+              text,
+              {
+                id: ctx.requestId,
+                traceId: ctx.traceId,
+                streamIndex: index,
+                streamLast: index === total,
+              },
+            ),
             ctx.source,
           );
           index++;
         }
         if (total === 0) {
           ctx.send(
-            createMessage("stream", NAMESPACES.HTTP, ACTIONS.HTTP.GET_STREAM, "shell", ctx.moduleId, "", {
-              id: ctx.requestId,
-              traceId: ctx.traceId,
-              streamIndex: 1,
-              streamLast: true,
-            }),
+            createMessage(
+              "stream",
+              NAMESPACES.HTTP,
+              ACTIONS.HTTP.GET_STREAM,
+              "shell",
+              ctx.moduleId,
+              "",
+              {
+                id: ctx.requestId,
+                traceId: ctx.traceId,
+                streamIndex: 1,
+                streamLast: true,
+              },
+            ),
             ctx.source,
           );
         }
@@ -615,7 +654,10 @@ export class RpcServer {
       if (!params?.endpoint) throw new RpcMethodError("INVALID_PARAMS", "Missing endpoint");
       // Host cannot proxy a WebSocket over postMessage without a dedicated bridge.
       // Return endpoint so SDK can create WebSocket directly if allowed, otherwise error.
-      throw new RpcMethodError("NOT_SUPPORTED", "WebSocket not supported via host RPC — connect directly to " + params.endpoint);
+      throw new RpcMethodError(
+        "NOT_SUPPORTED",
+        "WebSocket not supported via host RPC — connect directly to " + params.endpoint,
+      );
     });
 
     r.register(NAMESPACES.API, ACTIONS.API.REQUEST, async (payload) => {
@@ -677,7 +719,10 @@ export class RpcServer {
       try {
         const dev = await this.services.device.notifications(opts as Record<string, unknown>);
         // Normalize granted vs enabled
-        const enabled = (dev as unknown as { enabled?: boolean; granted?: boolean }).enabled ?? (dev as unknown as { granted?: boolean }).granted ?? false;
+        const enabled =
+          (dev as unknown as { enabled?: boolean; granted?: boolean }).enabled ??
+          (dev as unknown as { granted?: boolean }).granted ??
+          false;
         const token = (dev as unknown as { token?: string }).token;
         return { enabled, token };
       } catch {

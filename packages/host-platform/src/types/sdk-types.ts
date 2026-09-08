@@ -8,14 +8,15 @@
 
 import type {
   ApiResult,
-  ChatSdkModule,
   DeviceBiometricResult as BaseDeviceBiometricResult,
-  DeviceDownloadResult as BaseDeviceDownloadResult,
-  DeviceNetworkResult as BaseDeviceNetworkResult,
   DeviceContactResult as BaseDeviceContactResult,
-  DeviceNotificationResult as BaseDeviceNotificationResult,
+  DeviceDownloadResult as BaseDeviceDownloadResult,
   DeviceInfoResult as BaseDeviceInfoResult,
+  DeviceNetworkResult as BaseDeviceNetworkResult,
+  DeviceNotificationResult as BaseDeviceNotificationResult,
   PlatformUser as BasePlatformUser,
+  NavigationState as CanonicalNavigationState,
+  ChatSdkModule,
   DeviceDownloadOptions,
   DeviceFileOptions,
   DeviceFileResult,
@@ -26,7 +27,6 @@ import type {
   HttpResult,
   HttpSdkModule,
   NavigationTarget,
-  NavigationState as CanonicalNavigationState,
 } from "@lizuz/mini-app-types";
 
 export type {
@@ -186,7 +186,7 @@ export interface ShellNavigationService {
   /** A mini app reporting a forward step inside its own router. */
   push(consumed: boolean, moduleId: string): Promise<NavigationRouterResult>;
 
-  router(consumed: boolean, moduleId: string):Promise<NavigationRouterResult>;
+  router(consumed: boolean, moduleId: string): Promise<NavigationRouterResult>;
 
   // --- Host-only surface (never reachable from a mini app) ---
 

@@ -153,7 +153,10 @@ export function rewriteAssetReferences(code: string, assetUrls: Record<string, s
     } catch {}
 
     for (const variant of variants) {
-      const pattern = new RegExp(`(["'\`(])(?:\\.{0,2}/)?${escapeForRegExp(variant)}(?=["'\`)])`, "g");
+      const pattern = new RegExp(
+        `(["'\`(])(?:\\.{0,2}/)?${escapeForRegExp(variant)}(?=["'\`)])`,
+        "g",
+      );
       output = output.replace(pattern, (_match, opener: string) => `${opener}${assetUrls[path]}`);
     }
   }
